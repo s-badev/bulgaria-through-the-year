@@ -94,13 +94,13 @@ export class Compositor {
     const cloudLitDay = mix3([0.93, 0.94, 0.96], [0.60, 0.63, 0.68], sstep(0.5, 1, env.cloud));
     let lit = mix3([0.022, 0.024, 0.034], cloudLitDay, dayL);
     lit = mix3(lit, [0.95, 0.52, 0.34].map(v => v * (0.25 + 0.75 * dayL)), b.golden * 0.55 + b.alpenglow * (1 - b.overcast) * 0.25);
-    lit = mix3(lit, lit.map(v => v * 0.42), env.storm * 0.75);
+    lit = mix3(lit, lit.map(v => v * 0.30), env.storm * 0.85);
     lit = lit.map((v, i) => v + [0.016, 0.012, 0.010][i] * b.lightsOn * (0.4 + 0.6 * env.cloud)); // city glow under the clouds at night
     const dark = lit.map((v, i) => v * [0.40, 0.43, 0.50][i]);
     let fogCol = mix3([0.030, 0.031, 0.040], [0.76, 0.78, 0.81], sstep(-7, 10, alt));
     fogCol = mix3(fogCol, [0.95, 0.66, 0.46].map(v => v * (0.3 + 0.5 * dayL)), b.golden * 0.4);
     fogCol = fogCol.map((v, i) => v + [0.085, 0.060, 0.038][i] * b.lightsOn * 0.8);
-    const haze = mix3(mix3(b.sky.hor, [luma(b.sky.hor), luma(b.sky.hor), luma(b.sky.hor) * 1.06], 0.5 * b.overcast), fogCol, clamp(env.cloud * 0.6));
+    const haze = mix3(b.sky.hor, lit.map((v, i) => v * [0.80, 0.83, 0.90][i]), clamp(b.overcast * 1.1));
     const reduce = !!opts.reducedMotion;
     bindTarget(gl, null);
     const v = this.view;

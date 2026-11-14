@@ -30,8 +30,8 @@ export class Rain {
     const rain = ctx.env.rain; if (rain < 0.02) return;
     const L = clamp(ctx.dayLight), c = [lerp(0.32, 0.80, L), lerp(0.36, 0.84, L), lerp(0.46, 0.90, L)], rot = -Math.atan(this.angle), glow = ctx.blend.lightsOn * 0.25;
     for (let i = 0; i < this.n; i++) {
-      const p = this.drops[i], len = 5 + 20 * p.d, w = 0.45 + 0.75 * p.d;
-      sp.add(p.x, p.y, w, len, rot, 1, p.d, 0, c[0] + glow, c[1] + glow * 0.8, c[2] + glow * 0.5, (0.10 + 0.26 * p.d) * (0.6 + 0.4 * L + glow));
+      const p = this.drops[i], len = 6 + 24 * p.d, w = 0.5 + 0.8 * p.d;
+      sp.add(p.x, p.y, w, len, rot, 1, p.d, 0, c[0] + glow, c[1] + glow * 0.8, c[2] + glow * 0.5, (0.16 + 0.40 * p.d) * (0.6 + 0.4 * L + glow));
     }
     for (const s of this.splashes) {
       if (s.t >= 1) continue;
@@ -59,7 +59,7 @@ export class Snow {
   draw(sp, ctx) {
     if (!this.n) return;
     const L = clamp(ctx.dayLight), night = ctx.blend.lightsOn, c = [lerp(0.40, 0.97, L) + night * 0.2, lerp(0.42, 0.98, L) + night * 0.14, lerp(0.50, 1.0, L) + night * 0.06];
-    for (let i = 0; i < this.n; i++) { const f = this.flakes[i], r = 0.7 + 2.4 * f.d * f.d; sp.add(f.x, f.y, r, r, 0, 2, f.d, 0, c[0], c[1], c[2], 0.35 + 0.5 * f.d); }
+    for (let i = 0; i < this.n; i++) { const f = this.flakes[i], r = 0.8 + 2.9 * f.d * f.d; sp.add(f.x, f.y, r, r, 0, 2, f.d, 0, c[0], c[1], c[2], 0.45 + 0.5 * f.d); }
   }
 }
 

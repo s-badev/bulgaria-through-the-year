@@ -211,27 +211,27 @@ void main(){
   c *= 1. - 0.24 * uEnvB.w * (1. - sky);
   c = mix(c, mix(c, uHazeCol, 0.5), uEnvC.w * 0.08);
 
-  // sky: photographic cloud layers on a perspective plane, drifting with the wind
-  float cloud = uEnvA.x, cmask = clamp(sky + mtn * smoothstep(0.31, 0.19, uv.y) * smoothstep(0.55, 1., cloud) * uEnvB.w, 0., 1.);
+  // sky: photographic cloud layers (overcast deck + cumulus), gently compressed toward the horizon, drifting with the wind
+  float cloud = uEnvA.x, lowCloud = smoothstep(0.6, 1., cloud) * clamp(uEnvB.w * 0.9 + uEnvC.w * 0.3 + uMisc.z, 0., 1.);
+  float cmask = clamp(sky + mtn * smoothstep(0.34, 0.20, uv.y + (vnoise(px / 90.) - .5) * 0.07) * lowCloud, 0., 1.);
   float calpha = 0.;
   if (cmask > 0.003 && cloud > 0.01) {
-    float h = max(0.385 - uv.y, 0.012);
-    vec2 pc = vec2((uv.x - .5) / h, 1. / h);
-    float drift = uTime * (0.004 + wind * 0.03);
-    vec2 dk = texture(tDeck, pc * vec2(0.11, 0.10) + vec2(drift, drift * 0.3)).rg;
-    vec2 cu = texture(tCumulus, pc * vec2(0.085, 0.085) + vec2(drift * 1.6 + 0.37, 0.11)).rg;
-    float big = fbm(pc * 0.35 + vec2(drift * 0.8, 0.));
+    float yy = clamp(uv.y / 0.385, 0., 1.);
+    vec2 cuv = vec2((uv.x - .5) * mix(0.8, 1.3, yy), (1. - pow(1. - yy, 1.35)) * 1.5);
+    float drift = uTime * (0.0025 + wind * 0.018);
+    vec2 dk1 = texture(tDeck, cuv + vec2(drift, 0.)).rg, dk2 = texture(tDeck, cuv * vec2(0.53, 0.6) + vec2(drift * 0.6 + 0.43, 0.31)).rg;
+    vec2 cu = texture(tCumulus, cuv * vec2(0.9, 1.) + vec2(drift * 1.3 + 0.37, 0.02)).rg;
+    float big = fbm(cuv * vec2(2.4, 1.6) + vec2(drift * 2., 3.));
     float cv = cu.g * 0.6 + big * 0.75;
     float cov = smoothstep(1.22 - cloud * 1.15, 1.42 - cloud * 0.95, cv) * smoothstep(0.06, 0.3, cloud);
     float deck = smoothstep(0.62, 0.97, cloud);
     calpha = clamp(max(cov, deck), 0., 1.) * (1. - 0.8 * uMisc.z);
-    float shadeV = mix(cu.r, dk.r, deck) * 2. - 1.;
-    shadeV = clamp(0.5 + shadeV * (1.5 + deck) + (big - .5) * 0.5, 0., 1.);
+    float shadeV = mix(cu.r, dk1.r * 0.6 + dk2.r * 0.4, deck) * 2. - 1.;
+    shadeV = clamp(0.5 + shadeV * (1.3 + 0.9 * deck) + (big - .5) * 0.6, 0., 1.);
     vec3 cc = mix(uCloudDark, uCloudLit, shadeV);
     float side = exp(-pow((uv.x - uSkyP.x) * 1.3, 2.));
     cc += uSunHor * uSkyP.y * side * smoothstep(0.10, 0.36, uv.y) * 0.35 * (1. - deck * 0.7);
-    float hz = smoothstep(0.012, 0.11, h);
-    cc = mix(uHazeCol, cc, 0.35 + 0.65 * hz);
+    cc = mix(cc, uHazeCol, smoothstep(0.72, 1., yy) * 0.55);
     cc += uEnvC.x * vec3(0.55, 0.6, 0.8) * (0.25 + 0.9 * exp(-pow((uv.x - uSkyP.w) * 3., 2.)));
     c = mix(c, cc, calpha * cmask);
   }
