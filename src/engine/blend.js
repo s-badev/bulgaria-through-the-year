@@ -29,7 +29,7 @@ export function dominantSeason(w) { return SEASONS.reduce((a, b) => (w[b] > w[a]
 export const WEATHER = {
   clear: { cloud: 0.04, rain: 0, snow: 0, fog: 0, storm: 0 },
   cloudy: { cloud: 0.85, rain: 0, snow: 0, fog: 0, storm: 0 },
-  fog: { cloud: 0.35, rain: 0, snow: 0, fog: 1, storm: 0 },
+  fog: { cloud: 0.22, rain: 0, snow: 0, fog: 1, storm: 0 },
   rain: { cloud: 0.95, rain: 0.75, snow: 0, fog: 0.15, storm: 0 },
   storm: { cloud: 1, rain: 1, snow: 0, fog: 0, storm: 1 },
   snow: { cloud: 0.93, rain: 0, snow: 0.85, fog: 0.12, storm: 0 },

@@ -197,6 +197,17 @@ await saveMaskRGB(path.join(SCENE, 'geo.png'), nxS.map(v => v * .5 + .5), nyS.ma
 await saveGray16(path.join(SCENE, 'depth16.png'), inv.map(v => clamp(v / 1.25)));
 const calib = { focalPx: f, horizonY: CAMERA.horizonY, pitchRad: theta, z0CameraHeights: z0, invDepthScale: 1.25, groundRow0: Y0 };
 fs.writeFileSync(path.join(WORK, 'calib.json'), JSON.stringify(calib, null, 2));
+// Web copies: everything except the sky/mountain/vegetation mask is smooth enough for half resolution (first paint is ~4 MB lighter).
+// Full-resolution originals stay in assets/source/work/masks-full/ for the other tools.
+import('sharp').then(async ({ default: sharp }) => {
+  const full = path.join(WORK, 'masks-full'); ensureDir(full);
+  for (const f of ['masks-b.png', 'masks-c.png', 'masks-d.png', 'geo.png']) {
+    fs.copyFileSync(path.join(SCENE, f), path.join(full, f));
+    const buf = await sharp(path.join(full, f)).resize(Math.round(W / 2), Math.round(H / 2), { kernel: 'cubic' }).png({ compressionLevel: 9 }).toBuffer();
+    fs.writeFileSync(path.join(SCENE, f), buf);
+  }
+  console.log('half-res web masks written');
+});
 // keep CPU copies for the next tools
 fs.writeFileSync(path.join(WORK, 'inv.f32'), Buffer.from(inv.buffer));
 console.log('masks ok', calib);

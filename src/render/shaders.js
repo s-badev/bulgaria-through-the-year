@@ -111,6 +111,7 @@ void main(){
   vec3 newL = uAmb + uSunCol * vis * nd;
   vec3 ratio = clamp(newL / refL, 0., 6.);
   vec3 dayRelit = D * ratio;
+  dayRelit = mix(vec3(luma(dayRelit)), dayRelit, 1. + 0.22 * uRelight.z * (1. - dif));                        // low sun: richer colour
   dayRelit = mix(dayRelit, dayRelit * vec3(1.22, 0.80, 0.74) + vec3(0.012, 0.002, 0.004), mtn * uRelight.z * 0.8); // alpenglow on Vitosha
   // sky of the day image: photo sky re-coloured by the analytic model (keeps real wisps); overcast winter sky is replaced
   vec3 skyNow = skyModel(uv, uZen, uHor, uSunHor, uSkyP.x, uSkyP.y), skyRef = skyModel(uv, uRefZen, uRefHor, uRefHor, 0.2, 0.);
@@ -118,7 +119,7 @@ void main(){
   vec3 sunDisc = uSunHor * (exp(-length(sd) * 9.) * 0.9 + smoothstep(0.016, 0.010, length(sd)) * 3.) * uSkyP.w;
   // low frequencies from the analytic sky (the photo has its bright side baked on the left), wisps and grain from the photo
   vec3 skyLo = max(textureLod(tDay, uv, 5.).rgb, vec3(0.01));
-  vec3 detail = clamp(mix(vec3(1.), cDay / skyLo, smoothstep(0.02, 0.10, 0.36 - uv.y + 0.02)), 0.8, 1.6);
+  vec3 detail = clamp(mix(vec3(1.), cDay / skyLo, smoothstep(0.03, 0.14, 0.36 - uv.y)), 0.85, 1.3);
   vec3 skyCalc = skyNow * mix(detail, vec3(1.), wWin);
   vec3 skyDay = mix(D, skyCalc, max(r, wWin)) + sunDisc;
   dayRelit = mix(dayRelit, skyDay, sky);
@@ -132,23 +133,22 @@ void main(){
   nightImg = mix(nightImg, texture(tWinterNight, uv).rgb, wWin);
   nightImg = mix(nightImg, texture(tRainNight, uv).rgb, uSpecial.y);
 
-  vec3 img;
+  // computed dusk: relit day + the artificial light of the night photograph, switched on patch by patch and window by window
+  vec3 albedo = D / refL;
+  vec3 E = max(nightImg - albedo * NIGHT_AMB - 0.003, 0.) * (1. - sky);
+  float cell = hash12(floor(px / 5.) + 3.7), patchN = vnoise(px / 70. + 5.);
+  float on = uSpecial.z, onCell = smoothstep(cell * 0.75, cell * 0.75 + 0.25, on), onPatch = smoothstep(patchN * 0.6, patchN * 0.6 + 0.4, on);
+  vec3 img = mix(dayRelit + E * mix(onPatch, onCell, clamp(bld * 1.3, 0., 1.)), nightImg, uTod.w);
   if (uRelight.w > .5) {
+    // dawn/dusk photographs (summer scene) carried to spring and autumn; snow has a different albedo layout, so winter stays computed
     vec3 aG = texture(tGold, uv).rgb, gG = min(textureLod(tGold, uv, 3.).rgb / dayLo, vec3(8.)), rG = aG - gG * cDay;
     rG = mix(rG, max(rG - 0.006, 0.), vmask);
     vec3 goldImg = mix(max(gG * D + rG, 0.), aG, sky);
     vec3 aB = texture(tBlue, uv).rgb, gB = min(textureLod(tBlue, uv, 3.).rgb / dayLo, vec3(8.)), rB = aB - gB * cDay;
     rB = mix(rB, max(rB - 0.006, 0.), vmask);
     vec3 blueImg = mix(max(gB * D + rB, 0.), aB, sky);
-    img = uTod.x * dayRelit + uTod.y * goldImg + uTod.z * blueImg + uTod.w * nightImg;
-  } else {
-    // computed dusk: relit day + the artificial light of the night photograph, switched on patch by patch and window by window
-    vec3 albedo = D / refL;
-    vec3 E = max(nightImg - albedo * NIGHT_AMB - 0.003, 0.) * (1. - sky);
-    float cell = hash12(floor(px / 5.) + 3.7), patchN = vnoise(px / 70. + 5.);
-    float on = uSpecial.z, onCell = smoothstep(cell * 0.75, cell * 0.75 + 0.25, on), onPatch = smoothstep(patchN * 0.6, patchN * 0.6 + 0.4, on);
-    img = dayRelit + E * mix(onPatch, onCell, clamp(bld * 1.3, 0., 1.));
-    img = mix(img, nightImg, uTod.w);
+    vec3 anchored = uTod.x * dayRelit + uTod.y * goldImg + uTod.z * blueImg + uTod.w * nightImg;
+    img = mix(anchored, img, wWin);
   }
   o = vec4(pow(max(img, 0.), vec3(1. / 2.2)), 1.);
 }`;
@@ -165,6 +165,8 @@ uniform vec4 uEnvC;           // flash, stars, flat, snowfall
 uniform vec4 uMisc;           // grain, vignette, rainNight photo weight, fog photo weight
 uniform vec3 uFogCol, uHazeCol, uCloudLit, uCloudDark, uSunHor, uFountCol;
 uniform vec4 uSkyP;           // sunX, glow, lightsOn, boltX
+uniform vec4 uCam;            // focal px, cx, cy, z0 (camera heights)
+uniform vec3 uFogP;           // cos(pitch), sin(pitch), fog top height (camera heights)
 vec3 baseAt(vec2 uv){ vec3 c = texture(tBase, uv).rgb; return c * c * (c * 0.305306011 + 0.682171111) + c * 0.012522878; } // ~pow 2.2
 void main(){
   vec2 uv = uCov.xy + vUv * uCov.zw;
@@ -223,7 +225,7 @@ void main(){
     vec2 cu = texture(tCumulus, cuv * vec2(0.9, 1.) + vec2(drift * 1.3 + 0.37, 0.02)).rg;
     float big = fbm(cuv * vec2(2.4, 1.6) + vec2(drift * 2., 3.));
     float cv = cu.g * 0.6 + big * 0.75;
-    float cov = smoothstep(1.22 - cloud * 1.15, 1.42 - cloud * 0.95, cv) * smoothstep(0.06, 0.3, cloud);
+    float cov = smoothstep(1.18 - cloud * 1.15, 1.62 - cloud * 1.0, cv) * smoothstep(0.06, 0.3, cloud);
     float deck = smoothstep(0.62, 0.97, cloud);
     calpha = clamp(max(cov, deck), 0., 1.) * (1. - 0.8 * uMisc.z);
     float shadeV = mix(cu.r, dk1.r * 0.6 + dk2.r * 0.4, deck) * 2. - 1.;
@@ -246,10 +248,17 @@ void main(){
   c = mix(c, uHazeCol, clamp(far * far * uEnvA.w, 0., 0.9) * (1. - sky));
   float fog = uEnvA.y * (1. - uMisc.w * 0.75);
   if (fog > 0.003) {
+    // height above the ground from the calibrated depth: the fog is a layer, the city sinks into it, Vitosha and tower tops stay out
+    vec3 Pc = vec3((uv * uSize - uCam.yz) / uCam.x, 1.) * (uCam.w / max(inv, 0.02));
+    float hgt = 1. - (Pc.y * uFogP.x + Pc.z * uFogP.y);
+    hgt = mix(hgt, (0.372 - uv.y) / 0.17 * 3.2, mtn);
     float dist = clamp(0.18 / (inv + 0.07), 0., 1.);
-    float fd = fog * (0.22 + 0.78 * dist + mtn * 0.4) * smoothstep(uEnvA.z - 0.05, uEnvA.z + 0.07, uv.y) * (1. - sky * 0.55);
-    fd *= 0.88 + 0.2 * fbm(vec2(uv.x * 2.4 - uTime * 0.012 * (1. + wind * 4.), uv.y * 5.5));
-    c = mix(c, uFogCol, clamp(fd, 0., 0.95));
+    float wob = (fbm(vec2(uv.x * 2.4 - uTime * 0.012 * (1. + wind * 4.), uv.y * 5.5)) - .5) * 0.5;
+    float layer = smoothstep(uFogP.z + 0.28 + mtn * 0.7, uFogP.z - 0.12 - mtn * 0.5, hgt + wob * (1. + mtn * 1.5));
+    float fd = fog * (0.25 + 0.75 * dist) * layer * (1. - sky);
+    // seen from inside the fog, the low sky is fog too
+    fd = max(fd, fog * sky * smoothstep(0.75, 1.5, uFogP.z) * smoothstep(0.02, 0.36, uv.y + wob * 0.1) * 0.9);
+    c = mix(c, uFogCol, clamp(fd, 0., 0.96));
   }
   // lightning: the whole scene lifts for a moment, far things more
   c += uEnvC.x * vec3(0.42, 0.47, 0.62) * (0.3 + 0.7 * far) * (1. - sky);

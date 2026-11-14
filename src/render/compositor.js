@@ -67,12 +67,13 @@ export class Compositor {
     // ---- 2. base (only when the photographic state changed) ----
     const sIdx = n => SEASONS.indexOf(n);
     const ref = skyColors(40), sunY = (cam.horizonY - alt * cam.focalPx * Math.PI / 180) / H;
+    const glowX = clamp(b.sunX, -0.22, 1.22); // the sun may be outside the frame; its glow still enters from that side
     const discVis = b.sunVis * sstep(-1, 1.5, alt) * (b.sunX > -0.05 && b.sunX < 1.05 ? 1 : 0);
     const U = {
       uTod: [b.wDay, b.wGold, b.wBlue, b.wNight], uSeason: [sIdx(b.sA), sIdx(b.sB), b.sT, b.cover],
       uSpecial: [b.wFogPhoto, b.wRainNight, b.lightsOn, b.winter], uRelight: [b.relight, castStrength, b.alpenglow, b.anchoredSide ? 1 : 0],
       uSunCol: b.sunCol, uAmb: b.amb, uSunDir: sunW, uRefDir: refW,
-      uZen: b.sky.zen, uHor: b.sky.hor, uSunHor: b.sky.sun, uRefZen: ref.zen, uRefHor: ref.hor, uSkyP: [b.sunX, b.sky.glow * (1 - b.overcast * 0.8), sunY, discVis],
+      uZen: b.sky.zen, uHor: b.sky.hor, uSunHor: b.sky.sun, uRefZen: ref.zen, uRefHor: ref.hor, uSkyP: [glowX, b.sky.glow * (1 - b.overcast * 0.8), sunY, discVis],
     };
     const key = JSON.stringify(U, (k, v) => typeof v === 'number' ? +v.toFixed(4) : v) + s.version + this.prevSunKey + (morning ? 'm' : 'e');
     if (key !== this.prevKey) {
@@ -97,9 +98,9 @@ export class Compositor {
     lit = mix3(lit, lit.map(v => v * 0.30), env.storm * 0.85);
     lit = lit.map((v, i) => v + [0.016, 0.012, 0.010][i] * b.lightsOn * (0.4 + 0.6 * env.cloud)); // city glow under the clouds at night
     const dark = lit.map((v, i) => v * [0.40, 0.43, 0.50][i]);
-    let fogCol = mix3([0.030, 0.031, 0.040], [0.76, 0.78, 0.81], sstep(-7, 10, alt));
+    let fogCol = mix3([0.045, 0.046, 0.058], [0.76, 0.78, 0.81], sstep(-7, 10, alt));
     fogCol = mix3(fogCol, [0.95, 0.66, 0.46].map(v => v * (0.3 + 0.5 * dayL)), b.golden * 0.4);
-    fogCol = fogCol.map((v, i) => v + [0.085, 0.060, 0.038][i] * b.lightsOn * 0.8);
+    fogCol = fogCol.map((v, i) => v + [0.17, 0.12, 0.078][i] * b.lightsOn * (1 - 0.5 * dayL)); // lamps make night fog glow
     const haze = mix3(b.sky.hor, lit.map((v, i) => v * [0.80, 0.83, 0.90][i]), clamp(b.overcast * 1.1));
     const reduce = !!opts.reducedMotion;
     bindTarget(gl, null);
@@ -111,7 +112,8 @@ export class Compositor {
       .set('uEnvC', [opts.flash || 0, b.stars, clamp(env.cloud * 0.85 + env.fog * 0.3), env.snow])
       .set('uMisc', [opts.grain ?? 0.022, 0.22, b.wRainNight, b.wFogPhoto])
       .set('uFogCol', fogCol).set('uHazeCol', haze).set('uCloudLit', lit).set('uCloudDark', dark).set('uSunHor', b.sky.sun)
-      .set('uFountCol', opts.fountainColor || [0.2, 0.5, 1]).set('uSkyP', [b.sunX, b.sky.glow * (1 - b.overcast), b.lightsOn, opts.boltX ?? 0.5]);
+      .set('uCam', [cam.focalPx, W / 2, H / 2, cam.z0]).set('uFogP', [Math.cos(cam.pitchRad), Math.sin(cam.pitchRad), fogTop(env.fogLvl)])
+      .set('uFountCol', opts.fountainColor || [0.2, 0.5, 1]).set('uSkyP', [glowX, b.sky.glow * (1 - b.overcast), b.lightsOn, opts.boltX ?? 0.5]);
     drawFullscreen(gl);
     return b;
   }
@@ -123,3 +125,7 @@ export class Compositor {
   }
 }
 const luma = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+/** Fog top in camera heights for the fog slider (low = shallow ground fog, high = only the peaks stay out). */
+export const fogTop = lvl => lerp(0.22, 2.4, lvl);
+/** Fog over a ground-level point at image row y (same law as the shader), for fading sprites. */
+export function groundFog(env, y, H = 941, horizonY = 318) { const inv = Math.max(0, (y - horizonY) / (H - horizonY)); return clamp(env.fog * (0.25 + 0.75 * clamp(0.18 / (inv + 0.07)))); }

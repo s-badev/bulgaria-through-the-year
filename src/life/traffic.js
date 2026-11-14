@@ -1,6 +1,7 @@
 // Traffic along the traced lanes: perspective-correct size and speed, white headlights / red taillights with
 // glow and spill on wet asphalt at night, small moving bodies by day, density by the hour.
 import { clamp, lerp } from '../engine/blend.js';
+import { groundFog } from '../render/compositor.js';
 
 const BODY = [[0.80, 0.80, 0.82], [0.80, 0.80, 0.82], [0.58, 0.60, 0.63], [0.58, 0.60, 0.63], [0.10, 0.11, 0.13], [0.10, 0.11, 0.13], [0.34, 0.35, 0.38], [0.36, 0.11, 0.10], [0.13, 0.17, 0.27], [0.66, 0.62, 0.54]];
 export class Traffic {
@@ -32,22 +33,22 @@ export class Traffic {
       if (!c.on) continue;
       const p = this.at(c.lane, c.s, P); if (p.vis < 0.05) continue;
       const edge = clamp(Math.min(c.s, c.lane.length - c.s) / 14); // fade in/out at lane ends
-      const a = p.vis * edge, sc = p.sc, depth = clamp((p.y - 318) / 623 / 1.25 + 0.012, 0, 1);
+      const fg = groundFog(ctx.env, p.y), a = p.vis * edge * (1 - fg * 0.92), sc = p.sc, depth = clamp((p.y - 318) / 623 / 1.25 + 0.012, 0, 1);
       const nx = -Math.sin(p.ang), ny = Math.cos(p.ang), x = p.x + nx * c.off * c.lane.width * 0.5 * sc, y = p.y + ny * c.off * c.lane.width * 0.5 * sc;
       const len = (c.bus ? 26 : 11) * sc, wid = 5.2 * sc;
       if (day > 0.02) { // bodies with a soft contact shadow
         sp.add(x + 1.2 * sc, y + 2.2 * sc, len * 1.05, wid * 0.9, p.ang, 10, -depth, 0, 0, 0, 0, 0.26 * a * day * ctx.blend.sunVis);
         const k = (0.45 + 0.5 * ctx.dayLight) * (1 - 0.25 * ctx.env.wet);
         sp.add(x, y, len, wid, p.ang, 10, -depth, 0, c.body[0] * k, c.body[1] * k, c.body[2] * k, 0.85 * a * day);
-        sp.add(x, y - 0.6 * sc, len * 0.45, wid * 0.7, p.ang, 10, -depth, 0, 0.06, 0.08, 0.11, 0.6 * a * day);
+        sp.add(x, y - 0.5 * sc, len * 0.32, wid * 0.6, p.ang, 10, -depth, 0, 0.07, 0.09, 0.12, 0.38 * a * day);
       }
       if (night > 0.03) {
-        const head = c.lane.kind === 'head', col = head ? HEAD : TAIL, inten = night * a * (1 - fog * 0.55);
+        const head = c.lane.kind === 'head', col = head ? HEAD : TAIL, inten = night * p.vis * edge * (1 - fg * 0.6);
         const sgn = head ? 1 : -1, fx = x + Math.cos(p.ang) * len * 0.5 * sgn, fy = y + Math.sin(p.ang) * len * 0.5 * sgn; // headlights at the nose, taillights at the rear
-        const g = (head ? 5.2 : 3.6) * sc * (1 + fog * 1.6 + ctx.env.rain * 0.4);
-        sp.add(fx, fy, g, g, 0, 0, -depth, 0, col[0], col[1], col[2], -inten * (head ? 1.0 : 0.85));
-        if (head) sp.add(fx + Math.cos(p.ang) * 9 * sc, fy + Math.sin(p.ang) * 9 * sc, 13 * sc, 5.5 * sc, p.ang + Math.PI, 7, -depth, 0, 1.0, 0.9, 0.7, -inten * 0.22); // beam on the asphalt ahead
-        if (wet > 0.05) sp.add(fx, fy + 9 * sc, 2.2 * sc, 11 * sc, 0, 1, -depth, 0, col[0], col[1], col[2], -inten * wet * (head ? 0.5 : 0.42)); // spill on wet road
+        const g = (head ? 2.6 + 6.5 * sc : 2.1 + 4.6 * sc) * (1 + fog * 1.6 + ctx.env.rain * 0.4);
+        sp.add(fx, fy, g, g, 0, 0, -depth, 0, col[0], col[1], col[2], -inten * (head ? 1.25 : 1.05));
+        if (head) sp.add(fx + Math.cos(p.ang) * 9 * sc, fy + Math.sin(p.ang) * 9 * sc, 4 + 13 * sc, 1.5 + 5.5 * sc, p.ang + Math.PI, 7, -depth, 0, 1.0, 0.9, 0.7, -inten * 0.26); // beam on the asphalt ahead
+        if (wet > 0.05) sp.add(fx, fy + 3 + 9 * sc, 1 + 2.2 * sc, 3 + 11 * sc, 0, 1, -depth, 0, col[0], col[1], col[2], -inten * wet * (head ? 0.5 : 0.42)); // spill on wet road
       }
     }
   }

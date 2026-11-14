@@ -6,7 +6,8 @@ import { CAMERA, LANES, BASINS, JETS, BEACONS, CORRIDORS, EMBLEM, NDK_BOX } from
 
 const calib = JSON.parse(fs.readFileSync(path.join(WORK, 'calib.json')));
 const variants = JSON.parse(fs.readFileSync(path.join(WORK, 'variants.json')));
-const [bld, roads] = await loadMaskRGB(path.join(SCENE, 'masks-c.png'));
+const fullC = path.join(WORK, 'masks-full', 'masks-c.png');
+const [bld, roads] = await loadMaskRGB(fs.existsSync(fullC) ? fullC : path.join(SCENE, 'masks-c.png'));
 const [sky, mtn] = await loadMaskRGB(path.join(SCENE, 'masks-a.png'));
 const at = (a, x, y) => a[clamp(Math.round(y), 0, H - 1) * W + clamp(Math.round(x), 0, W - 1)];
 const scaleAt = y => +clamp((y - CAMERA.horizonY) / (H - CAMERA.horizonY), 0.05, 1.2).toFixed(3);

@@ -1,5 +1,6 @@
 // Things on the ground: lamp halos and their wet reflections, obstacle beacons, fountains, fireflies and midges, leaves.
 import { clamp, sstep } from '../engine/blend.js';
+import { groundFog } from '../render/compositor.js';
 
 const hash = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 
@@ -14,7 +15,7 @@ export class Lamps {
       for (let i = 0; i < n; i++) {
         const [x, y, sc, st] = set[i], th = hash(i) * 0.7, k = clamp((on - th) * 4) * clamp(st * 2.5); if (k <= 0) continue;
         const depth = clamp((y - 318) / 623 / 1.25 + 0.03, 0, 1), fl = 0.94 + 0.06 * Math.sin(ctx.time * (2 + hash(i + 9) * 3) + i);
-        if (air > 0.03) { const r = (5 + air * 20) * (0.5 + sc); sp.add(x, y, r, r, 0, 0, depth, 0, 1.0, 0.78, 0.48, -k * fl * (0.10 + air * 0.26)); }
+        if (air > 0.03) { const r = (4 + air * 12) * (0.5 + sc); sp.add(x, y, r, r, 0, 0, depth, 0, 1.0, 0.78, 0.48, -k * fl * (0.05 + air * 0.11) * (1 - groundFog(env, y) * 0.75)); }
         if (env.wet > 0.05 && b.wRainNight < 0.6) sp.add(x, y + 16 * (0.4 + sc), 2.2 * (0.5 + sc), 15 * (0.4 + sc), 0, 1, depth, 0, 1.0, 0.76, 0.46, -k * env.wet * 0.2 * (1 - b.wRainNight));
       }
     }
@@ -76,8 +77,8 @@ export class Leaves {
     const [W, H] = this.size, e = ctx.env, want = ctx.season.autumn * (0.3 + e.wind * 0.7) * (1 - e.snow) * (1 - ctx.season.winter) * (1 - e.rain * 0.6);
     this.amount += (want - this.amount) * Math.min(1, dt);
     const gust = 0.6 + 0.4 * Math.sin(ctx.time * 0.7) * Math.sin(ctx.time * 0.23 + 1), n = Math.round(this.items.length * this.amount * (0.5 + 0.5 * ctx.quality));
-    this.n = n;
-    for (let i = 0; i < n; i++) {
+    this.n = ctx.season.winter > 0.5 ? 0 : n; // never in winter
+    for (let i = 0; i < this.n; i++) {
       const L = this.items[i];
       L.x += (26 + e.wind * 330 * gust + e.storm * 220) * dt * L.k * L.d; L.y += (20 + 26 * Math.sin(ctx.time * 2 + L.ph)) * dt * L.k * L.d; L.rot += L.spin * dt * (1 + e.wind * 3);
       if (L.x > W + 30 || L.y > H + 30) { L.x = -20 - this.rnd() * 300; L.y = 380 + this.rnd() * 520; L.d = 0.35 + this.rnd() * 0.65; }

@@ -113,6 +113,8 @@ export function buildUI({ state, scene, version, actions }) {
     if ((e.key === 'h' || e.key === 'H' || e.key === 'х' || e.key === 'Х') && !typing) { ui.setPhotoMode(!ui.photoMode); e.preventDefault(); }
     else if (e.key === 'Escape') { if (ui.photoMode) ui.setPhotoMode(false); else if (!$('#intro').classList.contains('gone')) { actions.demo(false); ui.hideIntro(); } else actions.demo(false); }
   });
+  // phones: the sheet starts collapsed (time row only) so the photograph stays visible
+  if (matchMedia('(max-width: 820px)').matches) { $('#panel').classList.add('collapsed'); $('#sheetHandle').setAttribute('aria-expanded', 'false'); }
   ui.syncTime(); ui.syncDate(); ui.syncPlay(); ui.syncSound(); ui.syncFlash();
   return ui;
 }

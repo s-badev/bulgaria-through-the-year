@@ -44,8 +44,8 @@ test('solar position: noon is due south, morning east, evening west', () => {
   assert.ok(Math.abs(w.elevation - (90 - LAT - 23.44)) < 0.2, 'winter solstice elevation ' + w.elevation);
 });
 
-test('sunrise and sunset for Sofia (reference: published almanac values, tolerance 3 min)', () => {
-  // Reference values computed independently with the USNO/NOAA method for 42.6977N 23.3219E, local time.
+test('sunrise and sunset for Sofia (regression values; cross-checked against Open-Meteo by tests/qa/sun-accuracy.mjs)', () => {
+  // Local Sofia time. The live comparison with Open-Meteo (5 dates incl. both DST switch days) is in tests/qa/sun-accuracy.mjs.
   const ref = [
     [2026, 5, 21, '05:49', '21:08'],
     [2026, 11, 21, '07:54', '16:56'],
