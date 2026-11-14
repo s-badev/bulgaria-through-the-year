@@ -106,3 +106,57 @@ export function bilinear(src, w, h, x, y) {
 export const smoothstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 export const clamp = (x, a = 0, b = 1) => x < a ? a : x > b ? b : x;
 export const variantFiles = () => fs.existsSync(path.join(SRC, 'variants')) ? fs.readdirSync(path.join(SRC, 'variants')).filter(f => /\.png$/i.test(f)).sort() : [];
+
+/** 16-bit grey PNG -> Float32 0..1 */
+export async function loadGray16(file) {
+  const { data, info } = await sharp(file).toColourspace('grey16').raw({ depth: 'ushort' }).toBuffer({ resolveWithObject: true });
+  const u = new Uint16Array(data.buffer, data.byteOffset, info.width * info.height * info.channels), o = new Float32Array(info.width * info.height);
+  for (let i = 0; i < o.length; i++) o[i] = u[i * info.channels] / 65535;
+  return o;
+}
+export async function saveGray16(file, data, w = W, h = H) {
+  const u = new Uint16Array(w * h);
+  for (let i = 0; i < w * h; i++) u[i] = Math.round(clamp(data[i]) * 65535);
+  ensureDir(path.dirname(file));
+  await sharp(Buffer.from(u.buffer), { raw: { width: w, height: h, channels: 1, depth: 'ushort' } }).toColourspace('grey16').png({ compressionLevel: 9 }).toFile(file);
+}
+export const box = (src, w, h, r) => blur(src, w, h, r / 0.6, 1);
+/** Guided filter (grey guide I, input p). Edge-aware refinement of soft masks. */
+export function guided(I, p, w, h, r, eps) {
+  const n = w * h, mI = box(I, w, h, r), mp = box(p, w, h, r), II = new Float32Array(n), Ip = new Float32Array(n);
+  for (let i = 0; i < n; i++) { II[i] = I[i] * I[i]; Ip[i] = I[i] * p[i]; }
+  const mII = box(II, w, h, r), mIp = box(Ip, w, h, r), a = new Float32Array(n), b = new Float32Array(n);
+  for (let i = 0; i < n; i++) { a[i] = (mIp[i] - mI[i] * mp[i]) / (mII[i] - mI[i] * mI[i] + eps); b[i] = mp[i] - a[i] * mI[i]; }
+  const ma = box(a, w, h, r), mb = box(b, w, h, r), q = new Float32Array(n);
+  for (let i = 0; i < n; i++) q[i] = clamp(ma[i] * I[i] + mb[i]);
+  return q;
+}
+/** Rasterise a filled polygon into a float mask (1 inside). pts in image px. */
+export function fillPoly(pts, w = W, h = H, out = new Float32Array(w * h)) {
+  let y0 = Math.max(0, Math.floor(Math.min(...pts.map(p => p[1])))), y1 = Math.min(h - 1, Math.ceil(Math.max(...pts.map(p => p[1]))));
+  for (let y = y0; y <= y1; y++) {
+    const xs = [];
+    for (let i = 0; i < pts.length; i++) { const [ax, ay] = pts[i], [bx, by] = pts[(i + 1) % pts.length]; if ((ay <= y + .5 && by > y + .5) || (by <= y + .5 && ay > y + .5)) xs.push(ax + (y + .5 - ay) / (by - ay) * (bx - ax)); }
+    xs.sort((a, b) => a - b);
+    for (let k = 0; k + 1 < xs.length; k += 2) for (let x = Math.max(0, Math.round(xs[k])); x < Math.min(w, Math.round(xs[k + 1])); x++) out[y * w + x] = 1;
+  }
+  return out;
+}
+/** Distance (px) from every pixel to a polyline, capped at maxD. Brute force inside the bbox. */
+export function polylineDist(pts, maxD, w = W, h = H, out = null) {
+  out = out || new Float32Array(w * h).fill(maxD);
+  for (let s = 0; s + 1 < pts.length; s++) {
+    const [ax, ay] = pts[s], [bx, by] = pts[s + 1], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1;
+    const x0 = Math.max(0, Math.floor(Math.min(ax, bx) - maxD)), x1 = Math.min(w - 1, Math.ceil(Math.max(ax, bx) + maxD)), y0 = Math.max(0, Math.floor(Math.min(ay, by) - maxD)), y1 = Math.min(h - 1, Math.ceil(Math.max(ay, by) + maxD));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const t = clamp(((x - ax) * dx + (y - ay) * dy) / L2), d = Math.hypot(x - ax - t * dx, y - ay - t * dy), i = y * w + x;
+      if (d < out[i]) out[i] = d;
+    }
+  }
+  return out;
+}
+export function rgb2hsv(r, g, b) {
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; let h = 0;
+  if (d > 1e-6) { if (mx === r) h = ((g - b) / d) % 6; else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h *= 60; if (h < 0) h += 360; }
+  return [h, mx > 0 ? d / mx : 0, mx];
+}
