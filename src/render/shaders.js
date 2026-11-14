@@ -138,7 +138,10 @@ void main(){
   vec3 E = max(nightImg - albedo * NIGHT_AMB - 0.003, 0.) * (1. - sky);
   float cell = hash12(floor(px / 5.) + 3.7), patchN = vnoise(px / 70. + 5.);
   float on = uSpecial.z, onCell = smoothstep(cell * 0.75, cell * 0.75 + 0.25, on), onPatch = smoothstep(patchN * 0.6, patchN * 0.6 + 0.4, on);
-  vec3 img = mix(dayRelit + E * mix(onPatch, onCell, clamp(bld * 1.3, 0., 1.)), nightImg, uTod.w);
+  // only point sources (a pixel much brighter than its surroundings in the night photo: a window, a lamp head) switch cell by cell;
+  // floodlit facades and lit ground come up smoothly in soft patches, so no square mosaic can appear
+  float peaked = smoothstep(1.7, 3.2, luma(aN) / (luma(textureLod(tNight, uv, 4.).rgb) + 0.012));
+  vec3 img = mix(dayRelit + E * mix(onPatch, onCell, peaked * clamp(bld * 1.3, 0., 1.)), nightImg, uTod.w);
   if (uRelight.w > .5) {
     // dawn/dusk photographs (summer scene) carried to spring and autumn; snow has a different albedo layout, so winter stays computed
     vec3 aG = texture(tGold, uv).rgb, gG = min(textureLod(tGold, uv, 3.).rgb / dayLo, vec3(8.)), rG = aG - gG * cDay;
