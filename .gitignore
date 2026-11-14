@@ -1,0 +1,10 @@
+node_modules/
+dist/
+assets/source/
+.venv/
+.cache/
+*.log
+tests/screenshots/
+tests/qa-out/
+.DS_Store
+Thumbs.db
