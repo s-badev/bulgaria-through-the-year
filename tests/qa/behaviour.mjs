@@ -68,6 +68,15 @@ const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y
   const sofia = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Sofia', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(new Date()).reduce((o, p) => (o[p.type] = +p.value, o), {});
   check('"Сега" sets the real Sofia date and time', now.date === `${sofia.year}-${sofia.month}-${sofia.day}` && Math.abs(now.hour - (sofia.hour + sofia.minute / 60)) < 0.05, { app: now.date + ' ' + now.hour, sofia: `${sofia.year}-${sofia.month}-${sofia.day} ${(sofia.hour + sofia.minute / 60).toFixed(2)}` });
   check('"Сега" brings live weather from Open-Meteo', !!now.live && /Open-Meteo/.test(now.toast), { weather: now.weather, live: now.live, toast: now.toast });
+  // frame export
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 8000 }).catch(() => null), page.click('#shotBtn')]);
+  check('"Запази кадър" downloads a PNG of the current frame', !!dl && /^sofia-ndk-.*.png$/.test(dl.suggestedFilename()), dl && dl.suggestedFilename());
+  // optional evening photographs are picked up as soon as the scene lists them (simulated here by aliasing the dawn photos)
+  const opt = await page.evaluate(async () => { const a = window.__app, s = a.scene, st = a.state; const before = (st.setSeason('summer'), st.setWeather('clear'), st.setHour(st.times.set - 0.25), st.settle(), await new Promise(r => setTimeout(r, 400)), a.comp.blend.anchoredSide);
+    for (const [e, d] of [['evening-golden', 'dawn-golden'], ['evening-bluehour', 'dawn-bluehour']]) s.photos[e] = { ...s.photos[d], id: e, tex: null, state: 'idle', promise: null };
+    const t0 = performance.now(); while (performance.now() - t0 < 8000 && !a.comp.blend.anchoredSide) await new Promise(r => requestAnimationFrame(r));
+    const after = { anchored: a.comp.blend.anchoredSide, wGold: +a.comp.blend.wGold.toFixed(2), morning: a.comp.blend.morning }; delete s.photos['evening-golden']; delete s.photos['evening-bluehour']; return { before, after }; });
+  check('evening photos are used automatically once present; without them the evening is computed', opt.before === false && opt.after.anchored === true && opt.after.wGold > 0.5 && opt.after.morning === false, opt);
   // offline fallback
   await ctx.route('**/api.open-meteo.com/**', r => r.abort()); await page.click('#now'); await page.waitForFunction(() => !document.querySelector('#now').disabled, null, { timeout: 15000 }); await page.waitForTimeout(200);
   const off = await page.evaluate(() => document.querySelector('#toast').textContent); check('"Сега" offline fallback keeps time and explains', /не е достъпно/.test(off), off);

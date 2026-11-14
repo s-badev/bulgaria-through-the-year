@@ -5,12 +5,14 @@
   "type": "module",
   "description": "Жива снимка на София: НДК и Витоша през денонощието, сезоните и времето.",
   "scripts": {
+    "predev": "node tools/build-all.mjs --if-changed",
     "dev": "vite --port 8080 --strictPort",
+    "prebuild": "node tools/build-all.mjs --if-changed",
     "build": "vite build",
     "preview": "vite preview --port 8080 --strictPort",
     "test": "node --test \"tests/unit/*.test.js\"",
     "assets": "node tools/build-all.mjs",
-    "qa": "node tests/qa/run-grid.mjs"
+    "qa": "node tests/qa/run-grid.mjs && node tests/qa/behaviour.mjs && node tests/qa/sun-accuracy.mjs"
   },
   "devDependencies": {
     "playwright": "^1.65.1",
