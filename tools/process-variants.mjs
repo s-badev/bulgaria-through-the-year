@@ -120,13 +120,13 @@ async function cloudTexture(rgb, name, mode) {
     strip[i] = L[i];
     dens[i] = mode === 'deck' ? 1 : smoothstep(0.45, 0.2, (b - r) / (b + 0.05)) * smoothstep(0.45, 0.7, L[i]); // white vs blue
   }
-  const low = blur(strip, W, SH, 90), out = Buffer.alloc(TW * SH * 3);
+  const low = blur(strip, W, SH, 120), out = Buffer.alloc(TW * SH * 3), gain = mode === 'deck' ? 2.6 : 1.3;
   for (let y = 0; y < SH; y++) for (let x = 0; x < TW; x++) {
     const t = x < B ? x / B : 1, i0 = y * W + x, i1 = y * W + x + TW; // cross-fade the wrap seam
     const w = t * t * (3 - 2 * t);
     const shade = (strip[i0] / (low[i0] + 1e-3)) * w + (x < B ? (strip[i1] / (low[i1] + 1e-3)) * (1 - w) : 0);
     const de = dens[i0] * w + (x < B ? dens[i1] * (1 - w) : 0);
-    const o = (y * TW + x) * 3; out[o] = clamp(shade * 0.5) * 255; out[o + 1] = clamp(de) * 255; out[o + 2] = 0;
+    const o = (y * TW + x) * 3; out[o] = clamp(0.5 + (shade - 1) * gain) * 255; out[o + 1] = clamp(de) * 255; out[o + 2] = 0;
   }
   // vertical tile: mirror-blend top/bottom 36 rows
   const VB = 36, TH = SH - VB, fin = Buffer.alloc(TW * TH * 3);

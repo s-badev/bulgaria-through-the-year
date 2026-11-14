@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const port = process.argv[2] || 5199, q = process.argv[3] || '';
+const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });
+const page = await (await browser.newContext({ viewport: { width: 1440, height: 810 } })).newPage();
+page.on('console', m => console.log('[' + m.type() + ']', m.text().slice(0, 1500)));
+page.on('pageerror', e => console.log('[pageerror]', e.message.slice(0, 1500)));
+page.on('requestfailed', r => console.log('[requestfailed]', r.url()));
+await page.goto(`http://127.0.0.1:${port}/?${q}`, { waitUntil: 'load' });
+await page.waitForTimeout(6000);
+console.log('app:', await page.evaluate(() => window.__app ? { frame: window.__app.clock.frame, base: window.__app.comp.baseRenders, photos: Object.values(window.__app.scene.photos).map(p => p.id + ':' + p.state).join(' ') } : document.querySelector('#app').textContent));
+await browser.close();
