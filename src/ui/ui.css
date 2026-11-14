@@ -1,8 +1,6 @@
 @import '@fontsource-variable/manrope/index.css';
-@import '@fontsource/fraunces/400.css';
-@import '@fontsource/fraunces/400-italic.css';
 
-:root { --glass: rgba(12, 16, 26, .74); --line: rgba(255, 255, 255, .16); --txt: #f1f4f8; --mut: #c3cad6; --acc: #ffb35a; --font: 'Manrope Variable', Manrope, system-ui, -apple-system, 'Segoe UI', sans-serif; --serif: Fraunces, Georgia, serif; }
+:root { --glass: rgba(12, 16, 26, .74); --line: rgba(255, 255, 255, .16); --txt: #f1f4f8; --mut: #c3cad6; --acc: #ffb35a; --font: 'Manrope Variable', Manrope, system-ui, -apple-system, 'Segoe UI', sans-serif; --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif; }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: #05070d; color: var(--txt); font-family: var(--font); overflow: hidden; }
 canvas#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; touch-action: none; }
