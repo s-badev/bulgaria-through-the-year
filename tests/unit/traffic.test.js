@@ -86,3 +86,24 @@ test('density follows the hour and the weather; the autumn photo uses its own (n
   const autumn = sim({}, 13, 293).T;
   assert.equal(autumn.setName, 'autumn'); assert.ok(autumn.lanes.every(l => l.cw !== 'left-out'), 'no live lane on the carriageway the autumn photo redrew');
 });
+
+test('clean-only carriageways: plate cleaning only - never a lane, a spawn or drivable asphalt of their own', () => {
+  const clean = data.carriageways.filter(c => c.cleanOnly), live = data.carriageways.filter(c => !c.cleanOnly);
+  assert.ok(clean.length >= 1, 'the scene declares at least one clean-only zone (the slip beside the outbound carriageway)');
+  const ids = new Set(clean.map(c => c.id));
+  for (const l of data.lanes) assert.ok(!ids.has(l.cw), `lane ${l.id} runs on clean-only ${l.cw}`);
+  const inside = (poly, x, y) => { let r = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) r = !r; } return r; };
+  let checked = 0;
+  for (const c of clean) {
+    const xs = c.polygon.map(p => p[0]), ys = c.polygon.map(p => p[1]);
+    for (let y = Math.floor(Math.min(...ys)); y <= Math.ceil(Math.max(...ys)); y++) for (let x = Math.floor(Math.min(...xs)); x <= Math.ceil(Math.max(...xs)); x++) {
+      if (!inside(c.polygon, x + 0.5, y + 0.5) || live.some(l => inside(l.polygon, x + 0.5, y + 0.5))) continue;
+      checked++; assert.ok(!onRoad(x, y, 0) && !onRoad(x, y, 1), `clean-only ${c.id} has drivable asphalt at ${x},${y}`);
+    }
+  }
+  assert.ok(checked > 20, 'the clean-only zone was actually sampled');
+  const { T } = sim({}, 17.8, 196, 3000);
+  assert.ok(Object.keys(T.lanesBase).every(id => !ids.has(id)));
+  for (const set of Object.values(T.sets)) for (const l of set) assert.ok(!ids.has(l.cw));
+  assert.equal(T.events.midRoad, 0);
+});

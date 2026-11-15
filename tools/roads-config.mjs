@@ -6,6 +6,7 @@
 //   seen : 'head' = traffic comes toward the camera (we see headlights), 'tail' = it drives away (taillights)
 //   start/end : how cars may appear/disappear there — 'far' (fade through the haze at the far end),
 //               'hide' (under tree crowns / behind buildings), 'edge' (frame edge)
+//   cleanOnly : remove the baked cars here but never trace a lane (no honest way in or out)
 //   markings : the carriageway has painted arrows / zebra that must survive the car removal
 //   signal : optional stop line, metres before the end of the carriageway, with a cycle in seconds
 export const CAMERA_HEIGHT_M = 72; // from measured car widths (about 2 m = 5 px at y = 500)
@@ -22,6 +23,10 @@ export const CARRIAGEWAYS = [
       [[315, 542], [331, 526]], [[306, 527], [319, 510]], [[295.5, 513], [308, 500]], [[278.5, 500.5], [298, 491]], [[269, 490], [291.5, 482.5]],
       [[265, 480], [287, 475]], [[263.5, 470], [284.5, 468]], [[263, 460], [282.5, 459]], [[263, 448], [281, 448]],
     ] },
+  // the slip toward the plaza beside the outbound carriageway: its baked cars are removed so nothing stands frozen next to live
+  // traffic, but no lane runs here (cars would have to appear in the open)
+  { id: 'left-out-slip', cleanOnly: true, seen: 'tail', start: 'hide', end: 'hide',
+    sections: [[[331, 526], [347, 515]], [[319, 510], [337, 506.5]], [[308, 500], [320, 499.5]], [[298, 491], [304, 492.5]]] },
 ];
 
 // NOT LIVE (decided after tracing, see docs/TRAFFIC.md):
@@ -32,4 +37,4 @@ export const CARRIAGEWAYS = [
 // Photographs whose road differs too much from the master inside a carriageway: their pixels are left exactly as they are
 // (baked cars stay) and no live traffic runs there while that photo is on screen.
 //  - autumn.png redrew the outbound left carriageway (kerb and island moved several pixels); see docs/TRAFFIC.md.
-export const UNTOUCHED = { autumn: ['left-out'] };
+export const UNTOUCHED = { autumn: ['left-out', 'left-out-slip'] };

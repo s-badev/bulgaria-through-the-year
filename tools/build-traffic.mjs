@@ -31,8 +31,15 @@ function catmull(p, t) { // p: array of [x,y], t in [0, n-1]
   const q = (k) => 0.5 * ((2 * b[k]) + (-a[k] + c[k]) * f + (2 * a[k] - 5 * b[k] + 4 * c[k] - d[k]) * f * f + (-a[k] + 3 * b[k] - 3 * c[k] + d[k]) * f * f * f);
   return [q(0), q(1)];
 }
-const cwId = new Uint8Array(N), kMap = new Float32Array(N).fill(-1), uMap = new Float32Array(N), edgeD = new Float32Array(N); // edgeD: px to the nearest kerb
-const cws = CARRIAGEWAYS.map((c, ci) => {
+// Live carriageways and clean-only zones get SEPARATE geometry. The live pipeline below is exactly the one the lanes and the
+// strict mask come from; clean-only zones (tools/roads-config.mjs: cleanOnly) only get a second, plate-cleaning pass, may not
+// take a single pixel of a live carriageway, never veto asphalt and never get a lane.
+let cwId, kMap, uMap, edgeD, cws; // edgeD: px to the nearest kerb
+const use = G => { ({ cwId, kMap, uMap, edgeD, cws } = G); return G; };
+function buildGeometry(list, ownedBy = null) {
+ const G = { cwId: new Uint8Array(N), kMap: new Float32Array(N).fill(-1), uMap: new Float32Array(N), edgeD: new Float32Array(N), cws: null };
+ const { cwId, kMap, uMap, edgeD } = G;
+ G.cws = list.map((c, ci) => {
   const Ls = c.sections.map(s => s[0]), Rs = c.sections.map(s => s[1]), n = Ls.length;
   let len = 0; for (let i = 1; i < n; i++) len += Math.hypot((Ls[i][0] + Rs[i][0] - Ls[i - 1][0] - Rs[i - 1][0]) / 2, (Ls[i][1] + Rs[i][1] - Ls[i - 1][1] - Rs[i - 1][1]) / 2);
   const M = Math.ceil(len * 2.5), L = [], R = [];
@@ -42,23 +49,29 @@ const cws = CARRIAGEWAYS.map((c, ci) => {
     for (let j = 0; j <= J; j++) {
       const u = j / J, x = Math.round(L[k][0] + (R[k][0] - L[k][0]) * u), y = Math.round(L[k][1] + (R[k][1] - L[k][1]) * u);
       if (x < 0 || y < 0 || x >= W || y >= H) continue;
-      const i = y * W + x; cwId[i] = ci + 1; kMap[i] = k; uMap[i] = u; edgeD[i] = Math.min(u, 1 - u) * wpx;
+      const i = y * W + x; if (ownedBy && ownedBy[i]) continue; cwId[i] = ci + 1; kMap[i] = k; uMap[i] = u; edgeD[i] = Math.min(u, 1 - u) * wpx;
     }
   }
   const at = (k, u) => { const kk = clamp(k, 0, M), k0 = Math.min(M - 1, Math.floor(kk)), f = kk - k0, lx = L[k0][0] + (L[k0 + 1][0] - L[k0][0]) * f, ly = L[k0][1] + (L[k0 + 1][1] - L[k0][1]) * f, rx = R[k0][0] + (R[k0 + 1][0] - R[k0][0]) * f, ry = R[k0][1] + (R[k0 + 1][1] - R[k0][1]) * f; return [lx + (rx - lx) * u, ly + (ry - ly) * u, Math.hypot(rx - lx, ry - ly)]; };
   const xs = [...L, ...R].map(p => p[0]), ys = [...L, ...R].map(p => p[1]);
   return { ...c, ci, M, L, R, at, bbox: [Math.max(0, Math.floor(Math.min(...xs)) - 3), Math.max(0, Math.floor(Math.min(...ys)) - 3), Math.min(W - 1, Math.ceil(Math.max(...xs)) + 3), Math.min(H - 1, Math.ceil(Math.max(...ys)) + 3)] };
-});
+ });
+ G.owner = Uint8Array.from(cwId); // raw ownership, before occluders are cut out
+ return G;
+}
 const [, , vegM] = await loadMaskRGB(path.join(SCENE, 'masks-a.png'));
 // Occluders: tree crowns and anything standing above the carriageway hide the road. Those pixels stay part of the lane geometry
 // (cars pass behind them) but are never analysed, inpainted or drawn on. Height is relative to the carriageway's own level.
-{
-  const fullD0 = path.join(WORK, 'masks-full', 'masks-d.png'), [, , hN] = await loadMaskRGB(fs.existsSync(fullD0) ? fullD0 : path.join(SCENE, 'masks-d.png'));
+const fullD0 = path.join(WORK, 'masks-full', 'masks-d.png'), [, , hN] = await loadMaskRGB(fs.existsSync(fullD0) ? fullD0 : path.join(SCENE, 'masks-d.png'));
+function cutOccluders() {
   const occ = new Uint8Array(N);
   for (const c of cws) { const hs = []; for (let i = 0; i < N; i++) if (cwId[i] === c.ci + 1) hs.push(hN[i]); hs.sort((a, b) => a - b); const base = hs[hs.length >> 1] || 0; for (let i = 0; i < N; i++) if (cwId[i] === c.ci + 1 && (hN[i] > base + 0.2 || vegM[i] > 0.22)) occ[i] = 1; }
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const i = y * W + x; if (cwId[i] && (occ[i] || occ[i - 1] || occ[i + 1] || occ[i - W] || occ[i + W])) cwId[i] = 255; }
   for (let i = 0; i < N; i++) if (cwId[i] === 255) cwId[i] = 0;
 }
+const LIVE = use(buildGeometry(CARRIAGEWAYS.filter(c => !c.cleanOnly))); cutOccluders();
+const CLEAN = use(buildGeometry(CARRIAGEWAYS.filter(c => c.cleanOnly), LIVE.owner)); cutOccluders();
+use(LIVE);
 
 // ---------- 2. baked cars: outliers against the modal asphalt colour of the neighbourhood ----------
 const CLS = { BG: 0, CAR: 1, STATIC: 2, POST: 3, MARK: 4, NOISE: 5, SHADOW: 6 };
@@ -176,12 +189,12 @@ function inpaint(rgb, an) {
 
 // ---------- night photos: the carriageways are the empty master plate, relit by the local night/day gain ----------
 function relitRoad(rgb, plate) {
-  const T = new Float32Array(N); for (let i = 0; i < N; i++) T[i] = cwId[i] ? 1 : 0;
+  const T = new Float32Array(N); for (let i = 0; i < N; i++) T[i] = LIVE.cwId[i] || CLEAN.cwId[i] ? 1 : 0;
   const Ts = blur(T, W, H, 1.6), L = luma(rgb), Lp = luma(plate), keep = new Float32Array(N), out = Float32Array.from(rgb);
   for (let i = 0; i < N; i++) keep[i] = (1 - smoothstep(0.02, 0.3, Ts[i])) * (L[i] < 0.6 ? 1 : 0.1) * (1 - vegM[i]) + 1e-5;
   const gl = blurMasked(L, keep, W, H, 22), gp = blurMasked(Lp, keep, W, H, 22);
   // inside the carriageway the photo itself tells how bright the road is (lamp pools): take its low frequencies, the plate's detail
-  const inside = new Float32Array(N); for (let i = 0; i < N; i++) inside[i] = cwId[i] && L[i] < 0.75 ? 1 : 1e-5;
+  const inside = new Float32Array(N); for (let i = 0; i < N; i++) inside[i] = (LIVE.cwId[i] || CLEAN.cwId[i]) && L[i] < 0.75 ? 1 : 1e-5;
   const lowN = [0, 1, 2].map(ch => { const a = new Float32Array(N); for (let i = 0; i < N; i++) a[i] = rgb[i * 3 + ch]; return blurMasked(a, inside, W, H, 7); });
   const lowP = blurMasked(Lp, inside, W, H, 7);
   for (let i = 0; i < N; i++) {
@@ -203,15 +216,24 @@ for (const id of DAY) {
   const skip = UNTOUCHED[id] || [];
   let rgb = await loadRGB(P(id)), an = analyse(rgb, skip), first = an, damagedPx = 0;
   for (let pass = 0; pass < 3; pass++) { const r = inpaint(rgb, an); rgb = r.plate; damagedPx = r.damagedPx; an = analyse(rgb, skip); if (!an.comps.some(c => c.kind === CLS.CAR)) break; }
+  // second pass, clean-only zones: remove their baked cars from the plate; no vetoes, no stats in the live totals
+  const cleanStats = {};
+  if (CLEAN.cws.length) {
+    use(CLEAN); const cskip = UNTOUCHED[id] || [];
+    let ca = analyse(rgb, cskip); const cfirst = ca;
+    for (let pass = 0; pass < 3; pass++) { if (!ca.comps.some(c => c.kind === CLS.CAR)) break; const r = inpaint(rgb, ca); rgb = r.plate; ca = analyse(rgb, cskip); }
+    for (const c of CLEAN.cws) cleanStats[c.id] = { baked: cfirst.comps.filter(q => q.kind === CLS.CAR && q.cw === c.id).reduce((t, q) => t + q.cars, 0), remaining: ca.comps.filter(q => q.kind === CLS.CAR && q.cw === c.id).reduce((t, q) => t + q.cars, 0), untouched: cskip.includes(c.id) };
+    use(LIVE);
+  }
   plates[id] = rgb; analyses[id] = first;
   const count = (a2, cw) => a2.comps.filter(c => c.kind === CLS.CAR && (!cw || c.cw === cw)).reduce((t, c) => t + c.cars, 0);
-  stats[id] = { bakedCars: count(first), remainingCars: count(an), byCarriageway: Object.fromEntries(cws.map(c => [c.id, { baked: count(first, c.id), remaining: count(an, c.id) }])), staticObjects: first.comps.filter(c => c.kind === CLS.STATIC).length, damagedPx };
+  stats[id] = { bakedCars: count(first), remainingCars: count(an), byCarriageway: Object.fromEntries(cws.map(c => [c.id, { baked: count(first, c.id), remaining: count(an, c.id) }])), staticObjects: first.comps.filter(c => c.kind === CLS.STATIC).length, damagedPx, cleanZones: cleanStats };
   // what is NOT drivable asphalt in this photo: big foreign objects, posts, crowns over the road, and whatever could not be cleaned
   let veto = 0, poly = 0; const targets = AUTUMN_FAMILY.includes(id) ? [strictAll] : [strictBase, strictAll];
   if (!MASK_FROM || MASK_FROM.includes(id)) for (let i = 0; i < N; i++) { if (!cwId[i]) continue; poly++; const k = first.cls[i], k2 = an.cls[i]; if (skip.includes(cws[cwId[i] - 1].id) || k === CLS.STATIC || k === CLS.POST || k2 === CLS.STATIC || k2 === CLS.POST || k2 === CLS.CAR) { for (const t of targets) t[i] = 0; veto++; } }
   stats[id].vetoShare = poly ? +(veto / poly).toFixed(3) : 0; stats[id].untouched = skip;
   await saveRGB(path.join(WORK, 'plates', id + '.png'), rgb);
-  console.log(id.padEnd(14), 'baked cars', String(stats[id].bakedCars).padStart(3), '-> remaining', stats[id].remainingCars, '| static', stats[id].staticObjects, '| unfilled px', damagedPx, '| vetoes', stats[id].vetoShare);
+  console.log(id.padEnd(14), 'baked cars', String(stats[id].bakedCars).padStart(3), '-> remaining', stats[id].remainingCars, '| static', stats[id].staticObjects, '| unfilled px', damagedPx, '| vetoes', stats[id].vetoShare, '| clean-only zones', Object.entries(cleanStats).map(([k, v]) => `${k} ${v.baked}->${v.remaining}${v.untouched ? ' (untouched)' : ''}`).join(', ') || '-');
 }
 for (const id of NIGHT) { if (!fs.existsSync(P(id)) || !plates.master) continue; plates[id] = relitRoad(await loadRGB(P(id)), plates.master); await saveRGB(path.join(WORK, 'plates', id + '.png'), plates[id]); }
 
@@ -357,7 +379,7 @@ const rects = cws.map(c => [c.bbox[0] - 4, c.bbox[1] - 4, c.bbox[2] - c.bbox[0] 
 const traffic = {
   note: 'Generated by tools/build-traffic.mjs from the photographs. Lanes are sampled every metre on the ground.',
   cameraHeightM: CAMERA_HEIGHT_M, cell: CELL, atlas: [AW, AH], rects,
-  carriageways: cws.map(c => ({ id: c.id, seen: c.seen, start: c.start, end: c.end, sets: c.sets, bakedCars: stats.master?.byCarriageway[c.id].baked ?? 0, polygon: [...c.L.filter((_, k) => k % 6 === 0), ...c.R.filter((_, k) => k % 6 === 0).reverse()].map(p => [+p[0].toFixed(1), +p[1].toFixed(1)]) })),
+  carriageways: [...CLEAN.cws.map(c => ({ id: c.id, cleanOnly: true, sets: {}, bakedCars: stats.master?.cleanZones?.[c.id]?.baked ?? 0, polygon: [...c.L.filter((_, k) => k % 6 === 0), ...c.R.filter((_, k) => k % 6 === 0).reverse()].map(p => [+p[0].toFixed(1), +p[1].toFixed(1)]) }))].concat(cws.map(c => ({ id: c.id, cleanOnly: false, seen: c.seen, start: c.start, end: c.end, sets: c.sets, bakedCars: stats.master?.byCarriageway[c.id].baked ?? 0, polygon: [...c.L.filter((_, k) => k % 6 === 0), ...c.R.filter((_, k) => k % 6 === 0).reverse()].map(p => [+p[0].toFixed(1), +p[1].toFixed(1)]) }))),
   lanes: [...lanes, ...lanesAutumn].map(l => ({ ...l, pts: l.pts.map(p => [p.x, p.y, p.ppm, p.vis]) })),
   sprites: spriteMeta, stats,
 };
