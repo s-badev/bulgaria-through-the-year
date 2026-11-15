@@ -1,4 +1,4 @@
-export function installMobileSheet(root) {
+export function installMobileSheet(root, openCredits) {
   const panel = root.querySelector('#panel');
   const openButton = root.querySelector('#mobileOpen');
   const menu = root.querySelector('#mobileMenu');
@@ -52,12 +52,21 @@ export function installMobileSheet(root) {
   menu.addEventListener('click', event => {
     if (event.target.closest('button')) closeMenu();
   });
-  root.querySelector('#menuCredits').addEventListener('click', () => root.querySelector('#credits').showModal());
+  root.querySelector('#menuCredits').addEventListener('click', () => openCredits(moreButton));
 
   const titleToggle = root.querySelector('.title-toggle');
-  const titleDetails = root.querySelector('#titleDetails');
-  titleToggle.addEventListener('click', () => titleDetails.showModal());
-  titleDetails.addEventListener('close', () => titleToggle.focus({ preventScroll: true }));
+  titleToggle.addEventListener('click', () => openCredits(titleToggle));
+  const titleHide = root.querySelector('#titleHide');
+  const titleRestore = root.querySelector('#titleRestore');
+  const titleKey = 'btty.titleHidden';
+  function setTitleHidden(hidden) {
+    document.body.classList.toggle('title-hidden', hidden);
+    try { sessionStorage.setItem(titleKey, hidden ? '1' : '0'); } catch { /* Storage may be blocked in an in-app browser. */ }
+    (hidden ? titleRestore : titleHide).focus({ preventScroll: true });
+  }
+  titleHide.addEventListener('click', () => setTitleHidden(true));
+  titleRestore.addEventListener('click', () => setTitleHidden(false));
+  try { document.body.classList.toggle('title-hidden', sessionStorage.getItem(titleKey) === '1'); } catch { /* Use the visible title. */ }
   for (const button of secondary) button.setAttribute('aria-label', button.querySelector('span').textContent);
 
   function layout() {

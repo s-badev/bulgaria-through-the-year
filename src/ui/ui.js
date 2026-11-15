@@ -19,7 +19,7 @@ const h = (html) => { const t = document.createElement('template'); t.innerHTML 
 export function buildUI({ state, scene, version, actions }) {
   const cfg = scene.cfg, root = document.querySelector('#app'), $ = s => root.querySelector(s);
   root.append(h(`<div class="top" id="top">
-    <div class="title"><h1>${cfg.title}</h1><button class="title-toggle" type="button" aria-haspopup="dialog" aria-controls="titleDetails"><span>София · НДК</span><span id="compactDate"></span></button><p>${cfg.subtitle} · слънцето е изчислено за ${cfg.location.name}</p><div class="readout" id="readout"></div></div>
+    <div class="title"><h1>${cfg.title}</h1><button class="title-toggle" type="button" aria-haspopup="dialog" aria-controls="credits">София · НДК</button><button class="title-hide" id="titleHide" type="button" aria-label="Скрий заглавието" title="Скрий заглавието"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4l16 16M10.6 5.2A11 11 0 0 1 22 12a11 11 0 0 1-4.2 4.7M6.3 6.3A11 11 0 0 0 2 12a11 11 0 0 0 15.7 5.7M9.8 9.8a3 3 0 0 0 4.4 4.4"/></svg></button><p>${cfg.subtitle} · слънцето е изчислено за ${cfg.location.name}</p><div class="readout" id="readout"></div></div>
     <div class="tr" role="toolbar" aria-label="Режими">
       <button class="chip" id="panelBtn" type="button" aria-pressed="false" title="Скрий всичко (клавиш H)">${ICON.panel}<span>Само снимката</span></button>
       <button class="chip" id="shotBtn" type="button" title="Запази кадъра като PNG">${ICON.camera}<span>Запази кадър</span></button>
@@ -28,6 +28,7 @@ export function buildUI({ state, scene, version, actions }) {
       <button class="chip" id="soundBtn" type="button" aria-pressed="false">${ICON.sound}<span id="soundLbl">Включи звука</span></button>
       <button class="chip mobile-more" id="moreBtn" type="button" aria-expanded="false" aria-controls="mobileMenu">Още</button>
     </div></div>`));
+  root.append(h(`<button class="title-restore" id="titleRestore" type="button" aria-label="Покажи заглавието" title="Покажи заглавието"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>`));
   root.append(h(`<div class="mobile-menu" id="mobileMenu" aria-label="Още действия"><button class="sec" id="menuCredits" type="button">Информация и права</button></div>`));
   root.append(h(`<button class="mobile-open" id="mobileOpen" type="button" aria-expanded="false" aria-controls="panel">Контроли</button>`));
   root.append(h(`<div class="demo-bar" id="demoBar" role="status"><span>Демо</span><button type="button" id="demoStop">Спри</button></div>`));
@@ -64,6 +65,7 @@ export function buildUI({ state, scene, version, actions }) {
     <div class="btns"><button class="pri" id="introSound" type="button">Демо със звук</button><button class="sec" id="introKeep" type="button">Гледай демото</button><button class="sec" id="introExplore" type="button">Разгледай сам</button></div></div>`));
   root.append(h(`<dialog class="credits" id="credits" aria-labelledby="creditsTitle">
     <h2 id="creditsTitle">Информация и права</h2>
+    <div class="mobile-scene-info"><h3>${cfg.title}</h3><div class="readout" id="detailsReadout"></div></div>
     <p>Снимката на НДК е на автора на проекта. Вариантите за сезони, час и време са направени с изкуствен интелект върху нея, а маските, дълбочината и движението са изчислени. Всички изображения: <b>всички права запазени</b>. Изходният код: MIT (виж <a href="./THIRD-PARTY-LICENSES.txt" target="_blank" rel="noopener">пълните лицензи</a>).</p>
     <ul>
       <li><b>Дълбочина:</b> Depth Anything V2 Small (Apache-2.0), Yang и др., 2024.</li>
@@ -74,7 +76,6 @@ export function buildUI({ state, scene, version, actions }) {
     <p class="muted">Симулация, не прогноза. Звукът е синтезиран в браузъра. Приложението не събира данни и не ползва бисквитки; в браузъра се пази само бележка, че си видял въведението.</p>
     <div class="btns"><button type="button" class="pri" id="creditsClose">Затвори</button></div>
   </dialog>`));
-  root.append(h(`<dialog class="title-details" id="titleDetails" aria-labelledby="detailsTitle"><h2 id="detailsTitle">${cfg.title}</h2><p>${cfg.subtitle} · слънцето е изчислено за ${cfg.location.name}</p><div class="readout" id="detailsReadout"></div><button type="button" class="sec" id="detailsClose">Затвори</button></dialog>`));
   root.append(h(`<div class="toast" id="toast" role="status" aria-live="polite"></div>`));
 
   const hourEl = $('#hour'), clockEl = $('#clock'), dateEl = $('#date'), S = state.S;
@@ -93,7 +94,7 @@ export function buildUI({ state, scene, version, actions }) {
     readout(alt) {
       const pos = alt > 0.5 ? `Слънцето е ${Math.round(alt)}° над хоризонта` : alt > -0.833 ? 'Слънцето е на хоризонта' : `Слънцето е ${Math.round(-alt)}° под хоризонта`;
       const html = `<b>${S.d} ${MONTHS[S.m]} ${S.y} · ${formatClock(S.hour)}</b><span class="readout-details"><br>${pos}<br>Изгрев ${formatClock(state.times.rise)} · Залез ${formatClock(state.times.set)}</span>`;
-      if (html !== ui._ro) { ui._ro = html; $('#readout').innerHTML = html; $('#detailsReadout').innerHTML = html; $('#compactDate').textContent = `${String(S.d).padStart(2, '0')}.${String(S.m + 1).padStart(2, '0')}.${S.y} · ${formatClock(S.hour)}`; }
+      if (html !== ui._ro) { ui._ro = html; $('#readout').innerHTML = html; $('#detailsReadout').innerHTML = html; }
     },
     setPhotoMode(on) { document.body.classList.toggle('photo', on); $('#panelBtn').setAttribute('aria-pressed', String(on)); if (on) { $('#photoExit').focus({ preventScroll: true }); ui.toast('Само снимката. Натисни H или Esc, за да върнеш управлението.', 2600); } else $('#panelBtn').focus({ preventScroll: true }); },
     get photoMode() { return document.body.classList.contains('photo'); },
@@ -126,15 +127,13 @@ export function buildUI({ state, scene, version, actions }) {
   $('#introKeep').addEventListener('click', () => ui.hideIntro());
   $('#introExplore').addEventListener('click', () => { actions.demo(false); ui.hideIntro(); });
   const dlg = $('#credits'), opener = $('#creditsBtn');
-  opener.addEventListener('click', () => dlg.showModal());
+  let creditsReturn = opener;
+  const openCredits = button => { creditsReturn = button; dlg.showModal(); };
+  opener.addEventListener('click', () => openCredits(opener));
   $('#creditsClose').addEventListener('click', () => dlg.close());
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });   // click on the backdrop
-  dlg.addEventListener('close', () => {
-    const returnButton = matchMedia('(max-width: 820px), (max-height: 500px)').matches && !$('#panel').classList.contains('is-open') ? $('#moreBtn') : opener;
-    returnButton.focus({ preventScroll: true });
-  });
-  $('#detailsClose').addEventListener('click', () => $('#titleDetails').close());
-  const mobileSheet = installMobileSheet(root);
+  dlg.addEventListener('close', () => creditsReturn.focus({ preventScroll: true }));
+  const mobileSheet = installMobileSheet(root, openCredits);
   addEventListener('keydown', e => {
     if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || dlg.open) return;   // a modal dialog owns the keyboard
     const typing = e.target instanceof HTMLInputElement && e.target.type !== 'range';

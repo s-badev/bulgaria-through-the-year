@@ -65,24 +65,31 @@ try {
     assert(!(await page.locator('#intro').isVisible()));
     assert(await page.locator('#mobileOpen').isVisible());
     const header = await page.locator('.title').evaluate(element => {
-      const first = element.querySelector('.title-toggle span:first-child');
-      const second = element.querySelector('.title-toggle span:last-child');
+      const label = element.querySelector('.title-toggle');
       const rect = element.getBoundingClientRect();
-      return { first: first.textContent, second: second.textContent, firstSize: parseFloat(getComputedStyle(first).fontSize), secondSize: parseFloat(getComputedStyle(second).fontSize), nowrap: getComputedStyle(first).whiteSpace === 'nowrap', height: rect.height };
+      return { text: label.textContent, size: parseFloat(getComputedStyle(label).fontSize), nowrap: getComputedStyle(label).whiteSpace === 'nowrap', height: rect.height, width: rect.width, blur: getComputedStyle(element).backdropFilter };
     });
-    assert.equal(header.first, 'София · НДК');
-    assert.match(header.second, /22\.04\.2026 · 12:00/);
-    assert(header.firstSize >= 14 && header.firstSize <= 16 && header.secondSize >= 11 && header.secondSize <= 12 && header.nowrap && header.height >= 45 && header.height <= 55, JSON.stringify(header));
+    assert.equal(header.text, 'София · НДК');
+    assert(header.size >= 14 && header.size <= 16 && header.nowrap && header.height >= 44 && header.height <= 48 && header.width < 180 && header.blur === 'none', JSON.stringify(header));
     await page.locator('.title-toggle').tap();
-    assert(await page.locator('#titleDetails').evaluate(dialog => dialog.open));
-    assert.match(await page.locator('#titleDetails').textContent(), /Витоша.*Изгрев.*Залез/s);
-    await page.locator('#detailsClose').tap();
-    assert(!(await page.locator('#titleDetails').evaluate(dialog => dialog.open)));
+    assert(await page.locator('#credits').evaluate(dialog => dialog.open));
+    assert.match(await page.locator('#credits').textContent(), /Витоша.*Изгрев.*Залез/s);
+    await page.locator('#creditsClose').tap();
+    assert(!(await page.locator('#credits').evaluate(dialog => dialog.open)));
+    await page.waitForFunction(() => document.activeElement?.classList.contains('title-toggle'));
     await page.locator('.title-toggle').focus();
     await page.keyboard.press('Enter');
-    assert(await page.locator('#titleDetails').evaluate(dialog => dialog.open));
+    assert(await page.locator('#credits').evaluate(dialog => dialog.open));
     await page.keyboard.press('Escape');
-    assert(!(await page.locator('#titleDetails').evaluate(dialog => dialog.open)));
+    assert(!(await page.locator('#credits').evaluate(dialog => dialog.open)));
+    await page.waitForFunction(() => document.activeElement?.classList.contains('title-toggle'));
+    await page.locator('#titleHide').tap();
+    assert(!(await page.locator('.title').isVisible()));
+    assert(await page.locator('#titleRestore').isVisible());
+    await visibleTarget(page, '#titleRestore', 'body');
+    await shot(page, `${name}-hidden`);
+    await page.locator('#titleRestore').tap();
+    assert(await page.locator('.title').isVisible());
     const closedGeometry = await page.evaluate(() => {
       const button = document.querySelector('#mobileOpen').getBoundingClientRect();
       const title = document.querySelector('.title').getBoundingClientRect();
@@ -107,6 +114,10 @@ try {
       const before = await page.locator(selector).inputValue();
       await page.locator(selector).focus();
       await page.keyboard.press('ArrowRight');
+      if ((await page.locator(selector).inputValue()) === before) {
+        await page.locator(selector).focus();
+        await page.keyboard.press('ArrowRight');
+      }
       assert.notEqual(await page.locator(selector).inputValue(), before, `${selector} changes`);
       assert(await page.locator('#panel').isVisible(), `${selector} keeps sheet open`);
     }
@@ -176,12 +187,38 @@ try {
     await page.reload();
     await ready(page);
     await closed(page);
+    await page.locator('#titleHide').tap();
+    await page.reload();
+    await ready(page);
+    assert(!(await page.locator('.title').isVisible()), 'hidden title survives reload in the session');
+    await page.locator('#titleRestore').tap();
     await page.goto(base + '?intro=1&reduce=1');
     await ready(page);
     assert(!(await page.locator('#intro').isVisible()), 'first visit intro does not cover mobile scene');
+    if (width === 390 && height === 844) {
+      await page.setViewportSize({ width: 844, height: 390 });
+      assert(await page.locator('.title').isVisible());
+      await closed(page);
+      assert(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)));
+      await page.setViewportSize({ width: 390, height: 844 });
+      assert(await page.locator('.title').isVisible());
+    }
     await context.close();
     console.log(`PASS ${name}`);
   }
+  const blocked = await browser.newContext({ viewport: { width: 360, height: 640 }, isMobile: true, hasTouch: true });
+  await blocked.addInitScript(() => {
+    Object.defineProperty(window, 'sessionStorage', { get() { throw new DOMException('Blocked', 'SecurityError'); } });
+    Object.defineProperty(window, 'visualViewport', { value: undefined });
+  });
+  const blockedPage = await blocked.newPage();
+  await blockedPage.goto(base + '?qa=1&reduce=1');
+  await ready(blockedPage);
+  await blockedPage.locator('#titleHide').tap();
+  assert(await blockedPage.locator('#titleRestore').isVisible());
+  await blockedPage.locator('#titleRestore').tap();
+  assert(await blockedPage.locator('.title').isVisible());
+  await blocked.close();
   const desktop = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
   await desktop.goto(base + '?qa=1&still=1&reduce=1&date=2026-04-22&h=12&w=clear');
   await desktop.waitForFunction(() => window.__app && Object.values(window.__app.scene.photos).every(photo => photo.state !== 'loading'));
