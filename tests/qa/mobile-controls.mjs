@@ -9,7 +9,7 @@ const output = 'docs/screenshots/mobile-v2';
 fs.mkdirSync(output, { recursive: true });
 const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });
 const sizes = [[360, 640], [390, 844], [412, 915], [360, 500], [844, 390], [390, 700]];
-const panelSelectors = ['#play', '#hour', '#date', '#now', '#wind', '#fogLvl', '#vol', '#creditsBtn', ...['spring', 'summer', 'autumn', 'winter'].map(value => `[data-s="${value}"]`), ...['clear', 'cloudy', 'fog', 'rain', 'storm', 'snow'].map(value => `[data-w="${value}"]`)];
+const panelSelectors = ['#play', '#hour', '#now', '#wind', '#fogLvl', '#vol', '#creditsBtn', ...['spring', 'summer', 'autumn', 'winter'].map(value => `[data-s="${value}"]`), ...['clear', 'cloudy', 'fog', 'rain', 'storm', 'snow'].map(value => `[data-w="${value}"]`)];
 const menuSelectors = ['#soundBtn', '#shotBtn', '#demoBtn', '#flashBtn', '#panelBtn', '#menuCredits'];
 const failures = [];
 
@@ -101,6 +101,7 @@ try {
     await shot(page, `${name}-closed`);
 
     await open(page);
+    assert(!(await page.locator('#date').isVisible()), 'calendar is not available on mobile');
     for (const selector of panelSelectors) await visibleTarget(page, selector, '#panel');
     await page.locator('#panel').evaluate(node => { node.scrollTop = 0; });
     assert(!(await page.locator('#mobileOpen').isVisible()));
@@ -140,10 +141,6 @@ try {
       await closed(page);
       assert.equal(await page.evaluate(() => window.__app.state.seasonName), season);
     }
-    await open(page);
-    await page.locator('#date').fill('2026-01-18');
-    await closed(page);
-    assert.equal(await page.locator('#date').inputValue(), '2026-01-18');
     for (const weather of ['clear', 'cloudy', 'fog', 'storm', 'snow', 'rain']) {
       await open(page);
       await page.locator(`[data-w="${weather}"]`).tap();
@@ -221,6 +218,7 @@ try {
   await blocked.close();
   const desktop = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
   await desktop.goto(base + '?qa=1&still=1&reduce=1&date=2026-04-22&h=12&w=clear');
+  assert(await desktop.locator('#date').isVisible(), 'desktop calendar remains available');
   await desktop.waitForFunction(() => window.__app && Object.values(window.__app.scene.photos).every(photo => photo.state !== 'loading'));
   await desktop.waitForTimeout(2000);
   await desktop.evaluate(() => { window.__app.clock.stop(); document.querySelector('#version').textContent = 'версия QA'; document.querySelector('.loading')?.remove(); });
