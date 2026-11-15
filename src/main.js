@@ -113,6 +113,7 @@ async function boot() {
   let seen = true; try { seen = localStorage.getItem('btty.seen') === '1'; localStorage.setItem('btty.seen', '1'); } catch { /* private mode */ }
   if (!QA && params.get('ui') !== '0') { if (!seen || params.get('intro') === '1') { ui.showIntro(state.S.reducedMotion); if (!state.S.reducedMotion) demo.start(); } }
   window.__app = { state, comp, clock, scene, gl, life, sound, ui, demo, quality, actions, version };
+  if (import.meta.env.DEV) import('./ui/debug-overlay.js').then(d => { window.__app.debug = d.install({ scene, comp, life, clock }); }); // key D; stripped from production builds
 }
 boot().catch(err => {
   console.error(err);

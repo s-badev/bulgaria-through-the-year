@@ -306,7 +306,7 @@ for (const lib of LIBS) {
   for (const c of an.comps) {
     if (c.kind !== CLS.CAR) continue;
     const [x0, y0, x1, y1] = c.bbox, bw = x1 - x0 + 1, bh = y1 - y0 + 1, wc = c.wc;
-    const rej = c.A < 0.45 * wc * wc ? 'small' : c.A > 2.6 * wc * wc ? 'large' : bw > 2.6 * wc || bh > 2.6 * wc ? 'bbox' : bw < 0.6 * wc ? 'narrow' : bw + 6 > CELL || bh + 6 > CELL ? 'cell' : null;
+    const rej = c.A < 0.45 * wc * wc ? 'small' : c.A > 2.6 * wc * wc ? 'large' : bw > 2.6 * wc || bh > 2.6 * wc ? 'bbox' : bw < 0.6 * wc ? 'narrow' : bw + 8 > CELL || bh + 8 > CELL ? 'cell' : null;
     if (process.env.SPRITE_DEBUG && lib === 'master') console.log('comp', c.cw, 'A/wc2', (c.A / wc / wc).toFixed(2), 'bw/wc', (bw / wc).toFixed(2), 'bh/wc', (bh / wc).toFixed(2), 'wc', wc.toFixed(1), rej || 'size-ok');
     if (rej) continue;
     // isolation: a ring around the car must be clean road
@@ -314,26 +314,39 @@ for (const lib of LIBS) {
     let ring = 0, bad = 0; for (let y = y0 - 3; y <= y1 + 3; y++) for (let x = x0 - 3; x <= x1 + 3; x++) { if (x < 0 || y < 0 || x >= W || y >= H) { bad++; ring++; continue; } const i = y * W + x; if (inC[(y - y0 + 5) * (bw + 10) + x - x0 + 5]) continue; ring++; if (!cwId[i] || (an.cls[i] !== CLS.BG && an.cls[i] !== CLS.NOISE && an.cls[i] !== CLS.MARK)) bad++; }
     if (process.env.SPRITE_DEBUG && lib === 'master') console.log('   ring bad', (bad / ring).toFixed(2));
     if (bad / ring > 0.5) continue;
-    sprites.push({ lib, cw: c.cw, comp: c, rgb, x0: x0 - 3, y0: y0 - 3, w: bw + 6, h: bh + 6, ppm: ppm((y0 + y1) / 2), lum: c.lum, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 });
+    sprites.push({ lib, cw: c.cw, comp: c, rgb, plate: plates[lib], x0: x0 - 4, y0: y0 - 4, w: bw + 8, h: bh + 8, ppm: ppm((y0 + y1) / 2), lum: c.lum });
   }
 }
-const cols = 16, rows = Math.max(1, Math.ceil((sprites.length + 1) / cols)), AW = cols * CELL, AH = rows * CELL, atlas = Buffer.alloc(AW * AH * 4);
+// Difference matte: a sprite is everything in which the photograph differs from its own empty plate, near the detected blob.
+// So the whole car comes along (body, glass, highlights, its shadow on the asphalt), with the photograph's own soft edge.
+const spriteMeta = [];
+for (const s of sprites) {
+  const near = new Float32Array(s.w * s.h); for (const i of s.comp.px) near[((i / W | 0) - s.y0) * s.w + (i % W) - s.x0] = 1;
+  const reach = blur(near, s.w, s.h, 2.2), al = new Float32Array(s.w * s.h); let sum = 0, sx = 0, sl = 0, minx = s.w, maxx = 0, miny = s.h, maxy = 0;
+  for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) {
+    const X = s.x0 + x, Y = s.y0 + y; if (X < 0 || Y < 0 || X >= W || Y >= H) continue;
+    const i = (Y * W + X) * 3, dr = s.rgb[i] - s.plate[i], dg = s.rgb[i + 1] - s.plate[i + 1], db = s.rgb[i + 2] - s.plate[i + 2], dl = 0.2126 * dr + 0.7152 * dg + 0.0722 * db;
+    const d = Math.max(Math.abs(dl), Math.abs(dr - dl), Math.abs(dg - dl), Math.abs(db - dl)), a = smoothstep(0.022, 0.085, d) * smoothstep(0.04, 0.3, reach[y * s.w + x]);
+    al[y * s.w + x] = a; if (a > 0.3) { sum += a; sx += x * a; sl += a * (0.2126 * s.rgb[i] + 0.7152 * s.rgb[i + 1] + 0.0722 * s.rgb[i + 2]); if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y; }
+  }
+  const wc = s.comp.wc; if (sum < 0.5 * wc * wc || maxx - minx + 1 < 0.6 * wc) continue;   // a fragment, not a car
+  s.al = al; s.cx = sx / sum; s.lumA = sl / sum; s.box = [minx, miny, maxx, maxy]; s.area = sum; spriteMeta.push(s);
+}
+const cols = 16, rows = Math.max(1, Math.ceil((spriteMeta.length + 1) / cols)), AW = cols * CELL, AH = rows * CELL, atlas = Buffer.alloc(AW * AH * 4);
 { // cell 0: a soft blob for contact shadows
   for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) { const dx = (x + .5 - CELL / 2) / (CELL / 2 - 2), dy = (y + .5 - CELL / 2) / (CELL / 2 - 2), a = Math.exp(-(dx * dx + dy * dy) * 3.2); const o = (y * AW + x) * 4; atlas[o] = atlas[o + 1] = atlas[o + 2] = 255; atlas[o + 3] = Math.round(clamp(a - 0.04) * 255); }
 }
-const spriteMeta = sprites.map((s, si) => {
-  const cell = si + 1, ox = (cell % cols) * CELL + ((CELL - s.w) >> 1), oy = Math.floor(cell / cols) * CELL + ((CELL - s.h) >> 1), al = new Float32Array(s.w * s.h);
-  for (const i of s.comp.px) al[((i / W | 0) - s.y0) * s.w + (i % W) - s.x0] = 1;
-  const soft = blur(al, s.w, s.h, 0.75);
+for (let si = 0; si < spriteMeta.length; si++) {
+  const s = spriteMeta[si], cell = si + 1, ox = (cell % cols) * CELL + ((CELL - s.w) >> 1), oy = Math.floor(cell / cols) * CELL + ((CELL - s.h) >> 1), al = s.al;
   for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) {
-    const a = clamp(Math.max(soft[y * s.w + x] * 1.35 - 0.1, al[y * s.w + x] * 0.92)), o = ((oy + y) * AW + ox + x) * 4;
-    // colour: the car's own pixel; outside the car, the nearest car pixel (so filtering never pulls in road or black)
-    let sx = x, sy = y; if (!al[y * s.w + x]) { let best = 1e9; for (let yy = Math.max(0, y - 3); yy <= Math.min(s.h - 1, y + 3); yy++) for (let xx = Math.max(0, x - 3); xx <= Math.min(s.w - 1, x + 3); xx++) if (al[yy * s.w + xx]) { const d = (xx - x) ** 2 + (yy - y) ** 2; if (d < best) { best = d; sx = xx; sy = yy; } } }
-    const i = ((s.y0 + sy) * W + s.x0 + sx) * 3; atlas[o] = Math.round(s.rgb[i] * 255); atlas[o + 1] = Math.round(s.rgb[i + 1] * 255); atlas[o + 2] = Math.round(s.rgb[i + 2] * 255); atlas[o + 3] = Math.round(a * 255);
+    const o = ((oy + y) * AW + ox + x) * 4;
+    // colour: the photograph's own pixel; where the matte is empty, the nearest car pixel (filtering then never pulls in road or black)
+    let px = x, py = y; if (al[y * s.w + x] < 0.3) { let best = 1e9; for (let yy = Math.max(0, y - 3); yy <= Math.min(s.h - 1, y + 3); yy++) for (let xx = Math.max(0, x - 3); xx <= Math.min(s.w - 1, x + 3); xx++) if (al[yy * s.w + xx] >= 0.3) { const d = (xx - x) ** 2 + (yy - y) ** 2; if (d < best) { best = d; px = xx; py = yy; } } }
+    const i = (clamp(s.y0 + py, 0, H - 1) * W + clamp(s.x0 + px, 0, W - 1)) * 3; atlas[o] = Math.round(s.rgb[i] * 255); atlas[o + 1] = Math.round(s.rgb[i + 1] * 255); atlas[o + 2] = Math.round(s.rgb[i + 2] * 255); atlas[o + 3] = Math.round(al[y * s.w + x] * 255);
   }
-  const bb = s.comp.bbox, wcar = bb[2] - bb[0] + 1, hcar = bb[3] - bb[1] + 1;
-  return { lib: s.lib, cw: s.cw, u: ox, v: oy, w: s.w, h: s.h, ax: +(s.cx - s.x0).toFixed(1), ay: +(bb[3] - 0.3 * hcar - s.y0).toFixed(1), ppm: +s.ppm.toFixed(3), lum: +s.lum.toFixed(3), wm: +(wcar / s.ppm).toFixed(2), big: s.comp.A > 1.7 * s.comp.wc * s.comp.wc };
-});
+  const [bx0, by0, bx1, by1] = s.box, hcar = by1 - by0 + 1;
+  spriteMeta[si] = { lib: s.lib, cw: s.cw, u: ox, v: oy, w: s.w, h: s.h, ax: +s.cx.toFixed(1), ay: +(by1 - 0.3 * hcar).toFixed(1), ppm: +s.ppm.toFixed(3), lum: +s.lumA.toFixed(3), wm: +((bx1 - bx0 + 1) / s.ppm).toFixed(2), big: s.area > 1.9 * s.comp.wc * s.comp.wc };
+}
 
 // ---------- write ----------
 ensureDir(SCENE);

@@ -10,17 +10,18 @@ const NOON = State.activityAt(13);                   // the photograph was taken
 // multiplicative tints for light-coloured sprites (white/silver base) and for dark ones: the realistic palette of a city street
 const TINT_LIGHT = [[1, 1, 1], [1, 1, 1], [0.86, 0.87, 0.89], [0.7, 0.71, 0.74], [0.52, 0.53, 0.56], [0.3, 0.31, 0.34], [0.26, 0.3, 0.42], [0.5, 0.2, 0.19], [0.93, 0.9, 0.84]];
 // dark sprites carry the blue of their own shadow: brightening is biased warm so a lighter car comes out grey or silver, not sky-blue
-const TINT_DARK = [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1.45, 1.4, 1.3], [1.9, 1.8, 1.62], [2.2, 2.08, 1.85], [1.05, 1.12, 1.35], [1.7, 1.0, 0.92]];
+const TINT_DARK = [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1.45, 1.4, 1.3], [1.9, 1.8, 1.62], [2.2, 2.08, 1.85], [1.05, 1.12, 1.35], [1.25, 0.98, 0.92]];
 const HEAD = [1.0, 0.94, 0.80], TAIL = [1.0, 0.13, 0.08];
 
 export class Traffic {
   constructor(scene, rnd) {
     this.rnd = rnd; this.data = scene.traffic; this.cpuRoad = scene.cpu.road; this.size = scene.size;
     this.sets = { base: [], autumn: [] };
-    for (const l of this.data.lanes) this.sets[l.set].push({ ...l, cars: [], nextSpawn: 0, phase: rnd() * 60, maxPpm: l.pts.reduce((m, p) => p[3] ? Math.max(m, p[2]) : m, 0) });
+    const phase = {};   // one signal per carriageway: all its lanes share the phase
+    for (const l of this.data.lanes) this.sets[l.set].push({ ...l, cars: [], nextSpawn: 0, phase: phase[l.cw] ??= rnd() * 60, maxPpm: l.pts.reduce((m, p) => p[3] ? Math.max(m, p[2]) : m, 0) });
     this.sprites = this.data.sprites; this.cell = this.data.cell;
     this.setName = null; this.lib = null; this.events = { spawn: 0, despawn: 0, midRoad: 0, log: [] }; this.time = 0;
-    this.baked = Object.fromEntries(this.data.carriageways.map(c => [c.id, c.bakedCars]));
+    this.bakedOf = lib => { const st = this.data.stats[lib] || this.data.stats.master; return cw => (st.byCarriageway[cw] || { baked: 0 }).baked; };
     this.lanesBase = Object.fromEntries(this.data.carriageways.map(c => [c.id, c.sets.base ? c.sets.base.lanes : 1]));
   }
   get lanes() { return this.sets[this.setName] || []; }
@@ -48,7 +49,7 @@ export class Traffic {
   /** How many cars a lane should carry right now. */
   target(lane, ctx) {
     const e = ctx.env, weather = (1 - 0.3 * e.rain) * (1 - 0.35 * e.fog) * (1 - 0.92 * clamp(e.snow * 1.15)) * (1 - 0.3 * e.storm);
-    return 0.8 * (this.baked[lane.cw] || 0) / (this.lanesBase[lane.cw] || 1) * (ctx.activity / NOON) * weather;
+    return 0.8 * Math.max(4, this.bakedOf(this.lib)(lane.cw)) / (this.lanesBase[lane.cw] || 1) * (ctx.activity / NOON) * weather;
   }
   /** Start (or restart after a season change) with cars already on the road, as in the photograph. */
   populate(ctx) {
@@ -123,11 +124,11 @@ export class Traffic {
     layer.flush(this.setName === 'autumn');
     if (night > 0.03) for (const it of list) {
       const head = it.lane.seen === 'head', col = head ? HEAD : TAIL, wCar = CAR_W * it.ppm, fg = groundFog(e, it.y), inten = night * it.a * (1 - fg * 0.6);
-      const depth = clamp((it.y - 318) / 623 / 1.25 + 0.012, 0, 1), r = (head ? 0.9 + 0.62 * wCar : 0.8 + 0.45 * wCar) * (1 + e.fog * 1.2 + e.rain * 0.3), ly = it.y - wCar * 0.2;
+      const depth = clamp((it.y - 318) / 623 / 1.25 + 0.012, 0, 1), r = (head ? 0.8 + 0.42 * wCar : 0.7 + 0.32 * wCar) * (1 + e.fog * 1.2 + e.rain * 0.3), ly = it.y - wCar * 0.2;
       if (wCar > 4.2) { // near enough to resolve the pair of lamps
-        sp.add(it.x - wCar * 0.3, ly, r, r, 0, 11, -depth, 0, col[0], col[1], col[2], -inten * (head ? 1.0 : 0.9));
-        sp.add(it.x + wCar * 0.3, ly, r, r, 0, 11, -depth, 0, col[0], col[1], col[2], -inten * (head ? 1.0 : 0.9));
-      } else sp.add(it.x, ly, r * 1.15, r * 1.15, 0, 11, -depth, 0, col[0], col[1], col[2], -inten * (head ? 1.15 : 1.0));
+        sp.add(it.x - wCar * 0.3, ly, r, r, 0, 11, -depth, 0, col[0], col[1], col[2], -inten * (head ? 0.8 : 0.7));
+        sp.add(it.x + wCar * 0.3, ly, r, r, 0, 11, -depth, 0, col[0], col[1], col[2], -inten * (head ? 0.8 : 0.7));
+      } else sp.add(it.x, ly, r * 1.15, r * 1.15, 0, 11, -depth, 0, col[0], col[1], col[2], -inten * (head ? 0.95 : 0.8));
       // light on the asphalt in front of / behind the car (toward the camera for oncoming cars), longer and brighter when wet
       const spill = (head ? 0.16 : 0.07) + e.wet * (head ? 0.4 : 0.32);
       sp.add(it.x, it.y + wCar * (0.25 + 0.5 * e.wet), wCar * 0.55, wCar * (0.5 + 0.9 * e.wet), 0, 12, -depth, 0, col[0], col[1], col[2], -inten * spill);
