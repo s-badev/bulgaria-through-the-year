@@ -200,6 +200,9 @@ void main(){
   // water: ripples and glitter while the fountains run
   if (water > 0.01) suv += vec2(sin(px.y * 0.9 + uTime * 6.), cos(px.x * 0.7 + uTime * 5.)) * 0.9 / uSize * water * uEnvB.z;
   vec3 c = baseAt(suv);
+  // skyline band: the 1-2 px where the sky mask ends (sky just above, land just below). Used below so a low cloud deck that covers
+  // the mountain also covers this band; otherwise a sliver of the brighter base sky shows as a drawn outline along the ridge.
+  float skyEdge = smoothstep(0.25, 0.7, texture(tMaskA, uv - vec2(0., 2.5 / uSize.y)).r - texture(tMaskA, uv + vec2(0., 2.5 / uSize.y)).r);
   if (water > 0.01) {
     float glit = step(0.985, hash12(floor(px) + floor(uTime * 12.))) * uEnvB.z;
     c += vec3(glit * 0.28 * water * (0.25 + luma(c)));
@@ -221,7 +224,7 @@ void main(){
 
   // sky: photographic cloud layers (overcast deck + cumulus), gently compressed toward the horizon, drifting with the wind
   float cloud = uEnvA.x, lowCloud = smoothstep(0.6, 1., cloud) * clamp(uEnvB.w * 0.9 + uEnvC.w * 0.3 + uMisc.z, 0., 1.);
-  float cmask = clamp(sky + mtn * smoothstep(0.34, 0.20, uv.y + (vnoise(px / 90.) - .5) * 0.07) * lowCloud, 0., 1.);
+  float cmask = clamp(max(sky, skyEdge * lowCloud) + mtn * smoothstep(0.34, 0.20, uv.y + (vnoise(px / 90.) - .5) * 0.07) * lowCloud, 0., 1.);
   float calpha = 0.;
   if (cmask > 0.003 && cloud > 0.01) {
     float yy = clamp(uv.y / 0.385, 0., 1.);
