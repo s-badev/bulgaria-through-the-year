@@ -66,7 +66,7 @@ export function buildUI({ state, scene, version, actions }) {
       <li><b>Слънцето:</b> алгоритъм на NOAA Solar Calculator (Jean Meeus), изчислено за София; изгрев и залез са намерени чрез търсене.</li>
       <li><b>Шрифт:</b> Manrope, © The Manrope Project Authors (SIL Open Font License 1.1).</li>
     </ul>
-    <p class="muted">Симулация, не прогноза. Звукът е синтезиран в браузъра. Сайтът не събира данни и не ползва бисквитки.</p>
+    <p class="muted">Симулация, не прогноза. Звукът е синтезиран в браузъра. Приложението не събира данни и не ползва бисквитки; в браузъра се пази само бележка, че си видял въведението.</p>
     <div class="btns"><button type="button" class="pri" id="creditsClose">Затвори</button></div>
   </dialog>`));
   root.append(h(`<div class="toast" id="toast" role="status" aria-live="polite"></div>`));
