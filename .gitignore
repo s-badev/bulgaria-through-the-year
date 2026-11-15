@@ -8,3 +8,15 @@ tests/screenshots/
 tests/qa-out/
 .DS_Store
 Thumbs.db
+.env
+.env.*
+!.env.example
+*.local
+.vercel/
+.claude/
+.vscode/
+.idea/
+Desktop.ini
+coverage/
+*.tsbuildinfo
+npm-debug.log*

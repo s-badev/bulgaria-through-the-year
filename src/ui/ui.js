@@ -50,13 +50,25 @@ export function buildUI({ state, scene, version, actions }) {
       <div class="sl"><span class="lab">Мъгла</span><label class="sr" for="fogLvl">Гъстота и височина на мъглата</label><input id="fogLvl" type="range" min="0" max="1" step="0.01" value="0.55"></div>
       <div class="sl" style="max-width:220px"><span class="lab">Звук</span><label class="sr" for="vol">Сила на звука</label><input id="vol" type="range" min="0" max="1" step="0.01" value="0.7"></div>
     </div>
-    <div class="note"><span><span class="long">Истинска снимка на автора; сезоните и времето са върху нейни варианти. </span>Слънцето, изгревът и залезът са изчислени за София. Звукът е синтезиран. Симулация, не прогноза.</span><span class="stamp" id="version" title="Версия: комит и време на компилация">${version}</span></div>
+    <div class="note"><span><span class="long">Истинска снимка на автора; сезоните и времето са върху нейни варианти. </span>Слънцето, изгревът и залезът са изчислени за София. Звукът е синтезиран. Симулация, не прогноза.</span><span class="foot"><button type="button" class="linkbtn" id="creditsBtn" aria-haspopup="dialog">Информация и права</button><span class="stamp" id="version" title="Версия: комит и време на компилация">${version}</span></span></div>
   </section>`));
   root.append(h(`<button class="chip photo-exit" id="photoExit" type="button">Покажи управлението (H)</button>`));
   root.append(h(`<div class="intro gone" id="intro" role="dialog" aria-labelledby="introTitle" aria-describedby="introText">
     <h2 id="introTitle">Жива снимка на София</h2>
     <p id="introText">НДК, Южният парк и Витоша през денонощието, сезоните и времето. Демото върви зад този прозорец без звук. Плъзни часа, смени сезона, пусни мъгла, буря или сняг, или натисни „Сега“ за реалното време в София.</p>
     <div class="btns"><button class="pri" id="introSound" type="button">Демо със звук</button><button class="sec" id="introKeep" type="button">Гледай демото</button><button class="sec" id="introExplore" type="button">Разгледай сам</button></div></div>`));
+  root.append(h(`<dialog class="credits" id="credits" aria-labelledby="creditsTitle">
+    <h2 id="creditsTitle">Информация и права</h2>
+    <p>Снимката на НДК е на автора на проекта. Вариантите за сезони, час и време са направени с изкуствен интелект върху нея, а маските, дълбочината и движението са изчислени. Всички изображения: <b>всички права запазени</b>. Изходният код: MIT (виж <a href="./THIRD-PARTY-LICENSES.txt" target="_blank" rel="noopener">пълните лицензи</a>).</p>
+    <ul>
+      <li><b>Дълбочина:</b> Depth Anything V2 Small (Apache-2.0), Yang и др., 2024.</li>
+      <li><b>Времето:</b> данни от <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">Open-Meteo.com</a> (CC BY 4.0), само при натискане на „Сега“.</li>
+      <li><b>Слънцето:</b> алгоритъм на NOAA Solar Calculator (Jean Meeus), изчислено за София; изгрев и залез са намерени чрез търсене.</li>
+      <li><b>Шрифт:</b> Manrope, © The Manrope Project Authors (SIL Open Font License 1.1).</li>
+    </ul>
+    <p class="muted">Симулация, не прогноза. Звукът е синтезиран в браузъра. Сайтът не събира данни и не ползва бисквитки.</p>
+    <div class="btns"><button type="button" class="pri" id="creditsClose">Затвори</button></div>
+  </dialog>`));
   root.append(h(`<div class="toast" id="toast" role="status" aria-live="polite"></div>`));
 
   const hourEl = $('#hour'), clockEl = $('#clock'), dateEl = $('#date'), S = state.S;
@@ -106,9 +118,14 @@ export function buildUI({ state, scene, version, actions }) {
   $('#introSound').addEventListener('click', () => { actions.sound(true); ui.syncSound(); ui.hideIntro(); if (!S.reducedMotion) actions.demo(true, true); });
   $('#introKeep').addEventListener('click', () => ui.hideIntro());
   $('#introExplore').addEventListener('click', () => { actions.demo(false); ui.hideIntro(); });
+  const dlg = $('#credits'), opener = $('#creditsBtn');
+  opener.addEventListener('click', () => dlg.showModal());
+  $('#creditsClose').addEventListener('click', () => dlg.close());
+  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });   // click on the backdrop
+  dlg.addEventListener('close', () => opener.focus({ preventScroll: true }));
   $('#sheetHandle').addEventListener('click', () => { const c = $('#panel').classList.toggle('collapsed'); $('#sheetHandle').setAttribute('aria-expanded', String(!c)); });
   addEventListener('keydown', e => {
-    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || dlg.open) return;   // a modal dialog owns the keyboard
     const typing = e.target instanceof HTMLInputElement && e.target.type !== 'range';
     if ((e.key === 'h' || e.key === 'H' || e.key === 'х' || e.key === 'Х') && !typing) { ui.setPhotoMode(!ui.photoMode); e.preventDefault(); }
     else if (e.key === 'Escape') { if (ui.photoMode) ui.setPhotoMode(false); else if (!$('#intro').classList.contains('gone')) { actions.demo(false); ui.hideIntro(); } else actions.demo(false); }

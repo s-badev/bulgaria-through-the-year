@@ -3,7 +3,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { SRC, WORK, ROOT } from './lib/img.mjs';
+// Paths are derived here on purpose: importing ./lib/img.mjs would load `sharp` (a native module) even on a clean clone
+// (for example on Vercel) where this script only has to notice that there is nothing to do.
+import { fileURLToPath } from 'node:url';
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), SRC = path.join(ROOT, 'assets', 'source'), WORK = path.join(SRC, 'work');
 
 if (!fs.existsSync(path.join(SRC, 'ndk-photo.png'))) { console.log('[assets] no raw inputs in assets/source - using committed web assets.'); process.exit(0); }
 // --if-changed (used by predev/prebuild): skip unless a photo was added, removed or replaced since the last run.

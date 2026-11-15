@@ -22,27 +22,29 @@ async function loadBitmap(url) {
 
 export async function loadScene(gl, id, { onProgress } = {}) {
   const base = `${import.meta.env.BASE_URL}scenes/${id}/`;
-  const cfg = await (await fetch(base + 'scene.json')).json();
+  const ver = (typeof __SCENE_VERSIONS__ !== 'undefined' && __SCENE_VERSIONS__[id]) || '';   // content hash from the build: files may be cached for a year
+  const url = f => base + f + (ver ? '?v=' + ver : '');
+  const cfg = await (await fetch(url('scene.json'))).json();
   const fmt = await pickFormat(cfg.formats);
-  const scene = { id, cfg, base, fmt, size: cfg.size, tex: {}, photos: {}, cpu: {}, traffic: null, black: solidTexture(gl, [0, 0, 0, 255], true), grey: solidTexture(gl, [128, 128, 128, 255]), clear: solidTexture(gl, [0, 0, 0, 0]) };
+  const scene = { id, cfg, base, url, fmt, size: cfg.size, tex: {}, photos: {}, cpu: {}, traffic: null, black: solidTexture(gl, [0, 0, 0, 255], true), grey: solidTexture(gl, [128, 128, 128, 255]), clear: solidTexture(gl, [0, 0, 0, 0]) };
   let done = 0; const total = 6;
   const step = () => onProgress && onProgress(++done / total);
 
   // first paint needs: the master photo, the masks, the geometry texture
-  const dataTex = async (key, file) => { const bmp = await loadBitmap(base + file); scene.tex[key] = createTexture(gl, bmp, 'data'); if (key === 'b' || key === 'c') scene.cpu[key] = bitmapPixels(bmp, 4); bmp.close(); step(); };
+  const dataTex = async (key, file) => { const bmp = await loadBitmap(url(file)); scene.tex[key] = createTexture(gl, bmp, 'data'); if (key === 'b' || key === 'c') scene.cpu[key] = bitmapPixels(bmp, 4); bmp.close(); step(); };
   for (const [idp, p] of Object.entries(cfg.photos)) scene.photos[idp] = { ...p, id: idp, tex: null, state: 'idle', lastUsed: 0 };
   await Promise.all([
     scene.loadPhoto = null,
     dataTex('a', cfg.masks.a), dataTex('b', cfg.masks.b), dataTex('c', cfg.masks.c), dataTex('d', cfg.masks.d), dataTex('geo', cfg.masks.geo),
     loadPhoto(gl, scene, 'master').then(step),
     // traffic: lanes + sprite metadata, the strict asphalt mask (also kept on the CPU for audits) and the atlas of real car sprites
-    cfg.traffic ? Promise.all([fetch(base + cfg.traffic.data).then(r => r.json()), loadBitmap(base + cfg.traffic.road), loadBitmap(base + cfg.traffic.atlas)]).then(([data, road, atlas]) => {
+    cfg.traffic ? Promise.all([fetch(url(cfg.traffic.data)).then(r => r.json()), loadBitmap(url(cfg.traffic.road)), loadBitmap(url(cfg.traffic.atlas))]).then(([data, road, atlas]) => {
       scene.traffic = data; scene.tex.road = createTexture(gl, road, 'data'); scene.cpu.road = bitmapPixels(road, 1); road.close(); scene.tex.cars = createTexture(gl, atlas, 'atlas'); atlas.close();
     }) : null,
   ]);
   // cloud textures are small; load in the background
   scene.tex.deck = scene.grey; scene.tex.cumulus = scene.grey;
-  for (const k of ['deck', 'cumulus']) loadBitmap(base + cfg.clouds[k]).then(bmp => { scene.tex[k] = createTexture(gl, bmp, 'tile'); bmp.close(); scene.version++; }).catch(() => {});
+  for (const k of ['deck', 'cumulus']) loadBitmap(url(cfg.clouds[k])).then(bmp => { scene.tex[k] = createTexture(gl, bmp, 'tile'); bmp.close(); scene.version++; }).catch(() => {});
   scene.version = 1;
   return scene;
 }
@@ -65,7 +67,7 @@ export function loadPhoto(gl, scene, id) {
   if (p.state === 'ready') return Promise.resolve(p.tex);
   if (p.state === 'loading') return p.promise;
   p.state = 'loading';
-  p.promise = loadBitmap(`${scene.base}${p.src}.${scene.fmt}`).then(bmp => {
+  p.promise = loadBitmap(scene.url(`${p.src}.${scene.fmt}`)).then(bmp => {
     p.tex = createTexture(gl, bmp, 'photo'); bmp.close(); p.state = 'ready'; scene.version = (scene.version || 0) + 1; return p.tex;
   }).catch(err => { p.state = 'error'; p.error = err; console.error(err); return null; });
   return p.promise;

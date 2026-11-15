@@ -82,6 +82,41 @@ const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y
   const off = await page.evaluate(() => document.querySelector('#toast').textContent); check('"Сега" offline fallback keeps time and explains', /не е достъпно/.test(off), off);
   await ctx.close();
 }
+// ---------- 2b. publication: credits dialog, head tags, no dev code, no key required ----------
+{
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 810 } }), page = await ctx.newPage(), bad = [];
+  page.on('response', r => { if (r.status() >= 400) bad.push(r.status() + ' ' + r.url()); });
+  page.on('pageerror', e => bad.push('pageerror ' + e.message));
+  page.on('console', m => { if (m.type() === 'error') bad.push('console ' + m.text()); });
+  await page.goto(base + '?qa=1', { waitUntil: 'load' }); await ready(page);
+  const head = await page.evaluate(() => {
+    const m = (k, v) => (document.querySelector('meta[' + k + '="' + v + '"]') || {}).content || '';
+    return { lang: document.documentElement.lang, title: document.title, desc: m('name', 'description').length, theme: m('name', 'theme-color'), ogImage: m('property', 'og:image'), ogTitle: m('property', 'og:title'), card: m('name', 'twitter:card'), twImage: m('name', 'twitter:image'), icon: !!document.querySelector('link[rel="icon"][href$="favicon.svg"]'), apple: !!document.querySelector('link[rel="apple-touch-icon"]'), viewport: m('name', 'viewport') };
+  });
+  check('head: lang bg, title, Bulgarian description, theme colour, Open Graph + Twitter card + icons', head.lang === 'bg' && /[А-Яа-я]/.test(head.title) && head.desc > 60 && head.theme && head.ogImage.endsWith('og-image.jpg') && head.ogTitle && head.card === 'summary_large_image' && head.twImage.endsWith('og-image.jpg') && head.icon && head.apple && /width=device-width/.test(head.viewport), head);
+  const og = await page.evaluate(async u => { const r = await fetch(u); return { status: r.status, type: r.headers.get('content-type'), bytes: (await r.arrayBuffer()).byteLength }; }, head.ogImage);
+  check('social card is reachable, a JPEG, under 300 KB', og.status === 200 && /jpeg/.test(og.type) && og.bytes < 300 * 1024, og);
+  await page.focus('#creditsBtn'); await page.keyboard.press('Enter'); await page.waitForTimeout(200);
+  const open = await page.evaluate(() => ({ open: document.querySelector('#credits').open, links: [...document.querySelectorAll('#credits a')].map(a => a.getAttribute('href')), text: document.querySelector('#credits').textContent }));
+  check('credits dialog opens from the footer with the keyboard and names every required credit', open.open && /Depth Anything V2/.test(open.text) && /Open-Meteo/.test(open.text) && /CC BY 4\.0/.test(open.text) && /Manrope/.test(open.text) && /NOAA/.test(open.text) && /всички права запазени/.test(open.text) && open.links.some(h => /open-meteo\.com/.test(h)) && open.links.some(h => /THIRD-PARTY-LICENSES/.test(h)), open.links);
+  const hBefore = await page.evaluate(() => document.body.classList.contains('photo')); await page.keyboard.press('h');
+  check('shortcuts are ignored while the dialog is open', (await page.evaluate(() => document.body.classList.contains('photo'))) === hBefore);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+  const closed = await page.evaluate(() => ({ open: document.querySelector('#credits').open, focus: document.activeElement && document.activeElement.id }));
+  check('Esc closes the dialog and focus returns to its button', !closed.open && closed.focus === 'creditsBtn', closed);
+  const lic = await page.evaluate(async () => { const r = await fetch('./THIRD-PARTY-LICENSES.txt'), t = await r.text(); return { status: r.status, ofl: /SIL OPEN FONT LICENSE Version 1\.1/i.test(t), meteo: /CC BY 4\.0/.test(t), dda: /Apache License 2\.0/.test(t) }; });
+  check('THIRD-PARTY-LICENSES.txt is served and carries the OFL text, Open-Meteo and Depth Anything notices', lic.status === 200 && lic.ofl && lic.meteo && lic.dda, lic);
+  const dev = await page.evaluate(async () => {
+    const src = [...document.querySelectorAll('script[src]')].map(s => s.src), txt = [];
+    for (const u of src) txt.push(await (await fetch(u)).text());
+    const all = txt.join(String.fromCharCode(10));
+    return { debugOverlay: /debug-overlay|DEBUG \(D\)/.test(all), apiKey: /api[_-]?key|appid|access_token/i.test(all) };
+  });
+  await page.keyboard.press('d'); const canvases = await page.evaluate(() => document.querySelectorAll('canvas').length);
+  check('production bundle has no debug overlay (key D does nothing) and no API key', !dev.debugOverlay && !dev.apiKey && canvases === 1, { ...dev, canvases });
+  check('no failed requests or console errors on a plain static server', bad.length === 0, bad);
+  await ctx.close();
+}
 // ---------- 3. lightning: flash rate, "Без проблясвания" ----------
 {
   const ctx = await browser.newContext({ viewport: { width: 1024, height: 640 } }), page = await ctx.newPage();

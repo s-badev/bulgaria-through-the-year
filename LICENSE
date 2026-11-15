@@ -1,0 +1,43 @@
+This repository has two licences, one for the code and one for the pictures.
+
+======================================================================
+1. SOURCE CODE: MIT License
+======================================================================
+
+Covers everything in this repository EXCEPT the files listed in part 2: the application in src/, the build and data
+tools in tools/, the tests in tests/, the configuration files, and the text of the documentation in docs/ and README.md.
+
+Copyright (c) 2026 Chefo
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
+persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+======================================================================
+2. PHOTOGRAPHS AND PROCESSED IMAGES: ALL RIGHTS RESERVED
+======================================================================
+
+Copyright (c) 2026 Chefo. All rights reserved.
+
+The following files are NOT covered by the MIT licence above. They may not be copied, redistributed, modified or used
+in other works without the written permission of the copyright holder:
+
+  - public/scenes/**           the photographs (including the variants made from them with the help of AI) and every
+                               image derived from them: masks, depth map, surface normals, car sprites, road mask,
+                               cloud textures, and the generated geometry files (scene.json, traffic.json)
+  - public/og-image.jpg, public/favicon*, public/apple-touch-icon.png   the social card and the icons
+  - docs/screenshots/**, docs/traffic/**                                 screenshots of the site
+
+Viewing the published website, and cloning this repository in order to read or run the code, is allowed. Running the code
+with your own photographs is allowed under the MIT licence. Using the pictures of this repository is not.
+
+Third-party components keep their own licences: see public/THIRD-PARTY-LICENSES.txt and the "Credits" section of README.md.
