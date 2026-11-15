@@ -157,6 +157,8 @@ body.photo .photo-exit:focus-visible, body.photo .photo-exit:hover { opacity: 1;
   body.title-hidden .title-restore { display: grid; }
   body.photo .title-restore { display: none; }
   .title-hide svg, .title-restore svg { width: 18px; height: 18px; }
+  /* The date picker is desktop-only; mobile uses seasons and 'Сега'. */
+  .season-group > #date, .season-group > label[for="date"] { display: none; }
   .mobile-scene-info { display: block; border-bottom: 1px solid var(--line); margin-bottom: 14px; padding-bottom: 12px; }
   .mobile-scene-info h3 { margin: 0 0 8px; font: 400 22px/1.2 var(--serif); }
   .mobile-scene-info .readout { margin: 0; }
