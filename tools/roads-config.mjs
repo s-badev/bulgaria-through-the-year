@@ -44,4 +44,6 @@ export const CARRIAGEWAYS = [
 //  - winter-snow.png redrew the avenue (the median edge crosses the inbound lanes diagonally) and its small grey cars stay below
 //    the detector's contrast threshold. It keeps its own pixels; live carriageways are closed while it is on screen (winter
 //    days and dusk). Winter nights show the relit, cleaned master road and have live traffic.
-export const UNTOUCHED = { autumn: ['left-out', 'left-out-slip'], 'dawn-golden': ['left-in', 'left-out', 'left-out-slip'], 'winter-snow': ['left-in', 'left-out', 'left-out-slip'] };
+export const UNTOUCHED = { autumn: ['left-out', 'left-out-slip'], 'dawn-golden': ['left-in', 'left-out', 'left-out-slip'], 'winter-snow': ['left-in', 'left-out', 'left-out-slip'],
+  // optional, not delivered yet: kept untouched and closed until its plate has been checked by eye (then remove this entry)
+  'evening-golden': ['left-in', 'left-out', 'left-out-slip'] };
