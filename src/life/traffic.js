@@ -52,8 +52,13 @@ export class Traffic {
   /** How many cars a lane should carry right now. */
   /** Carriageways closed to new cars right now: the golden-hour photo on screen left them untouched (frozen baked cars). */
   closedFor(ctx) {   // golden photo weight as actually visible (winter mornings are computed, not the photo)
-    const b = ctx.blend, golden = b && b.wGold * (1 - (b.cover || 0)) > 0.02 ? (b.morning ? 'dawn-golden' : 'evening-golden') : null, list = golden && this.data.untouched ? this.data.untouched[golden] || [] : [];
-    return list.length ? new Set(list) : NONE;
+    const b = ctx.blend || {}, u = this.data.untouched; if (!u) return NONE;
+    const cover = b.cover || 0, gold = (b.wGold || 0) * (1 - cover);
+    // how much of each photograph is actually on screen (same weights the compositor uses)
+    const visible = { 'dawn-golden': b.morning ? gold : 0, 'evening-golden': b.morning ? 0 : gold, 'winter-snow': cover * (1 - (b.wNight || 0)), fog: b.wFogPhoto || 0, autumn: ctx.season ? ctx.season.autumn : 0 };
+    let set = null;
+    for (const [photo, list] of Object.entries(u)) if ((visible[photo] || 0) > 0.02) for (const cw of list) (set ||= new Set()).add(cw);
+    return set || NONE;
   }
   target(lane, ctx) {
     if (this.closed && this.closed.has(lane.cw)) return 0;   // no new cars; those already on it drive on to the end
@@ -132,15 +137,16 @@ export class Traffic {
       layer.add(it.x + jx - s.ax * k, it.y - s.ay * k, s.w * k, s.h * k, s.u, s.v, s.w, s.h, t[0], t[1], t[2], it.a);
     }
     layer.flush(this.setName === 'autumn');
+    const ambL = b.amb ? 0.2126 * b.amb[0] + 0.7152 * b.amb[1] + 0.0722 * b.amb[2] : 0, dark = clamp(1 - ambL / 0.25), glowK = 0.42 + 0.58 * dark, intK = 0.55 + 0.45 * dark;
     if (night > 0.03) for (const it of list) {
-      const head = it.lane.seen === 'head', col = head ? HEAD : TAIL, wCar = CAR_W * it.ppm, fg = groundFog(e, it.y), inten = night * it.a * (1 - fg * 0.6);
-      const depth = clamp((it.y - 318) / 623 / 1.25 + 0.012, 0, 1), r = (head ? 0.8 + 0.42 * wCar : 0.7 + 0.32 * wCar) * (1 + e.fog * 1.0 + e.rain * 0.12), ly = it.y - wCar * 0.2;
+      const head = it.lane.seen === 'head', col = head ? HEAD : TAIL, wCar = CAR_W * it.ppm, fg = groundFog(e, it.y), inten = night * it.a * (1 - fg * 0.6) * intK;
+      const depth = clamp((it.y - 318) / 623 / 1.25 + 0.012, 0, 1), r = (head ? 0.6 + 0.26 * wCar : 0.55 + 0.2 * wCar) * (1 + e.fog * 1.0 + e.rain * 0.12) * glowK, ly = it.y - wCar * 0.2;
       if (wCar > 4.2) { // near enough to resolve the pair of lamps
         sp.add(it.x - wCar * 0.3, ly, r, r, 0, 11, -depth, 0, col[0], col[1], col[2], -inten * (head ? 0.8 : 0.7));
         sp.add(it.x + wCar * 0.3, ly, r, r, 0, 11, -depth, 0, col[0], col[1], col[2], -inten * (head ? 0.8 : 0.7));
       } else sp.add(it.x, ly, r * 1.15, r * 1.15, 0, 11, -depth, 0, col[0], col[1], col[2], -inten * (head ? 0.95 : 0.8));
       // light on the asphalt in front of / behind the car (toward the camera for oncoming cars), longer and brighter when wet
-      const spill = (head ? 0.12 : 0.05) + e.wet * (head ? 0.16 : 0.13);
+      const spill = ((head ? 0.12 : 0.05) + e.wet * (head ? 0.16 : 0.13)) * dark;
       sp.add(it.x, it.y + wCar * (0.25 + 0.3 * e.wet), wCar * 0.5, wCar * (0.45 + 0.5 * e.wet), 0, 12, -depth, 0, col[0], col[1], col[2], -inten * spill);
     }
   }

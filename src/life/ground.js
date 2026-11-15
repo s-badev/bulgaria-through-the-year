@@ -67,7 +67,7 @@ export class Insects {
 }
 
 /** Autumn leaves carried by the wind, in depth layers. */
-const LEAF = [[0.55, 0.33, 0.14], [0.62, 0.49, 0.2], [0.46, 0.22, 0.13], [0.52, 0.39, 0.2]];
+const LEAF = [[0.42, 0.3, 0.18], [0.48, 0.4, 0.22], [0.36, 0.22, 0.15], [0.4, 0.33, 0.2]];
 export class Leaves {
   constructor(scene, rnd) {
     this.size = scene.size; this.rnd = rnd; this.amount = 0;
@@ -85,9 +85,9 @@ export class Leaves {
     }
   }
   draw(sp, ctx) {
-    const light = clamp(ctx.dayLight * 0.9 + 0.05 + ctx.blend.lightsOn * 0.16), alpha = 0.25 + 0.67 * clamp(ctx.dayLight * 1.5);
+    const light = clamp(ctx.dayLight * 0.8 + 0.05 + ctx.blend.lightsOn * 0.12), alpha = (0.2 + 0.5 * clamp(ctx.dayLight * 1.5)) * (1 - 0.85 * ctx.env.fog);
     for (let i = 0; i < (this.n || 0); i++) {
-      const L = this.items[i], s = 2.6 * L.k * (0.35 + L.d);
+      const L = this.items[i], s = 0.55 + 0.55 * L.k * L.d;   // half-size in px: 1-2 px specks
       sp.add(L.x, L.y, s, s, L.rot, 3, L.d, Math.abs(Math.sin(L.rot * 0.7)) * 0.8 + 0.2, L.col[0] * light, L.col[1] * light, L.col[2] * light, alpha);
     }
   }

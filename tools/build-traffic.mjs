@@ -9,7 +9,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import sharp from 'sharp';
-import { W, H, WORK, SCENE, loadRGB, luma, blur, blurMasked, loadMaskRGB, saveRGB, rgbToBuffer, smoothstep, clamp, ensureDir, rgb2hsv } from './lib/img.mjs';
+import { W, H, WORK, SCENE, loadRGB, luma, blur, blurMasked, loadMaskRGB, saveRGB, saveMaskRGB, rgbToBuffer, smoothstep, clamp, ensureDir, rgb2hsv } from './lib/img.mjs';
 import { groundPoint } from './lib/roads.mjs';
 import { CARRIAGEWAYS, CAMERA_HEIGHT_M, UNTOUCHED } from './roads-config.mjs';
 
@@ -235,6 +235,31 @@ for (const id of DAY) {
   await saveRGB(path.join(WORK, 'plates', id + '.png'), rgb);
   console.log(id.padEnd(14), 'baked cars', String(stats[id].bakedCars).padStart(3), '-> remaining', stats[id].remainingCars, '| static', stats[id].staticObjects, '| unfilled px', damagedPx, '| vetoes', stats[id].vetoShare, '| clean-only zones', Object.entries(cleanStats).map(([k, v]) => `${k} ${v.baked}->${v.remaining}${v.untouched ? ' (untouched)' : ''}`).join(', ') || '-');
 }
+// The baked-shadow mask (masks-d R) was derived from the master photo, so it also marks the shadows of the cars that are now
+// removed. Relighting would brighten those spots into pale blotches (and wash out every live car crossing them). Inside the
+// cleaned pixels the mask is re-filled from the surrounding, untouched road, exactly as the colour was. Tree and building shadows
+// on the road stay. Idempotent: running the tool again refills from the same neighbours.
+if (plates.master) {
+  const fullD = path.join(WORK, 'masks-full', 'masks-d.png');
+  if (fs.existsSync(fullD)) {
+    const [sh, gr, ht] = await loadMaskRGB(fullD), orig = await loadRGB(P('master')), plate = plates.master;
+    const cleaned = new Uint8Array(N), keep = new Float32Array(N); let n = 0, changed = 0;
+    for (let i = 0; i < N; i++) {
+      if (!LIVE.cwId[i] && !CLEAN.cwId[i]) continue;
+      let d = 0; for (let ch = 0; ch < 3; ch++) d = Math.max(d, Math.abs(orig[i * 3 + ch] - plate[i * 3 + ch]));
+      if (d > 0.03) { cleaned[i] = 1; n++; } else keep[i] = 1;
+    }
+    // grow by one pixel: the soft edge of a removed car shadow
+    const grown = Uint8Array.from(cleaned); for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const i = y * W + x; if (cleaned[i - 1] || cleaned[i + 1] || cleaned[i - W] || cleaned[i + W]) grown[i] = 1; }
+    for (let i = 0; i < N; i++) if (grown[i]) keep[i] = 0;
+    const fill = blurMasked(sh, keep, W, H, 6);
+    for (let i = 0; i < N; i++) if (grown[i] && (LIVE.cwId[i] || CLEAN.cwId[i])) { if (Math.abs(sh[i] - fill[i]) > 0.02) changed++; sh[i] = fill[i]; }
+    await saveMaskRGB(fullD, sh, gr, ht);
+    const buf = await sharp(fullD).resize(Math.round(W / 2), Math.round(H / 2), { kernel: 'cubic' }).png({ compressionLevel: 9 }).toBuffer();
+    fs.writeFileSync(path.join(SCENE, 'masks-d.png'), buf);
+    console.log('baked-shadow mask: re-filled', changed, 'px around', n, 'cleaned road px (shadows of removed cars)');
+  }
+}
 for (const id of NIGHT) { if (!fs.existsSync(P(id)) || !plates.master) continue; plates[id] = relitRoad(await loadRGB(P(id)), plates.master); await saveRGB(path.join(WORK, 'plates', id + '.png'), plates[id]); }
 
 // ---------- 4. strict masks ----------
@@ -351,6 +376,8 @@ for (const s of sprites) {
     const d = Math.max(Math.abs(dl), Math.abs(dr - dl), Math.abs(dg - dl), Math.abs(db - dl)), a = smoothstep(0.022, 0.085, d) * smoothstep(0.04, 0.3, reach[y * s.w + x]);
     al[y * s.w + x] = a; if (a > 0.3) { sum += a; sx += x * a; sl += a * (0.2126 * s.rgb[i] + 0.7152 * s.rgb[i + 1] + 0.0722 * s.rgb[i + 2]); if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y; }
   }
+  const fillRatio = sum / ((maxx - minx + 1) * (maxy - miny + 1)), aspect = (maxx - minx + 1) / (maxy - miny + 1);
+  if (fillRatio < 0.42 || aspect < 0.55 || aspect > 2.4) continue;   // ragged or stretched matte
   const wc = s.comp.wc; if (sum < 0.5 * wc * wc || maxx - minx + 1 < 0.6 * wc) continue;   // a fragment, not a car
   s.al = al; s.cx = sx / sum; s.lumA = sl / sum; s.box = [minx, miny, maxx, maxy]; s.area = sum; spriteMeta.push(s);
 }

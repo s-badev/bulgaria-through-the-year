@@ -101,7 +101,12 @@ void main(){
   float dif = clamp(max(wWin, uSpecial.x), 0., 1.);
   // live cars are part of the photograph: they enter here, before any relighting, so everything below treats them like baked pixels
   vec4 tr = texture(tTraffic, uv);
-  if (tr.a > 0.003) { vec3 car = tr.rgb / tr.a; D = mix(D, car * car, tr.a); }
+  if (tr.a > 0.003) {
+    vec3 car = tr.rgb / tr.a; car *= car;
+    float fdist = clamp(0.18 / (g.b * 1.25 + 0.07), 0., 1.);
+    car = mix(car, textureLod(tFog, uv, 3.).rgb, uSpecial.x * (0.25 + 0.75 * fdist));   // the fog photo's own fog over the car
+    D = mix(D, car, tr.a);
+  }
 
   // ----- relight the day image -----
   vec2 st = 1.5 / vec2(textureSize(tShadow, 0));
