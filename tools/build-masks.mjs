@@ -9,7 +9,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { W, H, SRC, WORK, SCENE, loadRGB, loadGray16, saveGray16, luma, blur, blurMasked, guided, saveMaskRGB, fillPoly, polylineDist, rgb2hsv, smoothstep, clamp, loadMaskRGB, ensureDir, box } from './lib/img.mjs';
-import { CAMERA, LANES, BASINS, GLASS_BOXES, NDK_BOX } from './scene-geometry.mjs';
+import { CAMERA, ROAD_HINTS, BASINS, GLASS_BOXES, NDK_BOX } from './scene-geometry.mjs';
 
 const N = W * H;
 const master = await loadRGB(path.join(SRC, 'ndk-photo.png'));
@@ -123,7 +123,7 @@ const water = guided(lum, blur(water0, W, H, 1.5), W, H, 3, 2e-3);
 
 // ---------- 7. roads + paved ----------
 const roadD = new Float32Array(N).fill(60);
-for (const l of LANES) polylineDist(l.pts, 60, W, H, roadD);
+for (const l of ROAD_HINTS) polylineDist(l.pts, 60, W, H, roadD);
 const roads = new Float32Array(N), paved = new Float32Array(N);
 for (let y = 340; y < H; y++) for (let x = 0; x < W; x++) {
   const i = y * W + x, r = master[i * 3], g = master[i * 3 + 1], b = master[i * 3 + 2], [, s, v] = rgb2hsv(r, g, b);

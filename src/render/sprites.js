@@ -22,8 +22,7 @@ void main(){
 const FS = `#version 300 es
 precision highp float;
 in vec2 vQ; in vec2 vImg; flat in vec4 vB; flat in vec4 vC; out vec4 o;
-uniform sampler2D tGeo;
-float box(vec2 p, vec2 b, float r){ vec2 d = abs(p) - b + r; return length(max(d, 0.)) + min(max(d.x, d.y), 0.) - r; }
+uniform sampler2D tGeo, tRoad; uniform float uAutumn;
 void main(){
   vec2 q = vQ; float m = 0., p = vB.w; int shape = int(vB.y + .5);
   if (shape == 0) { float r2 = dot(q, q); m = max(exp(-r2 * 4.6) - 0.0101, 0.) + 0.55 * max(exp(-r2 * 26.) - 0.0, 0.) * step(r2, 1.); }       // glow with a hot core
@@ -37,10 +36,11 @@ void main(){
     float tail = smoothstep(0.1, 0.03, abs(q.x + 0.82 + abs(q.y) * 0.4)) * smoothstep(0.4, 0.3, abs(q.y));
     m = max(max(f, wing), tail); }
   else if (shape == 6) { float t = q.y * .5 + .5; m = exp(-q.x * q.x * (3. + 5. * t)) * pow(t, 0.7) * (0.75 + 0.25 * sin(t * 18. + p)); }      // water jet: bright base (q.y=+1 is the foot)
-  else if (shape == 7) { float t = q.x * .5 + .5; m = pow(t, 2.2) * exp(-q.y * q.y * 4.5); }                                          // light trail, head at +x
   else if (shape == 8) { m = exp(-q.y * q.y * 5.) * smoothstep(1., 0.96, abs(q.x)); }                                                // soft line (bolt, contrail)
   else if (shape == 9) { float r = length(q); m = smoothstep(0.22, 0.0, abs(r - 0.72)) ; }                                           // splash ring
-  else if (shape == 10) { m = smoothstep(0.12, -0.08, box(q, vec2(0.92, 0.8), 0.45)); }                                              // rounded body (car by day)
+  else if (shape == 11) { float r2 = dot(q, q); m = max(exp(-r2 * 4.6) - 0.0101, 0.) + 0.55 * exp(-r2 * 26.) * step(r2, 1.); }                 // car lamp (clipped to the asphalt below)
+  else if (shape == 12) { m = pow(max(1. - abs(q.x), 0.), 1.5) * smoothstep(1., 0.1, abs(q.y)); }                                    // light on the asphalt
+  if (shape >= 11) { vec2 rd = texture(tRoad, vImg).rg; m *= smoothstep(0.5, 0.8, mix(rd.r, rd.g, uAutumn)); }                        // car light never leaves the road
   if (vB.z >= 0.) { float sd = texture(tGeo, vImg).b; m *= smoothstep(0.035, 0.008, sd - vB.z); }
   if (m <= 0.002) discard;
   o = vC.a < 0. ? vec4(vC.rgb * (-vC.a) * m, 0.) : vec4(vC.rgb * vC.a * m, vC.a * m);
@@ -52,7 +52,7 @@ export class Sprites {
     const compile = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error('Sprite shader: ' + gl.getShaderInfoLog(s)); return s; };
     const p = this.prog = gl.createProgram(); gl.attachShader(p, compile(gl.VERTEX_SHADER, VS)); gl.attachShader(p, compile(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error('Sprite program: ' + gl.getProgramInfoLog(p));
-    this.u = {}; for (const k of ['uCov', 'uPar', 'uSize', 'uZoom', 'tGeo']) this.u[k] = gl.getUniformLocation(p, k);
+    this.u = {}; for (const k of ['uCov', 'uPar', 'uSize', 'uZoom', 'tGeo', 'tRoad', 'uAutumn']) this.u[k] = gl.getUniformLocation(p, k);
     this.vao = gl.createVertexArray(); gl.bindVertexArray(this.vao);
     this.buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.buf); gl.bufferData(gl.ARRAY_BUFFER, this.data.byteLength, gl.DYNAMIC_DRAW);
     for (let i = 0; i < 3; i++) { gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, 4, gl.FLOAT, false, STRIDE * 4, i * 16); gl.vertexAttribDivisor(i, 1); }
@@ -67,12 +67,13 @@ export class Sprites {
   }
   /** Line segment helper (bolts, contrails): from (x0,y0) to (x1,y1) with half-thickness w. */
   line(x0, y0, x1, y1, w, depth, r, g, b, a) { const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy); if (L < 0.01) return; this.add((x0 + x1) / 2, (y0 + y1) / 2, L / 2 + w * 0.5, w, Math.atan2(dy, dx), 8, depth, 0, r, g, b, a); }
-  flush(view, size, geoTex) {
+  flush(view, size, geoTex, roadTex = geoTex, autumn = false) {
     const gl = this.gl; if (!this.n) return;
     gl.useProgram(this.prog); gl.bindVertexArray(this.vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.data, 0, this.n * STRIDE);
     gl.uniform4fv(this.u.uCov, view.cov); gl.uniform2fv(this.u.uPar, view.par); gl.uniform2fv(this.u.uSize, size); gl.uniform1f(this.u.uZoom, view.zoom);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, geoTex); gl.uniform1i(this.u.tGeo, 0);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, roadTex); gl.uniform1i(this.u.tRoad, 1); gl.uniform1f(this.u.uAutumn, autumn ? 1 : 0);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, this.n);
     gl.disable(gl.BLEND); gl.bindVertexArray(null);

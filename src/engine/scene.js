@@ -24,7 +24,7 @@ export async function loadScene(gl, id, { onProgress } = {}) {
   const base = `${import.meta.env.BASE_URL}scenes/${id}/`;
   const cfg = await (await fetch(base + 'scene.json')).json();
   const fmt = await pickFormat(cfg.formats);
-  const scene = { id, cfg, base, fmt, size: cfg.size, tex: {}, photos: {}, cpu: {}, black: solidTexture(gl, [0, 0, 0, 255], true), grey: solidTexture(gl, [128, 128, 128, 255]) };
+  const scene = { id, cfg, base, fmt, size: cfg.size, tex: {}, photos: {}, cpu: {}, traffic: null, black: solidTexture(gl, [0, 0, 0, 255], true), grey: solidTexture(gl, [128, 128, 128, 255]), clear: solidTexture(gl, [0, 0, 0, 0]) };
   let done = 0; const total = 6;
   const step = () => onProgress && onProgress(++done / total);
 
@@ -35,6 +35,10 @@ export async function loadScene(gl, id, { onProgress } = {}) {
     scene.loadPhoto = null,
     dataTex('a', cfg.masks.a), dataTex('b', cfg.masks.b), dataTex('c', cfg.masks.c), dataTex('d', cfg.masks.d), dataTex('geo', cfg.masks.geo),
     loadPhoto(gl, scene, 'master').then(step),
+    // traffic: lanes + sprite metadata, the strict asphalt mask (also kept on the CPU for audits) and the atlas of real car sprites
+    cfg.traffic ? Promise.all([fetch(base + cfg.traffic.data).then(r => r.json()), loadBitmap(base + cfg.traffic.road), loadBitmap(base + cfg.traffic.atlas)]).then(([data, road, atlas]) => {
+      scene.traffic = data; scene.tex.road = createTexture(gl, road, 'data'); scene.cpu.road = bitmapPixels(road, 1); road.close(); scene.tex.cars = createTexture(gl, atlas, 'atlas'); atlas.close();
+    }) : null,
   ]);
   // cloud textures are small; load in the background
   scene.tex.deck = scene.grey; scene.tex.cumulus = scene.grey;

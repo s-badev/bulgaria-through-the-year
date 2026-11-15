@@ -20,5 +20,6 @@ if (!fs.existsSync(path.join(WORK, 'depth-raw16.png'))) {
 run('node', ['tools/align.mjs']);
 run('node', ['tools/build-masks.mjs']);
 run('node', ['tools/process-variants.mjs']);
+run('node', ['tools/build-traffic.mjs']);   // empty road plates, strict asphalt mask, lanes, car sprites; fails if a lane leaves the asphalt
 run('node', ['tools/build-scene.mjs']);
 fs.mkdirSync(WORK, { recursive: true }); fs.writeFileSync(stampFile, stamp);

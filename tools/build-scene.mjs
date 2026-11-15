@@ -2,7 +2,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { W, H, WORK, SCENE, loadRGB, luma, loadMaskRGB, clamp } from './lib/img.mjs';
-import { CAMERA, LANES, BASINS, JETS, BEACONS, CORRIDORS, EMBLEM, NDK_BOX } from './scene-geometry.mjs';
+import { CAMERA, BASINS, JETS, BEACONS, CORRIDORS, EMBLEM, NDK_BOX } from './scene-geometry.mjs';
 
 const calib = JSON.parse(fs.readFileSync(path.join(WORK, 'calib.json')));
 const variants = JSON.parse(fs.readFileSync(path.join(WORK, 'variants.json')));
@@ -11,18 +11,6 @@ const [bld, roads] = await loadMaskRGB(fs.existsSync(fullC) ? fullC : path.join(
 const [sky, mtn] = await loadMaskRGB(path.join(SCENE, 'masks-a.png'));
 const at = (a, x, y) => a[clamp(Math.round(y), 0, H - 1) * W + clamp(Math.round(x), 0, W - 1)];
 const scaleAt = y => +clamp((y - CAMERA.horizonY) / (H - CAMERA.horizonY), 0.05, 1.2).toFixed(3);
-
-// lanes: resampled every 3 px, with perspective scale (ground-plane depth) and visibility (road mask: hidden behind trees)
-const lanes = LANES.map(l => {
-  const pts = []; let acc = 0;
-  for (let i = 0; i + 1 < l.pts.length; i++) {
-    const [ax, ay] = l.pts[i], [bx, by] = l.pts[i + 1], L = Math.hypot(bx - ax, by - ay), n = Math.max(1, Math.round(L / 3));
-    for (let k = 0; k < n; k++) { const t = k / n, x = ax + (bx - ax) * t, y = ay + (by - ay) * t; pts.push([+x.toFixed(1), +y.toFixed(1), scaleAt(y), +Math.min(1, at(roads, x, y) * 1.6).toFixed(2)]); }
-    acc += L;
-  }
-  const last = l.pts[l.pts.length - 1]; pts.push([last[0], last[1], scaleAt(last[1]), 1]);
-  return { id: l.id, kind: l.kind, width: l.width, length: +acc.toFixed(1), pts }; // pts: [x, y, scale, visibility]
-});
 
 // lamps: bright, small, warm maxima on the ground of each night-type photo
 async function lamps(id) {
@@ -56,8 +44,9 @@ const scene = {
   photos,
   masks: { a: 'masks-a.png', b: 'masks-b.png', c: 'masks-c.png', d: 'masks-d.png', geo: 'geo.png' },
   clouds: { deck: 'clouds-deck.webp', cumulus: 'clouds-cumulus.webp' },
+  traffic: fs.existsSync(path.join(SCENE, 'traffic.json')) ? { data: 'traffic.json', road: 'road.png', atlas: 'cars.png' } : null,
   channels: { a: ['sky', 'mountain', 'vegetation'], b: ['water', 'trees', 'paved'], c: ['buildings', 'roads', 'glass'], d: ['bakedShadow', 'ground', 'height'], geo: ['normalX', 'normalY', 'invDepth'] },
-  geometry: { lanes, basins: BASINS, jets: JETS, beacons: BEACONS, corridors: CORRIDORS, emblem: EMBLEM, ndkBox: NDK_BOX, lamps: lampSets, windows: { cell: 5 } },
+  geometry: { basins: BASINS, jets: JETS, beacons: BEACONS, corridors: CORRIDORS, emblem: EMBLEM, ndkBox: NDK_BOX, lamps: lampSets, windows: { cell: 5 } },
 };
 fs.writeFileSync(path.join(SCENE, 'scene.json'), JSON.stringify(scene));
 console.log('scene.json', (fs.statSync(path.join(SCENE, 'scene.json')).size / 1024).toFixed(1), 'KB; photos:', Object.keys(photos).join(', '), '; lamps:', Object.entries(lampSets).map(([k, v]) => k + ':' + v.length).join(' '));

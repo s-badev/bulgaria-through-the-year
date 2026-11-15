@@ -72,6 +72,7 @@ export class State {
     return p;
   }
   /** City activity 0..1 by local hour (traffic density, city hum). */
-  get activity() { const h = this.S.hour, s = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); }; return 0.08 + 0.92 * s(4.5, 8, h) * s(23.8, 19.5, h) * (0.75 + 0.25 * (s(7, 8.5, h) * s(10.5, 9, h) + s(16.5, 17.5, h) * s(19.5, 18.5, h))); }
+  get activity() { return State.activityAt(this.S.hour); }
+  static activityAt(h) { const s = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); }; return 0.08 + 0.92 * s(4.5, 8, h) * s(23.8, 19.5, h) * (0.75 + 0.25 * (s(7, 8.5, h) * s(10.5, 9, h) + s(16.5, 17.5, h) * s(19.5, 18.5, h))); }
   snapshot() { return { sun: this.sun, morning: this.morning, season: this.season, env: this.V }; }
 }

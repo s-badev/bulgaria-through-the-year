@@ -18,7 +18,7 @@ export class Compositor {
     this.prevKey = ''; this.prevSunKey = ''; this.baseRenders = 0; this.shadowRenders = 0;
     this.shadowSteps = 30; this.maxPhotos = 12;
     this.view = { cov: [0, 0, 1, 1], zoom: 1.03, par: [0, 0] };
-    this.blend = null;
+    this.blend = null; this.trafficLayer = null; this.trafficRenders = 0;
   }
   /** Which photographs the current state needs; streams them in and reports what is ready. */
   requestPhotos(season, tod) {
@@ -76,7 +76,8 @@ export class Compositor {
       uZen: b.sky.zen, uHor: b.sky.hor, uSunHor: b.sky.sun, uRefZen: ref.zen, uRefHor: ref.hor, uSkyP: [glowX, b.sky.glow * (1 - b.overcast * 0.8), sunY, discVis],
     };
     const key = JSON.stringify(U, (k, v) => typeof v === 'number' ? +v.toFixed(4) : v) + s.version + this.prevSunKey + (morning ? 'm' : 'e');
-    if (key !== this.prevKey) {
+    const tl = this.trafficLayer, full = key !== this.prevKey;
+    if (full || (tl && tl.dirty)) {   // state changed: whole image; only the cars moved: just the road rectangles
       this.prevKey = key;
       bindTarget(gl, this.base);
       const p = this.pBase.use();
@@ -84,10 +85,12 @@ export class Compositor {
       p.tex('tDay', master).tex('tAutumn', this.photo('autumn', master)).tex('tWinter', this.photo('winter-snow', master)).tex('tSpring', this.photo('spring', master))
         .tex('tNight', this.photo('night', s.black)).tex('tWinterNight', this.photo('winter-night', this.photo('night', s.black))).tex('tRainNight', this.photo('rain-night', this.photo('night', s.black)))
         .tex('tFog', this.photo('fog', master)).tex('tBlue', this.photo(blue, master)).tex('tGold', this.photo(gold, master))
-        .tex('tMaskA', s.tex.a).tex('tMaskC', s.tex.c).tex('tMaskD', s.tex.d).tex('tGeo', s.tex.geo).tex('tShadow', this.shadow.tex)
+        .tex('tMaskA', s.tex.a).tex('tMaskC', s.tex.c).tex('tMaskD', s.tex.d).tex('tGeo', s.tex.geo).tex('tShadow', this.shadow.tex).tex('tTraffic', tl ? tl.tex : s.clear)
         .set('uSize', [W, H]).set('uHasSpring', has.spring ? 1 : 0);
       for (const k of Object.keys(U)) p.set(k, U[k]);
-      drawFullscreen(gl); this.baseRenders++;
+      if (full) { drawFullscreen(gl); this.baseRenders++; }
+      else { gl.enable(gl.SCISSOR_TEST); for (const [x, y, w, h] of tl.rects) { gl.scissor(x, y, w, h); drawFullscreen(gl); } gl.disable(gl.SCISSOR_TEST); this.trafficRenders++; }
+      if (tl) tl.dirty = false;
     }
 
     // ---- 3. composite to the canvas ----

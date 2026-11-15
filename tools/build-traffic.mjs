@@ -168,6 +168,8 @@ function inpaint(rgb, an) {
     if (a <= 0) continue;
     for (let ch = 0; ch < 3; ch++) { const f = hole[i] && !damaged[i] ? fs2[ch][i] * 0.6 + fill[i * 3 + ch] * 0.4 : fs2[ch][i]; out[i * 3 + ch] = clamp(rgb[i * 3 + ch] * (1 - a) + f * a); }
   }
+  { const Lo = luma(out), Lv = luma(rgb), tgt = blurMasked(Lv, valid, W, H, 9), cur = blur(Lo, W, H, 3), cov = blur(valid, W, H, 9);
+    for (let i = 0; i < N; i++) { if (!hole[i] || damaged[i] || cov[i] < 0.05) continue; const g = clamp((tgt[i] + 0.01) / (cur[i] + 0.01), 0.8, 1.25), a = soft[i]; for (let ch = 0; ch < 3; ch++) out[i * 3 + ch] = clamp(out[i * 3 + ch] * (1 + (g - 1) * a)); } }
   let dmg = 0; for (let i = 0; i < N; i++) dmg += damaged[i];
   return { plate: out, hole, damagedPx: dmg };
 }
@@ -304,14 +306,14 @@ for (const lib of LIBS) {
   for (const c of an.comps) {
     if (c.kind !== CLS.CAR) continue;
     const [x0, y0, x1, y1] = c.bbox, bw = x1 - x0 + 1, bh = y1 - y0 + 1, wc = c.wc;
-    const rej = c.A < 0.55 * wc * wc ? 'small' : c.A > 2.4 * wc * wc ? 'large' : bw > 2.6 * wc || bh > 2.4 * wc ? 'bbox' : bw < 0.6 * wc ? 'narrow' : bw + 6 > CELL || bh + 6 > CELL ? 'cell' : null;
+    const rej = c.A < 0.45 * wc * wc ? 'small' : c.A > 2.6 * wc * wc ? 'large' : bw > 2.6 * wc || bh > 2.6 * wc ? 'bbox' : bw < 0.6 * wc ? 'narrow' : bw + 6 > CELL || bh + 6 > CELL ? 'cell' : null;
     if (process.env.SPRITE_DEBUG && lib === 'master') console.log('comp', c.cw, 'A/wc2', (c.A / wc / wc).toFixed(2), 'bw/wc', (bw / wc).toFixed(2), 'bh/wc', (bh / wc).toFixed(2), 'wc', wc.toFixed(1), rej || 'size-ok');
     if (rej) continue;
     // isolation: a ring around the car must be clean road
     const inC = new Uint8Array((bw + 10) * (bh + 10)); for (const i of c.px) inC[((i / W | 0) - y0 + 5) * (bw + 10) + (i % W) - x0 + 5] = 1;
     let ring = 0, bad = 0; for (let y = y0 - 3; y <= y1 + 3; y++) for (let x = x0 - 3; x <= x1 + 3; x++) { if (x < 0 || y < 0 || x >= W || y >= H) { bad++; ring++; continue; } const i = y * W + x; if (inC[(y - y0 + 5) * (bw + 10) + x - x0 + 5]) continue; ring++; if (!cwId[i] || (an.cls[i] !== CLS.BG && an.cls[i] !== CLS.NOISE && an.cls[i] !== CLS.MARK)) bad++; }
     if (process.env.SPRITE_DEBUG && lib === 'master') console.log('   ring bad', (bad / ring).toFixed(2));
-    if (bad / ring > 0.35) continue;
+    if (bad / ring > 0.5) continue;
     sprites.push({ lib, cw: c.cw, comp: c, rgb, x0: x0 - 3, y0: y0 - 3, w: bw + 6, h: bh + 6, ppm: ppm((y0 + y1) / 2), lum: c.lum, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 });
   }
 }

@@ -8,7 +8,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import sharp from 'sharp';
 import { W, H, SRC, WORK, SCENE, loadRGB, luma, blur, blurMasked, loadMaskRGB, saveRGB, rgbToBuffer, polylineDist, smoothstep, clamp, ensureDir, variantFiles } from './lib/img.mjs';
-import { LANES } from './scene-geometry.mjs';
+import { ROAD_HINTS } from './scene-geometry.mjs';
 
 const N = W * H;
 const align = fs.existsSync(path.join(WORK, 'alignment.json')) ? JSON.parse(fs.readFileSync(path.join(WORK, 'alignment.json'))) : { variants: {} };
@@ -73,7 +73,7 @@ function vitosha(rgb) {
 }
 
 // ---- 4.3 baked light trails: rebuild the carriageways from the matching day image, relit by the local night/day gain ----
-const laneD = new Float32Array(N).fill(80); for (const l of LANES) polylineDist(l.pts, 80, W, H, laneD);
+const laneD = new Float32Array(N).fill(80); for (const l of ROAD_HINTS) polylineDist(l.pts, 80, W, H, laneD);
 function removeTrails(rgb, fill) {
   const L = luma(rgb), T = new Float32Array(N);
   for (let i = 0; i < N; i++) {

@@ -40,7 +40,7 @@ void main(){
 // ---------- base: blends the photographs for the current state and relights the day image ----------
 export const BASE_FS = COMMON + `
 uniform sampler2D tDay, tAutumn, tWinter, tSpring, tNight, tWinterNight, tRainNight, tFog, tBlue, tGold;
-uniform sampler2D tMaskA, tMaskC, tMaskD, tGeo, tShadow;
+uniform sampler2D tMaskA, tMaskC, tMaskD, tGeo, tShadow, tTraffic;
 uniform vec2 uSize;
 uniform float uHasSpring;
 uniform vec4 uTod;        // wDay, wGold, wBlue, wNight
@@ -99,6 +99,9 @@ void main(){
   // diffuse-light photographs (overcast winter, fog)
   D = mix(D, texture(tFog, uv).rgb, uSpecial.x * (1. - wWin));
   float dif = clamp(max(wWin, uSpecial.x), 0., 1.);
+  // live cars are part of the photograph: they enter here, before any relighting, so everything below treats them like baked pixels
+  vec4 tr = texture(tTraffic, uv);
+  if (tr.a > 0.003) { vec3 car = tr.rgb / tr.a; D = mix(D, car * car, tr.a); }
 
   // ----- relight the day image -----
   vec2 st = 1.5 / vec2(textureSize(tShadow, 0));

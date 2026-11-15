@@ -29,15 +29,6 @@ export const CARRIAGEWAYS = [
 //    half ends in a junction with no honest place for a car to appear or leave. The photograph is left untouched there.
 //  - west road (lower left), corner street (lower right), streets around the plaza: mostly under crowns or lined with parked cars.
 
-// Other roads that carried baked light trails in the night variants (kept for the trail removal only; no live traffic there).
-export const TRAIL_ONLY = [
-  [[196, 572], [160, 588], [120, 604], [80, 620], [40, 637], [0, 655]],
-  [[0, 626], [40, 610], [80, 595], [120, 581], [160, 568], [200, 556], [240, 548]],
-  [[1447, 505], [1456, 525], [1462, 545], [1455, 566], [1436, 588], [1414, 608], [1394, 628], [1378, 648], [1368, 664]],
-  [[1481, 573], [1494, 574], [1499, 550], [1492, 528], [1478, 508], [1468, 496]],
-  [[1572, 738], [1600, 756], [1632, 776], [1672, 800]],
-];
-
 // Photographs whose road differs too much from the master inside a carriageway: their pixels are left exactly as they are
 // (baked cars stay) and no live traffic runs there while that photo is on screen.
 //  - autumn.png redrew the outbound left carriageway (kerb and island moved several pixels); see docs/TRAFFIC.md.

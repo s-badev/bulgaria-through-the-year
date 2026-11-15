@@ -12,7 +12,7 @@ import { buildUI } from './ui/ui.js';
 import { Demo } from './ui/demo.js';
 
 const params = new URLSearchParams(location.search);
-const QA = params.has('qa'), app = document.querySelector('#app');
+const QA = params.has('qa'), STILL = params.get('still') === '1', app = document.querySelector('#app');
 const version = `версия ${__APP_COMMIT__} · ${__APP_BUILD_TIME__.slice(0, 16).replace('T', ' ')} UTC`;
 
 const canvas = document.createElement('canvas');
@@ -31,6 +31,7 @@ async function boot() {
   const comp = new Compositor(gl, scene);
   const sound = new Sound();
   const life = new Life(gl, scene, { hooks: { onPlane: d => sound.plane(d), onBolt: km => sound.thunder(km) } });
+  comp.trafficLayer = life.trafficLayer;
   const clock = new Clock();
   const quality = new Quality({ mobile: matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 700, fixed: QA });
   const reduceMq = matchMedia('(prefers-reduced-motion: reduce)');
@@ -91,7 +92,7 @@ async function boot() {
     demo.update(dt); state.update(dt);
     const reduced = state.S.reducedMotion, k = 1 - Math.exp(-dt / 0.5);
     par.x += ((reduced ? 0 : par.tx) - par.x) * k; par.y += ((reduced ? 0 : par.ty) - par.y) * k;
-    comp.view.par = [par.x, par.y]; comp.view.zoom = reduced ? 1.03 : 1.035 + 0.012 * Math.sin(t * 0.05);
+    comp.view.par = STILL ? [0, 0] : [par.x, par.y]; comp.view.zoom = STILL ? 1 : reduced ? 1.03 : 1.035 + 0.012 * Math.sin(t * 0.05); // ?still=1: pixel-exact framing for QA
     const blend = comp.render(state.snapshot(), t, { flash: life.lightning.level, boltX: life.lightning.boltX, fountainColor: life.ctx.fountainColor, reducedMotion: reduced, grain: quality.grain });
     const ctx = life.context(state, blend, t, quality.particles);
     life.update(dt, ctx); life.draw(ctx, comp.view);

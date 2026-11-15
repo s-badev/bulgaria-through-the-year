@@ -2,8 +2,9 @@
 // Traced on the master photo; the night variant was used only to confirm which carriageway carries which direction.
 export const CAMERA = { focalPx: 1150, horizonY: 318 }; // assumed FOV ~72deg; horizon hidden behind Vitosha
 
-// Lanes: polyline in travel direction. kind: 'head' = we see headlights (traffic comes toward the camera), 'tail' = taillights.
-export const LANES = [
+// Rough road hints (NOT traffic lanes): only used to build the wettable 'paved' mask and to find the baked light trails in the
+// night variants. Live traffic geometry comes from tools/roads-config.mjs + tools/build-traffic.mjs.
+export const ROAD_HINTS = [
   { id: 'left-in', kind: 'head', width: 5, pts: [[267, 400], [263, 418], [254, 436], [242, 452], [233, 470], [231, 488], [237, 506], [245, 524], [247, 540], [232, 556], [196, 572], [160, 588], [120, 604], [80, 620], [40, 637], [0, 655]] },
   { id: 'left-out', kind: 'tail', width: 5, pts: [[0, 626], [40, 610], [80, 595], [120, 581], [160, 568], [200, 556], [240, 548], [275, 538], [300, 522], [296, 503], [280, 483], [269, 462], [268, 440], [272, 420], [274, 402]] },
   { id: 'right-in', kind: 'head', width: 5, pts: [[1447, 505], [1456, 525], [1462, 545], [1455, 566], [1436, 588], [1414, 608], [1394, 628], [1378, 648], [1368, 664]] },
