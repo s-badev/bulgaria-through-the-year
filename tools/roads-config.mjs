@@ -37,4 +37,8 @@ export const CARRIAGEWAYS = [
 // Photographs whose road differs too much from the master inside a carriageway: their pixels are left exactly as they are
 // (baked cars stay) and no live traffic runs there while that photo is on screen.
 //  - autumn.png redrew the outbound left carriageway (kerb and island moved several pixels); see docs/TRAFFIC.md.
-export const UNTOUCHED = { autumn: ['left-out', 'left-out-slip'] };
+//  - dawn-golden.png drew the median island a few pixels into the outbound carriageway (cleaning erased its yellow kerb lines),
+//    and on the inbound one the detector misses cars against the low golden light (one car and faint ghosts stayed). The
+//    whole golden photo keeps its own pixels; while it is on screen every live carriageway is closed to new cars and the cars
+//    already on the road drive on to their end (src/life/traffic.js closedFor). Sunrise shows the photograph's own cars.
+export const UNTOUCHED = { autumn: ['left-out', 'left-out-slip'], 'dawn-golden': ['left-in', 'left-out', 'left-out-slip'] };

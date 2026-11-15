@@ -51,10 +51,10 @@ test('lanes are in metres on the ground: near cars cover more pixels per metre t
   assert.ok(c[2] > a[2], 'scale grows toward the camera');
 });
 
-function sim(env, hour, doy, steps = 6000) {
+function sim(env, hour, doy, steps = 6000, blendExtra = {}) {
   const scene = { traffic: data, cpu: { road: { w: RW, h: road.info.height, data: new Uint8Array(0) } }, size: [1672, 941] };
   const T = new Traffic(scene, rng(7)), season = seasonWeights(doy);
-  const ctx = { env: { rain: 0, fog: 0, snow: 0, storm: 0, wet: 0, ...env }, season, blend: { cover: season.winter, lightsOn: 0, sunVis: 1, relight: 0 }, activity: State.activityAt(hour) };
+  const ctx = { env: { rain: 0, fog: 0, snow: 0, storm: 0, wet: 0, ...env }, season, blend: { cover: season.winter, lightsOn: 0, sunVis: 1, relight: 0, wGold: 0, morning: true, ...blendExtra }, activity: State.activityAt(hour) };
   let minGap = 1e9, maxCars = 0;
   for (let i = 0; i < steps; i++) {
     T.update(1 / 30, ctx);
@@ -106,4 +106,22 @@ test('clean-only carriageways: plate cleaning only - never a lane, a spawn or dr
   assert.ok(Object.keys(T.lanesBase).every(id => !ids.has(id)));
   for (const set of Object.values(T.sets)) for (const l of set) assert.ok(!ids.has(l.cw));
   assert.equal(T.events.midRoad, 0);
+});
+
+test('golden hour: a carriageway the golden photo left untouched is closed - no spawns, cars on it drain to the end, never vanish', () => {
+  const closed = new Set(data.untouched['dawn-golden'] || []); assert.ok(closed.has('left-out'));
+  const { T } = sim({}, 6.2, 196, 1500);
+  const before = T.lanes.filter(l => closed.has(l.cw)).reduce((n, l) => n + l.cars.length, 0); assert.ok(before > 0, 'cars on it before sunrise');
+  const ctx = { env: { rain: 0, fog: 0, snow: 0, storm: 0, wet: 0 }, season: seasonWeights(196), blend: { cover: 0, lightsOn: 0, sunVis: 1, relight: 0, wGold: 0.6, morning: true }, activity: State.activityAt(6.2) };
+  const spawns0 = T.events.spawn, despawns0 = T.events.despawn, mid0 = T.events.midRoad; let spawnedOnClosed = 0;
+  const count = () => T.lanes.filter(l => closed.has(l.cw)).reduce((n, l) => n + l.cars.length, 0);
+  let prev = count();
+  for (let i = 0; i < 3600; i++) { T.update(1 / 30, ctx); const now = count(); if (now > prev) spawnedOnClosed++; prev = now; }
+  assert.equal(spawnedOnClosed, 0, 'no car enters a closed carriageway');
+  assert.equal(count(), 0, 'it drains completely');
+  assert.equal(T.events.midRoad - mid0, 0, 'every car left at the declared end');
+  assert.ok(T.events.despawn - despawns0 >= before, 'the cars that were on it left at its end');
+  if (T.lanes.some(l => !closed.has(l.cw))) assert.ok(T.events.spawn > spawns0, 'an open carriageway keeps flowing');
+  ctx.blend.wGold = 0; for (let i = 0; i < 1800; i++) T.update(1 / 30, ctx);
+  assert.ok(count() > 0, 'reopens after the golden hour');
 });

@@ -50,7 +50,13 @@ export class Traffic {
     return { s, v, v0k: 0.8 + this.rnd() * 0.32, sprite: si, tint, len: sp.big ? 6.2 : 4.5, age: 0, lat: (this.rnd() - 0.5) * 2 };
   }
   /** How many cars a lane should carry right now. */
+  /** Carriageways closed to new cars right now: the golden-hour photo on screen left them untouched (frozen baked cars). */
+  closedFor(ctx) {   // golden photo weight as actually visible (winter mornings are computed, not the photo)
+    const b = ctx.blend, golden = b && b.wGold * (1 - (b.cover || 0)) > 0.02 ? (b.morning ? 'dawn-golden' : 'evening-golden') : null, list = golden && this.data.untouched ? this.data.untouched[golden] || [] : [];
+    return list.length ? new Set(list) : NONE;
+  }
   target(lane, ctx) {
+    if (this.closed && this.closed.has(lane.cw)) return 0;   // no new cars; those already on it drive on to the end
     const e = ctx.env, weather = (1 - 0.3 * e.rain) * (1 - 0.35 * e.fog) * (1 - 0.92 * clamp(e.snow * 1.15)) * (1 - 0.3 * e.storm);
     return 0.8 * Math.max(4, this.bakedOf(this.lib)(lane.cw)) / (this.lanesBase[lane.cw] || 1) * (ctx.activity / NOON) * weather;
   }
@@ -66,6 +72,7 @@ export class Traffic {
   red(lane) { if (lane.signalM == null) return false; const g = lane.signal; return ((this.time + lane.phase) % (g.green + g.red)) >= g.green; }
   update(dt, ctx) {
     // which lanes and which photo's cars: the autumn photo has its own (narrower) asphalt
+    this.closed = this.closedFor(ctx);
     const setName = ctx.season.autumn > 0.02 ? 'autumn' : 'base', lib = ctx.blend.cover > 0.5 ? 'winter-snow' : ctx.season.autumn > 0.5 ? 'autumn' : 'master';
     if (setName !== this.setName || lib !== this.lib) { this.setName = setName; this.lib = lib; this.populate(ctx); }
     if (dt <= 0) return;
@@ -150,4 +157,4 @@ export class Traffic {
     return { cars: this.count, visible, overlaps, offRoad, spawn: this.events.spawn, despawn: this.events.despawn, midRoad: this.events.midRoad };
   }
 }
-const P = { x: 0, y: 0, ppm: 1, vis: 1 };
+const P = { x: 0, y: 0, ppm: 1, vis: 1 }, NONE = new Set();
