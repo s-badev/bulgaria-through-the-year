@@ -4,7 +4,6 @@ export function installMobileSheet(root) {
   const menu = root.querySelector('#mobileMenu');
   const moreButton = root.querySelector('#moreBtn');
   const mobile = matchMedia('(max-width: 820px), (max-height: 500px)');
-  const compact = matchMedia('(max-width: 419px), (max-height: 499px)');
   const secondary = [...root.querySelector('.tr').querySelectorAll('button:not(#moreBtn)')];
   const placeholders = secondary.map(button => {
     const marker = document.createComment('desktop toolbar position');
@@ -55,12 +54,10 @@ export function installMobileSheet(root) {
   });
   root.querySelector('#menuCredits').addEventListener('click', () => root.querySelector('#credits').showModal());
 
-  const title = root.querySelector('.title');
   const titleToggle = root.querySelector('.title-toggle');
-  titleToggle.addEventListener('click', () => {
-    const expanded = title.classList.toggle('expanded');
-    titleToggle.setAttribute('aria-expanded', String(expanded));
-  });
+  const titleDetails = root.querySelector('#titleDetails');
+  titleToggle.addEventListener('click', () => titleDetails.showModal());
+  titleDetails.addEventListener('close', () => titleToggle.focus({ preventScroll: true }));
   for (const button of secondary) button.setAttribute('aria-label', button.querySelector('span').textContent);
 
   function layout() {
@@ -85,10 +82,9 @@ export function installMobileSheet(root) {
     style.setProperty('--visible-bottom', `${Math.max(0, innerHeight - height - top)}px`);
     const headerBottom = root.querySelector('.top').getBoundingClientRect().bottom;
     style.setProperty('--sheet-top', `${Math.max(16, headerBottom - top + 8)}px`);
-    titleToggle.tabIndex = compact.matches ? 0 : -1;
+    titleToggle.tabIndex = mobile.matches ? 0 : -1;
   }
   mobile.addEventListener('change', layout);
-  compact.addEventListener('change', updateViewport);
   addEventListener('resize', updateViewport);
   window.visualViewport?.addEventListener('resize', updateViewport);
   window.visualViewport?.addEventListener('scroll', updateViewport);

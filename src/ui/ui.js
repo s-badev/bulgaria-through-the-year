@@ -19,7 +19,7 @@ const h = (html) => { const t = document.createElement('template'); t.innerHTML 
 export function buildUI({ state, scene, version, actions }) {
   const cfg = scene.cfg, root = document.querySelector('#app'), $ = s => root.querySelector(s);
   root.append(h(`<div class="top" id="top">
-    <div class="title"><h1>${cfg.title}</h1><button class="title-toggle" type="button" aria-expanded="false" aria-controls="readout">${cfg.title}</button><p>${cfg.subtitle} · слънцето е изчислено за ${cfg.location.name}</p><div class="readout" id="readout"></div></div>
+    <div class="title"><h1>${cfg.title}</h1><button class="title-toggle" type="button" aria-haspopup="dialog" aria-controls="titleDetails"><span>София · НДК</span><span id="compactDate"></span></button><p>${cfg.subtitle} · слънцето е изчислено за ${cfg.location.name}</p><div class="readout" id="readout"></div></div>
     <div class="tr" role="toolbar" aria-label="Режими">
       <button class="chip" id="panelBtn" type="button" aria-pressed="false" title="Скрий всичко (клавиш H)">${ICON.panel}<span>Само снимката</span></button>
       <button class="chip" id="shotBtn" type="button" title="Запази кадъра като PNG">${ICON.camera}<span>Запази кадър</span></button>
@@ -74,6 +74,7 @@ export function buildUI({ state, scene, version, actions }) {
     <p class="muted">Симулация, не прогноза. Звукът е синтезиран в браузъра. Приложението не събира данни и не ползва бисквитки; в браузъра се пази само бележка, че си видял въведението.</p>
     <div class="btns"><button type="button" class="pri" id="creditsClose">Затвори</button></div>
   </dialog>`));
+  root.append(h(`<dialog class="title-details" id="titleDetails" aria-labelledby="detailsTitle"><h2 id="detailsTitle">${cfg.title}</h2><p>${cfg.subtitle} · слънцето е изчислено за ${cfg.location.name}</p><div class="readout" id="detailsReadout"></div><button type="button" class="sec" id="detailsClose">Затвори</button></dialog>`));
   root.append(h(`<div class="toast" id="toast" role="status" aria-live="polite"></div>`));
 
   const hourEl = $('#hour'), clockEl = $('#clock'), dateEl = $('#date'), S = state.S;
@@ -92,7 +93,7 @@ export function buildUI({ state, scene, version, actions }) {
     readout(alt) {
       const pos = alt > 0.5 ? `Слънцето е ${Math.round(alt)}° над хоризонта` : alt > -0.833 ? 'Слънцето е на хоризонта' : `Слънцето е ${Math.round(-alt)}° под хоризонта`;
       const html = `<b>${S.d} ${MONTHS[S.m]} ${S.y} · ${formatClock(S.hour)}</b><span class="readout-details"><br>${pos}<br>Изгрев ${formatClock(state.times.rise)} · Залез ${formatClock(state.times.set)}</span>`;
-      if (html !== ui._ro) { ui._ro = html; $('#readout').innerHTML = html; }
+      if (html !== ui._ro) { ui._ro = html; $('#readout').innerHTML = html; $('#detailsReadout').innerHTML = html; $('#compactDate').textContent = `${String(S.d).padStart(2, '0')}.${String(S.m + 1).padStart(2, '0')}.${S.y} · ${formatClock(S.hour)}`; }
     },
     setPhotoMode(on) { document.body.classList.toggle('photo', on); $('#panelBtn').setAttribute('aria-pressed', String(on)); if (on) { $('#photoExit').focus({ preventScroll: true }); ui.toast('Само снимката. Натисни H или Esc, за да върнеш управлението.', 2600); } else $('#panelBtn').focus({ preventScroll: true }); },
     get photoMode() { return document.body.classList.contains('photo'); },
@@ -132,6 +133,7 @@ export function buildUI({ state, scene, version, actions }) {
     const returnButton = matchMedia('(max-width: 820px), (max-height: 500px)').matches && !$('#panel').classList.contains('is-open') ? $('#moreBtn') : opener;
     returnButton.focus({ preventScroll: true });
   });
+  $('#detailsClose').addEventListener('click', () => $('#titleDetails').close());
   const mobileSheet = installMobileSheet(root);
   addEventListener('keydown', e => {
     if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || dlg.open) return;   // a modal dialog owns the keyboard

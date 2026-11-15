@@ -64,6 +64,25 @@ try {
     await closed(page);
     assert(!(await page.locator('#intro').isVisible()));
     assert(await page.locator('#mobileOpen').isVisible());
+    const header = await page.locator('.title').evaluate(element => {
+      const first = element.querySelector('.title-toggle span:first-child');
+      const second = element.querySelector('.title-toggle span:last-child');
+      const rect = element.getBoundingClientRect();
+      return { first: first.textContent, second: second.textContent, firstSize: parseFloat(getComputedStyle(first).fontSize), secondSize: parseFloat(getComputedStyle(second).fontSize), nowrap: getComputedStyle(first).whiteSpace === 'nowrap', height: rect.height };
+    });
+    assert.equal(header.first, 'София · НДК');
+    assert.match(header.second, /22\.04\.2026 · 12:00/);
+    assert(header.firstSize >= 14 && header.firstSize <= 16 && header.secondSize >= 11 && header.secondSize <= 12 && header.nowrap && header.height >= 45 && header.height <= 55, JSON.stringify(header));
+    await page.locator('.title-toggle').tap();
+    assert(await page.locator('#titleDetails').evaluate(dialog => dialog.open));
+    assert.match(await page.locator('#titleDetails').textContent(), /Витоша.*Изгрев.*Залез/s);
+    await page.locator('#detailsClose').tap();
+    assert(!(await page.locator('#titleDetails').evaluate(dialog => dialog.open)));
+    await page.locator('.title-toggle').focus();
+    await page.keyboard.press('Enter');
+    assert(await page.locator('#titleDetails').evaluate(dialog => dialog.open));
+    await page.keyboard.press('Escape');
+    assert(!(await page.locator('#titleDetails').evaluate(dialog => dialog.open)));
     const closedGeometry = await page.evaluate(() => {
       const button = document.querySelector('#mobileOpen').getBoundingClientRect();
       const title = document.querySelector('.title').getBoundingClientRect();

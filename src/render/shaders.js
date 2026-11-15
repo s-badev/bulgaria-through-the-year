@@ -24,7 +24,10 @@ void main(){
   if (inv < 0.09) { o = vec4(0.); return; }
   vec3 P = posAt(vUv, inv);
   float jit = hash12(vUv * uSize), occ = 0., tmax = 1.5;
-  for (float i = 0.; i < uSteps; i++) {
+  // A fixed integer bound compiles reliably on mobile GLSL ES drivers; uSteps still selects the quality level.
+  for (int step = 0; step < 30; step++) {
+    if (float(step) >= uSteps) break;
+    float i = float(step);
     float t = tmax * pow((i + .35 + jit * .65) / uSteps, 1.7) + 0.012;
     vec3 Q = P + uSunCam * t;
     if (Q.z < 0.08) break;
