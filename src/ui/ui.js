@@ -26,10 +26,14 @@ export function buildUI({ state, scene, version, actions }) {
       <button class="chip" id="demoBtn" type="button"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">${ICON.play}</svg><span>Демо</span></button>
       <button class="chip" id="flashBtn" type="button" aria-pressed="false">${ICON.flash}<span>Без проблясвания</span></button>
       <button class="chip" id="soundBtn" type="button" aria-pressed="false">${ICON.sound}<span id="soundLbl">Включи звука</span></button>
+      <button class="chip mobile-more" id="moreBtn" type="button" aria-expanded="false" aria-controls="mobileMenu">Още</button>
     </div></div>`));
+  root.append(h(`<div class="mobile-menu" id="mobileMenu" aria-label="Още действия"><button class="sec" id="menuCredits" type="button">Информация и права</button></div>`));
+  root.append(h(`<button class="mobile-open" id="mobileOpen" type="button" aria-expanded="false" aria-controls="panel">Контроли</button>`));
   root.append(h(`<div class="demo-bar" id="demoBar" role="status"><span>Демо</span><button type="button" id="demoStop">Спри</button></div>`));
   root.append(h(`<div class="caption" id="caption" aria-live="polite"></div>`));
   root.append(h(`<section class="panel" id="panel" aria-label="Управление на сцената">
+    <div class="mobile-sheet-header"><button type="button" class="sec" id="mobileClose">Затвори</button><button type="button" class="sec now" id="mobileDone">Готово</button></div>
     <div class="sheet-pinned"><button class="sheet-handle" id="sheetHandle" type="button" aria-expanded="true" aria-controls="panel" aria-label="Свий или разгъни управлението"><i aria-hidden="true"></i></button></div>
     <div class="row row-time">
       <div class="time"><span class="lab" id="hourLab">Час</span>
@@ -93,17 +97,18 @@ export function buildUI({ state, scene, version, actions }) {
     setPhotoMode(on) { document.body.classList.toggle('photo', on); $('#panelBtn').setAttribute('aria-pressed', String(on)); if (on) { $('#photoExit').focus({ preventScroll: true }); ui.toast('Само снимката. Натисни H или Esc, за да върнеш управлението.', 2600); } else $('#panelBtn').focus({ preventScroll: true }); },
     get photoMode() { return document.body.classList.contains('photo'); },
     setDemo(on) { $('#demoBar').classList.toggle('on', on); },
-    showIntro(reduced) { if (reduced) { $('#introText').textContent += ' Включено е намалено движение, затова демото не тръгва само.'; $('#introKeep').hidden = true; $('#introSound').textContent = 'Включи звука'; } $('#intro').classList.remove('gone'); $('#introExplore').focus({ preventScroll: true }); },
+    showIntro(reduced) { if (matchMedia('(max-width: 820px), (max-height: 500px)').matches) return; if (reduced) { $('#introText').textContent += ' Включено е намалено движение, затова демото не тръгва само.'; $('#introKeep').hidden = true; $('#introSound').textContent = 'Включи звука'; } $('#intro').classList.remove('gone'); $('#introExplore').focus({ preventScroll: true }); },
     hideIntro() { $('#intro').classList.add('gone'); },
   };
   // ---- events ----
   hourEl.addEventListener('input', () => { actions.user(); state.setHour(+hourEl.value); ui.syncTime(); });
   $('#play').addEventListener('click', () => { actions.user(); state.set('playing', !S.playing); ui.syncPlay(); });
-  root.querySelectorAll('#seasons button').forEach(b => b.addEventListener('click', () => { actions.user(); state.setSeason(b.dataset.s); ui.syncDate(); if (S.weather === 'snow' && !snowAllowed(state.doy)) ui.toast('През топлите месеци не вали сняг: времето „Сняг“ се показва като дъжд.'); }));
-  dateEl.addEventListener('change', () => { const m = dateEl.value.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (m) { actions.user(); state.setDate(+m[1], +m[2] - 1, +m[3]); ui.syncDate(); } });
+  root.querySelectorAll('#seasons button').forEach(b => b.addEventListener('click', () => { actions.user(); state.setSeason(b.dataset.s); ui.syncDate(); if (S.weather === 'snow' && !snowAllowed(state.doy)) ui.toast('През топлите месеци не вали сняг: времето „Сняг“ се показва като дъжд.'); mobileSheet.applied(); }));
+  dateEl.addEventListener('change', () => { const m = dateEl.value.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (m) { actions.user(); state.setDate(+m[1], +m[2] - 1, +m[3]); ui.syncDate(); mobileSheet.applied(); } });
   root.querySelectorAll('#weather button').forEach(b => b.addEventListener('click', () => {
     actions.user(); state.setWeather(b.dataset.w); ui.syncWeather();
     if (b.dataset.w === 'snow' && !snowAllowed(state.doy)) ui.toast('През топлите месеци не вали сняг: показвам дъжд. Избери зима или късна есен за сняг.');
+    mobileSheet.applied();
   }));
   $('#wind').addEventListener('input', e => { actions.user(); state.set('wind', +e.target.value); });
   $('#fogLvl').addEventListener('input', e => { actions.user(); state.set('fogLvl', +e.target.value); });
@@ -115,7 +120,7 @@ export function buildUI({ state, scene, version, actions }) {
   $('#shotBtn').addEventListener('click', () => actions.saveFrame());
   $('#demoBtn').addEventListener('click', () => actions.demo(true));
   $('#demoStop').addEventListener('click', () => actions.demo(false));
-  $('#now').addEventListener('click', async () => { const b = $('#now'); b.disabled = true; try { await actions.now(); } finally { b.disabled = false; ui.syncTime(); ui.syncDate(); } });
+  $('#now').addEventListener('click', async () => { const b = $('#now'); b.disabled = true; try { await actions.now(); mobileSheet.applied(); } finally { b.disabled = false; ui.syncTime(); ui.syncDate(); } });
   $('#introSound').addEventListener('click', () => { actions.sound(true); ui.syncSound(); ui.hideIntro(); if (!S.reducedMotion) actions.demo(true, true); });
   $('#introKeep').addEventListener('click', () => ui.hideIntro());
   $('#introExplore').addEventListener('click', () => { actions.demo(false); ui.hideIntro(); });
@@ -123,13 +128,16 @@ export function buildUI({ state, scene, version, actions }) {
   opener.addEventListener('click', () => dlg.showModal());
   $('#creditsClose').addEventListener('click', () => dlg.close());
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });   // click on the backdrop
-  dlg.addEventListener('close', () => opener.focus({ preventScroll: true }));
-  installMobileSheet(root);
+  dlg.addEventListener('close', () => {
+    const returnButton = matchMedia('(max-width: 820px), (max-height: 500px)').matches && !$('#panel').classList.contains('is-open') ? $('#moreBtn') : opener;
+    returnButton.focus({ preventScroll: true });
+  });
+  const mobileSheet = installMobileSheet(root);
   addEventListener('keydown', e => {
     if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || dlg.open) return;   // a modal dialog owns the keyboard
     const typing = e.target instanceof HTMLInputElement && e.target.type !== 'range';
     if ((e.key === 'h' || e.key === 'H' || e.key === 'х' || e.key === 'Х') && !typing) { ui.setPhotoMode(!ui.photoMode); e.preventDefault(); }
-    else if (e.key === 'Escape') { if (ui.photoMode) ui.setPhotoMode(false); else if (!$('#intro').classList.contains('gone')) { actions.demo(false); ui.hideIntro(); } else actions.demo(false); }
+    else if (e.key === 'Escape') { if (mobileSheet.dismiss()) { e.preventDefault(); return; } if (ui.photoMode) ui.setPhotoMode(false); else if (!$('#intro').classList.contains('gone')) { actions.demo(false); ui.hideIntro(); } else actions.demo(false); }
   });
   ui.syncTime(); ui.syncDate(); ui.syncPlay(); ui.syncSound(); ui.syncFlash();
   return ui;
