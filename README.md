@@ -69,7 +69,7 @@ docs/        ARCHITECTURE, TRAFFIC, QA, ALIGNMENT, ASSUMPTIONS, PROGRESS, screen
 vercel.json  cache headers for the static host
 ```
 
-Preparing the assets from the original photographs (not needed to build or run the site) is described in [docs/README.md](docs/README.md) (in Bulgarian); the architecture in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Preparing the assets from the original photographs (not needed to build or run the site) is described in [docs/README.md](docs/README.md) (in Bulgarian); the architecture in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); hosting on Vercel in [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Known limits
 
