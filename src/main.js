@@ -41,7 +41,7 @@ async function boot() {
   const reduceMq = matchMedia('(prefers-reduced-motion: reduce)');
   const applyReduced = () => { state.S.reducedMotion = reduceMq.matches || params.get('reduce') === '1'; };
   applyReduced(); reduceMq.addEventListener('change', applyReduced);
-  installMobilePan(canvas, comp, mobile, () => state.S.reducedMotion);
+  const mobilePan = installMobilePan(canvas, comp, mobile, () => state.S.reducedMotion);
 
   const resize = () => {
     const dpr = Math.min(window.devicePixelRatio || 1, quality.dprCap) * quality.scale;
@@ -101,6 +101,7 @@ async function boot() {
     par.x += ((reduced ? 0 : par.tx) - par.x) * k; par.y += ((reduced ? 0 : par.ty) - par.y) * k;
     comp.view.par = STILL ? [0, 0] : [mobile.matches ? 0 : par.x, par.y]; comp.view.zoom = STILL ? 1 : reduced ? 1.03 : 1.035 + 0.012 * Math.sin(t * 0.05); // ?still=1: pixel-exact framing for QA
     comp.applyPan();
+    mobilePan.update();
     const blend = comp.render(state.snapshot(), t, { flash: life.lightning.level, boltX: life.lightning.boltX, fountainColor: life.ctx.fountainColor, reducedMotion: reduced, grain: quality.grain });
     const ctx = life.context(state, blend, t, quality.particles);
     life.update(dt, ctx); life.draw(ctx, comp.view);

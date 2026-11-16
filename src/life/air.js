@@ -22,17 +22,20 @@ export class Planes {
     const p = this.plane; if (!p) return;
     const e = ctx.env, cl = e.cloud, dayL = ctx.dayLight, vis = clamp(p.high ? 1 - (cl - 0.3) * 2.2 : 1 - (cl - 0.85) * 4 - e.rain * 0.4) * (1 - e.fog * 0.8);
     if (vis < 0.02) return;
-    const d = p.ltr ? 1 : -1, s = p.high ? 3.4 : 6.2, ang = Math.atan2(p.y1 - p.y0, (p.ltr ? 1 : -1) * (this.W + 100));
+    // Shape 5 has its nose at local +X. The sprite vertex shader rotates in image coordinates (Y grows down).
+    const vx = (p.ltr ? 1 : -1) * (this.W + 100), vy = p.y1 - p.y0;
+    const len = Math.hypot(vx, vy), ux = vx / len, uy = vy / len, ang = Math.atan2(vy, vx);
+    const s = p.high ? 3.4 : 6.2;
     if (p.high && dayL > 0.05) for (let i = 1; i < p.trail.length; i++) { // contrail: widens and fades with age
       const a = p.trail[i - 1], b = p.trail[i], age = p.t - b[2], k = clamp(1 - age / 16) * vis * dayL;
       const warm = ctx.blend.golden; sp.line(a[0], a[1], b[0], b[1], 0.7 + age * 0.22, -0.02, 1, 1 - warm * 0.25, 1 - warm * 0.4, 0.42 * k);
     }
-    if (dayL > 0.2) sp.add(p.x, p.y, s * 2, s * 1.5, p.ltr ? ang : Math.PI - ang, 5, -0.02, 0, 0.82 * dayL, 0.84 * dayL, 0.88 * dayL, vis * clamp(dayL * 1.4));
+    if (dayL > 0.2) sp.add(p.x, p.y, s * 2, s * 1.5, ang, 5, -0.02, 0, 0.82 * dayL, 0.84 * dayL, 0.88 * dayL, vis * clamp(dayL * 1.4));
     if (dayL < 0.65) { // navigation lights and a strobe
       const n = vis * (1 - dayL);
-      sp.add(p.x - s * 0.5 * d, p.y + s * 0.2, 2.6, 2.6, 0, 0, -0.02, 0, 1.0, 0.2, 0.15, -n * 0.9);
+      sp.add(p.x - ux * s * 0.5, p.y - uy * s * 0.5 + s * 0.2, 2.6, 2.6, 0, 0, -0.02, 0, 1.0, 0.2, 0.15, -n * 0.9);
       if ((ctx.time * 1.1) % 1 < 0.1 || ctx.reduced) sp.add(p.x, p.y, 4.2, 4.2, 0, 0, -0.02, 0, 1, 1, 1, -n * (ctx.reduced ? 0.5 : 1));
-      if (!p.high) sp.add(p.x + s * 1.7 * d, p.y, 9, 9, 0, 0, -0.02, 0, 1.0, 0.97, 0.88, -n * 0.8); // landing light
+      if (!p.high) sp.add(p.x + ux * s * 1.7, p.y + uy * s * 1.7, 9, 9, 0, 0, -0.02, 0, 1.0, 0.97, 0.88, -n * 0.8); // landing light
     }
   }
 }
