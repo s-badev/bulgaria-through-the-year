@@ -61,7 +61,7 @@ export function buildUI({ state, scene, version, actions }) {
   root.append(h(`<button class="chip photo-exit" id="photoExit" type="button">Покажи управлението (H)</button>`));
   root.append(h(`<div class="intro gone" id="intro" role="dialog" aria-labelledby="introTitle" aria-describedby="introText">
     <h2 id="introTitle">Жива снимка на София</h2>
-    <p id="introText">НДК, Южният парк и Витоша през денонощието, сезоните и времето. Демото върви зад този прозорец без звук. Плъзни часа, смени сезона, пусни мъгла, буря или сняг, или натисни „Сега“ за реалното време в София.</p>
+    <p id="introText">НДК, Южният парк и Витоша през денонощието, сезоните и времето. Можеш да пуснеш демото от бутона „Демо“. Плъзни часа, смени сезона, пусни мъгла, буря или сняг, или натисни „Сега“ за реалното време в София.</p>
     <div class="btns"><button class="pri" id="introSound" type="button">Демо със звук</button><button class="sec" id="introKeep" type="button">Гледай демото</button><button class="sec" id="introExplore" type="button">Разгледай сам</button></div></div>`));
   root.append(h(`<dialog class="credits" id="credits" aria-labelledby="creditsTitle">
     <h2 id="creditsTitle">Информация и права</h2>
@@ -69,7 +69,7 @@ export function buildUI({ state, scene, version, actions }) {
     <p>Вариантите за сезони, час и време са направени с изкуствен интелект върху нея, а маските, дълбочината и движението са изчислени. Всички изображения: <b>всички права запазени</b>. Изходният код: MIT (виж <a href="https://bulgaria-through-the-year.vercel.app/THIRD-PARTY-LICENSES.txt" target="_blank" rel="noopener">пълните лицензи</a>).</p>
     <ul>
       <li><b>Дълбочина:</b> Depth Anything V2 Small (Apache-2.0), Yang и др., 2024.</li>
-      <li><b>Времето:</b> данни от <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo.com</a> (CC BY 4.0), само при натискане на „Сега“.</li>
+      <li><b>Времето:</b> данни от <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo.com</a> (CC BY 4.0), при отваряне на сайта и при натискане на „Сега“.</li>
       <li><b>Слънцето:</b> алгоритъм на NOAA Solar Calculator (Jean Meeus), изчислено за София; изгрев и залез са намерени чрез търсене.</li>
       <li><b>Шрифт:</b> Manrope, © The Manrope Project Authors (SIL Open Font License 1.1).</li>
     </ul>
