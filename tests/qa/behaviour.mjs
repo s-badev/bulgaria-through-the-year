@@ -24,10 +24,10 @@ const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y
   const total = reqs.reduce((s, r) => s + r.bytes, 0);
   check('total transfer under 25 MB', total < 25e6, { MB: +(total / 1048576).toFixed(2), requests: reqs.length });
   check('no failed requests', reqs.every(r => r.status < 400), reqs.filter(r => r.status >= 400));
-  const first = await page.evaluate(() => ({ demo: window.__app.demo.on, intro: !document.querySelector('#intro').classList.contains('gone'), sound: window.__app.state.S.sound, audioCtx: !!window.__app.sound.ctx, stamp: document.querySelector('#version').textContent }));
+  const first = await page.evaluate(() => ({ demo: window.__app.demo.on, intro: !document.querySelector('#intro').classList.contains('gone'), sound: window.__app.state.S.sound, audioCtx: !!window.__app.sound.ctx, stamp: document.querySelector('#version').textContent, stampHidden: document.querySelector('#version').hidden }));
   check('first visit: demo autoplays behind the welcome card', first.demo && first.intro, first);
   check('sound is off by default (no AudioContext before the button)', !first.sound && !first.audioCtx);
-  check('footer shows a version stamp', /версия [0-9a-f]{7}/.test(first.stamp), first.stamp);
+  check('technical version is retained but hidden from visitors', /версия [0-9a-f]{7}/.test(first.stamp) && first.stampHidden, first.stamp);
   await page.keyboard.press('Escape');
   const stopped = await page.evaluate(() => ({ demo: window.__app.demo.on, intro: !document.querySelector('#intro').classList.contains('gone') }));
   check('demo is stoppable (Esc)', !stopped.demo && !stopped.intro, stopped);
