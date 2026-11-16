@@ -64,6 +64,7 @@ async function boot() {
     demo(start, keepSound) {
       if (!start) { demo.stop(); return; }
       if (state.S.reducedMotion) { ui.toast('Включено е намалено движение: демото не се пуска. Плъзни часа или смени сезона сам.'); return; }
+      liveMode = false; weatherRequest++;
       ui.hideIntro(); demo.start();
     },
     async now() {
