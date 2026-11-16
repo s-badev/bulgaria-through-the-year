@@ -28,7 +28,7 @@ export function dominantSeason(w) { return SEASONS.reduce((a, b) => (w[b] > w[a]
 /** Weather presets -> target environment (smoothed over time by the state). */
 export const WEATHER = {
   clear: { cloud: 0.04, rain: 0, snow: 0, fog: 0, storm: 0 },
-  cloudy: { cloud: 0.85, rain: 0, snow: 0, fog: 0, storm: 0 },
+  cloudy: { cloud: 0.94, rain: 0, snow: 0, fog: 0, storm: 0 },
   fog: { cloud: 0.22, rain: 0, snow: 0, fog: 1, storm: 0 },
   rain: { cloud: 0.95, rain: 0.75, snow: 0, fog: 0.15, storm: 0 },
   storm: { cloud: 1, rain: 1, snow: 0, fog: 0, storm: 1 },
@@ -83,6 +83,10 @@ export function blendState({ sun, morning, season, env, has = {}, refSun = { azi
   const alt = sun.elevation, az = sun.azimuth;
   const anchoredSide = morning ? !!has['dawn-golden'] && !!has['dawn-bluehour'] : !!has['evening-golden'] && !!has['evening-bluehour'];
   const overcast = clamp(Math.max(env.cloud * 1.05 - 0.05, env.storm, env.fog * 0.8));
+  // Dry cloud has its own soft daylight; wet, foggy and stormy states retain their separate treatments.
+  const dryCloud = sstep(0.5, 0.9, overcast) * sstep(-6, 8, alt)
+    * (1 - clamp(env.rain * 2)) * (1 - clamp(env.snow * 2))
+    * (1 - clamp(env.fog * 2)) * (1 - clamp(env.storm * 2));
 
   // --- time-of-day anchor weights (sum to 1) ---
   let wNight, wBlue = 0, wGold = 0, wDay;
@@ -114,8 +118,9 @@ export function blendState({ sun, morning, season, env, has = {}, refSun = { azi
   const sunVis = (1 - sstep(0.25, 0.95, overcast)) * sstep(-1.2, 1.2, alt);
   const dAz = Math.abs(((az - refSun.azimuth + 540) % 360) - 180);
   // 0 = leave the photograph alone (sun where the photo has it), 1 = fully re-light (other side of the sky, dusk, overcast)
-  const relight = clamp(Math.max(sstep(18, 75, dAz), sstep(22, 8, alt), overcast, cover * 0.0));
-  const overAmb = mix3([0.46, 0.49, 0.58], [0.68, 0.71, 0.78], sstep(0, 24, alt)).map(v => v * sstep(-9, 5, alt) * (1 - 0.4 * env.storm));
+  const relight = clamp(Math.max(sstep(18, 75, dAz), sstep(22, 8, alt), overcast, dryCloud * 0.98, cover * 0.0));
+  const overAmb = mix3([0.46, 0.49, 0.58], [0.68, 0.71, 0.78], sstep(0, 24, alt)).map((v, i) =>
+    v * sstep(-9, 5, alt) * (1 - 0.4 * env.storm) + dryCloud * [0.06, 0.07, 0.06][i]);
   const sunCol = L.sun.map(v => v * sunVis);
   const amb = mix3(L.amb, overAmb.map((v, i) => Math.max(v, L.amb[i])), overcast);
 
@@ -136,7 +141,7 @@ export function blendState({ sun, morning, season, env, has = {}, refSun = { azi
   const stars = sstep(-7, -14, alt) * (1 - clamp(env.cloud * 1.2)) * (1 - env.fog);
 
   return {
-    alt, az, morning, anchoredSide, overcast,
+    alt, az, morning, anchoredSide, overcast, dryCloud,
     wDay, wGold, wBlue, wNight,
     sA, sB, sT, cover, winter,
     relight, sunCol, amb, sunVis,

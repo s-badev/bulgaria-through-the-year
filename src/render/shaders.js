@@ -51,6 +51,7 @@ uniform vec4 uSeason;     // index A, index B, t, cover
 uniform vec4 uSpecial;    // wFogPhoto, wRainNight, lightsOn, winter weight
 uniform vec4 uRelight;    // relight, cast strength, alpenglow, anchored side
 uniform vec3 uSunCol, uAmb, uSunDir, uRefDir;
+uniform float uDryCloud;
 uniform vec3 uZen, uHor, uSunHor, uRefZen, uRefHor;
 uniform vec4 uSkyP;       // sunX, glow, sunY, sun disc visibility
 const vec3 REF_AMB = vec3(0.084, 0.137, 0.223), REF_SUN = vec3(0.916, 0.863, 0.777), OVER_REF = vec3(0.68, 0.71, 0.78), NIGHT_AMB = vec3(0.030, 0.027, 0.030);
@@ -114,7 +115,10 @@ void main(){
   // ----- relight the day image -----
   vec2 st = 1.5 / vec2(textureSize(tShadow, 0));
   float shNew = (texture(tShadow, uv).r * 2. + texture(tShadow, uv + vec2(st.x, 0.)).r + texture(tShadow, uv - vec2(st.x, 0.)).r + texture(tShadow, uv + vec2(0., st.y)).r + texture(tShadow, uv - vec2(0., st.y)).r) / 6.;
-  float visRef = 1. - bsh * (1. - dif) * 0.97;
+  // Feather the photograph's baked shadow matte under diffuse cloud light; keep fine surface detail.
+  float shadowRef = bsh;
+  if (uDryCloud > 0.01) shadowRef = mix(bsh, max(bsh, textureLod(tMaskD, uv, 2.).r * 0.88), uDryCloud);
+  float visRef = 1. - shadowRef * (1. - dif) * 0.97;
   float ndRef = shade(n, uRefDir), ndNow = shade(n, uSunDir);
   vec3 refL = mix(REF_AMB + REF_SUN * visRef * ndRef, OVER_REF, dif);
   float r = max(uRelight.x, dif);
@@ -178,6 +182,7 @@ uniform vec4 uEnvB;           // wet, wind, water, storm
 uniform vec4 uEnvC;           // flash, stars, flat, snowfall
 uniform vec4 uMisc;           // grain, vignette, rainNight photo weight, fog photo weight
 uniform vec3 uFogCol, uHazeCol, uCloudLit, uCloudDark, uSunHor, uFountCol;
+uniform float uDryCloud;
 uniform vec4 uSkyP;           // sunX, glow, lightsOn, boltX
 uniform vec4 uCam;            // focal px, cx, cy, z0 (camera heights)
 uniform vec3 uFogP;           // cos(pitch), sin(pitch), fog top height (camera heights)
@@ -226,7 +231,9 @@ void main(){
   }
   // overcast grade: flatter, cooler; storm darker; falling snow lowers contrast
   float l = luma(c);
-  c = mix(c, vec3(l) * vec3(0.97, 1.0, 1.04), uEnvC.z * 0.32 * (1. - sky));
+  c = mix(c, vec3(l) * vec3(0.97, 1.0, 1.04), (uEnvC.z * 0.32 + uDryCloud * 0.08) * (1. - sky));
+  // Compress the daylit range around a midtone, lifting baked dark patches without a dark overlay.
+  c = mix(c, vec3(0.28) + (c - vec3(0.28)) * 0.90, uDryCloud * (1. - sky));
   c *= 1. - 0.24 * uEnvB.w * (1. - sky);
   c = mix(c, mix(c, uHazeCol, 0.5), uEnvC.w * 0.08);
 

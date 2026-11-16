@@ -81,6 +81,31 @@ test('overcast removes direct sun and the clear-sky dawn photos', () => {
   assert.ok(c.sunVis < 0.01 && c.wGold < 0.05 && c.relight > 0.95);
 });
 
+test('dry cloudy daylight is diffuse, bright enough, and distinct from wet or stormy weather', () => {
+  assert.ok(WEATHER.cloudy.cloud > 0.92 && WEATHER.cloudy.cloud < WEATHER.rain.cloud);
+  const sun = { elevation: 35, azimuth: 105 };
+  const blend = preset => blendState({ sun, morning: true, season: summer, env: env(WEATHER[preset]), has: ALL });
+  const clear = blend('clear'), cloudy = blend('cloudy');
+  assert.ok(cloudy.dryCloud > 0.95 && cloudy.sunVis < 0.01 && cloudy.relight > 0.97);
+  assert.ok(cloudy.amb[0] > 0.60 && cloudy.amb[1] >= cloudy.amb[0] && cloudy.amb[2] >= cloudy.amb[1]);
+  assert.ok(cloudy.amb[0] < clear.amb[0] + clear.sunCol[0], 'cloudy stays dimmer than direct sunlight');
+  for (const preset of ['rain', 'fog', 'storm', 'snow']) assert.ok(blend(preset).dryCloud < 0.05, `${preset} keeps its own lighting`);
+  const night = blendState({ sun: { elevation: -20, azimuth: 0 }, morning: false, season: summer, env: env(WEATHER.cloudy), has: ALL });
+  assert.equal(night.dryCloud, 0, 'night lighting remains separate');
+  let last = 0;
+  for (let cloud = 0; cloud <= 1.001; cloud += 0.01) {
+    const current = blendState({ sun, morning: true, season: summer, env: env({ cloud }), has: ALL }).dryCloud;
+    assert.ok(Math.abs(current - last) < 0.08, 'cloud transition stays smooth');
+    last = current;
+  }
+  last = cloudy.dryCloud;
+  for (let rain = 0.01; rain <= WEATHER.rain.rain + 0.001; rain += 0.01) {
+    const current = blendState({ sun, morning: true, season: summer, env: env({ cloud: WEATHER.cloudy.cloud, rain }), has: ALL }).dryCloud;
+    assert.ok(Math.abs(current - last) < 0.04, 'cloudy-to-rain transition stays smooth');
+    last = current;
+  }
+});
+
 test('sky and light tables are monotone enough: day brighter than dusk brighter than night', () => {
   const lum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
   assert.ok(lum(skyColors(40).zen) > lum(skyColors(-5).zen) && lum(skyColors(-5).zen) > lum(skyColors(-18).zen));
