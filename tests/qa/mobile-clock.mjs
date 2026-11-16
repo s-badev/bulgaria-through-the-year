@@ -11,6 +11,7 @@ const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gp
 const errors = [];
 
 function minutes(text) { const [, h, m] = text.match(/(\d\d):(\d\d)/) || []; return Number(h) * 60 + Number(m); }
+function overlap(a, b) { return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y; }
 async function ready(page) { await page.waitForFunction(() => window.__app && window.__app.clock.frame > 3); }
 async function shot(page, name) { await page.screenshot({ path: path.join(output, `${name}.jpg`), type: 'jpeg', quality: 42 }); }
 async function geometry(page) {
@@ -18,10 +19,13 @@ async function geometry(page) {
     const card = document.querySelector('#mobileClock');
     const rect = node => node.getBoundingClientRect().toJSON();
     const r = card.getBoundingClientRect();
+    const hint = document.querySelector('.mobile-pan-hint');
     return { clock: rect(card), controls: rect(document.querySelector('#mobileOpen')),
       header: rect(document.querySelector('.title')), more: rect(document.querySelector('#moreBtn')),
+      hint: hint.classList.contains('is-visible') ? rect(hint) : null,
       hit: document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.id,
-      pointer: getComputedStyle(card).pointerEvents, visibleBottom: (visualViewport?.offsetTop || 0) + (visualViewport?.height || innerHeight),
+      pointer: getComputedStyle(card).pointerEvents, visibleTop: visualViewport?.offsetTop || 0,
+      visibleBottom: (visualViewport?.offsetTop || 0) + (visualViewport?.height || innerHeight),
       scrollWidth: document.documentElement.scrollWidth };
   });
 }
@@ -47,13 +51,21 @@ try {
     assert.match(await card.textContent(), /Симулация.*Пауза.*12:00/s);
     assert(!(await page.locator('#mobileClockNext').isVisible()), `${name}: no next solar event while paused`);
     const g = await geometry(page);
-    assert(g.clock.y >= 0 && g.clock.y + g.clock.height <= g.visibleBottom - 8, `${name}: clock within visible viewport`);
-    assert(g.clock.y + g.clock.height + 8 <= g.controls.y, `${name}: clock above Controls`);
-    assert(g.clock.y > g.header.y + g.header.height && g.clock.y > g.more.y + g.more.height, `${name}: clear of top toolbar`);
+    assert(g.clock.y >= g.visibleTop + 8 && g.clock.y + g.clock.height <= g.visibleBottom - 8, `${name}: clock within visible viewport`);
+    assert(g.clock.y - (g.header.y + g.header.height) >= 6 && g.clock.y - (g.header.y + g.header.height) <= 12, `${name}: consistent gap below title`);
+    assert(Math.abs(g.clock.x - g.header.x) <= 2, `${name}: clock aligned below title`);
+    assert(!overlap(g.clock, g.more) && !overlap(g.clock, g.controls), `${name}: no overlap with More or Controls`);
+    if (g.hint) assert(!overlap(g.clock, g.hint), `${name}: no overlap with pan hint`);
     assert.equal(g.hit, 'gl', `${name}: touch passes through clock to photo`);
     assert.equal(g.pointer, 'none');
     assert(g.scrollWidth <= width, `${name}: no horizontal overflow`);
     await shot(page, `${name}-paused`);
+    await page.locator('#titleHide').click();
+    assert(!(await page.locator('.title').isVisible()) && !(await card.isVisible()), `${name}: hiding title also hides clock`);
+    assert(await page.locator('#titleRestore').isVisible(), `${name}: restore control remains available`);
+    if (name === '360x640') await shot(page, `${name}-title-hidden`);
+    await page.locator('#titleRestore').click();
+    assert(await page.locator('.title').isVisible() && await card.isVisible(), `${name}: title and clock restore together`);
 
     await page.locator('#mobileOpen').click();
     assert(!(await card.isVisible()), `${name}: no duplicate clock with panel open`);
