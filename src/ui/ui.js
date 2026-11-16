@@ -1,6 +1,7 @@
 // Interface (Bulgarian): time, season, weather, wind, fog, sound, "Сега", "Без проблясвания", photo mode, demo.
 import './ui.css';
 import { installMobileSheet } from './mobile-sheet.js';
+import { installMobileClock } from './mobile-clock.js';
 import { formatClock } from '../engine/sun.js';
 import { snowAllowed } from '../engine/blend.js';
 
@@ -79,7 +80,10 @@ export function buildUI({ state, scene, version, actions }) {
   root.append(h(`<div class="toast" id="toast" role="status" aria-live="polite"></div>`));
 
   const hourEl = $('#hour'), clockEl = $('#clock'), dateEl = $('#date'), S = state.S;
+  const mobileClock = installMobileClock(root, state);
   const ui = {
+    markRealNow() { mobileClock.markRealNow(); },
+    refreshRealNow() { if (mobileClock.refreshRealNow()) { ui.syncTime(); ui.syncDate(); } },
     toast(msg, ms = 5200) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(ui._tt); ui._tt = setTimeout(() => t.classList.remove('on'), ms); },
     caption(txt, ms = 2800) { const c = $('#caption'); c.textContent = txt; c.classList.add('on'); clearTimeout(ui._ct); ui._ct = setTimeout(() => c.classList.remove('on'), ms); },
     syncTime() { hourEl.value = S.hour.toFixed(2); const f = formatClock(S.hour); if (clockEl.textContent !== f) { clockEl.textContent = f; hourEl.setAttribute('aria-valuetext', f); } },
@@ -98,15 +102,15 @@ export function buildUI({ state, scene, version, actions }) {
     },
     setPhotoMode(on) { document.body.classList.toggle('photo', on); $('#panelBtn').setAttribute('aria-pressed', String(on)); if (on) { $('#photoExit').focus({ preventScroll: true }); ui.toast('Само снимката. Натисни H или Esc, за да върнеш управлението.', 2600); } else $('#panelBtn').focus({ preventScroll: true }); },
     get photoMode() { return document.body.classList.contains('photo'); },
-    setDemo(on) { $('#demoBar').classList.toggle('on', on); },
+    setDemo(on) { if (on) mobileClock.markSimulated(); $('#demoBar').classList.toggle('on', on); },
     showIntro(reduced) { if (matchMedia('(max-width: 820px), (max-height: 500px)').matches) return; if (reduced) { $('#introText').textContent += ' Включено е намалено движение, затова демото не тръгва само.'; $('#introKeep').hidden = true; $('#introSound').textContent = 'Включи звука'; } $('#intro').classList.remove('gone'); $('#introExplore').focus({ preventScroll: true }); },
     hideIntro() { $('#intro').classList.add('gone'); },
   };
   // ---- events ----
-  hourEl.addEventListener('input', () => { actions.user(); state.setHour(+hourEl.value); ui.syncTime(); });
+  hourEl.addEventListener('input', () => { actions.user(); mobileClock.markSimulated(); state.setHour(+hourEl.value); ui.syncTime(); });
   $('#play').addEventListener('click', () => { actions.user(); state.set('playing', !S.playing); ui.syncPlay(); });
-  root.querySelectorAll('#seasons button').forEach(b => b.addEventListener('click', () => { actions.user(); state.setSeason(b.dataset.s); ui.syncDate(); if (S.weather === 'snow' && !snowAllowed(state.doy)) ui.toast('През топлите месеци не вали сняг: времето „Сняг“ се показва като дъжд.'); mobileSheet.applied(); }));
-  dateEl.addEventListener('change', () => { const m = dateEl.value.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (m) { actions.user(); state.setDate(+m[1], +m[2] - 1, +m[3]); ui.syncDate(); mobileSheet.applied(); } });
+  root.querySelectorAll('#seasons button').forEach(b => b.addEventListener('click', () => { actions.user(); mobileClock.markSimulated(); state.setSeason(b.dataset.s); ui.syncDate(); if (S.weather === 'snow' && !snowAllowed(state.doy)) ui.toast('През топлите месеци не вали сняг: времето „Сняг“ се показва като дъжд.'); mobileSheet.applied(); }));
+  dateEl.addEventListener('change', () => { const m = dateEl.value.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (m) { actions.user(); mobileClock.markSimulated(); state.setDate(+m[1], +m[2] - 1, +m[3]); ui.syncDate(); mobileSheet.applied(); } });
   root.querySelectorAll('#weather button').forEach(b => b.addEventListener('click', () => {
     actions.user(); state.setWeather(b.dataset.w); ui.syncWeather();
     if (b.dataset.w === 'snow' && !snowAllowed(state.doy)) ui.toast('През топлите месеци не вали сняг: показвам дъжд. Избери зима или късна есен за сняг.');

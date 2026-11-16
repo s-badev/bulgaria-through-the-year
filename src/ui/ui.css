@@ -62,7 +62,7 @@ input[type=date] { min-height: 36px; border-radius: 10px; border: 1px solid var(
 .title-toggle { display: none; }
 .title-hide, .title-restore, .mobile-scene-info { display: none; }
 .mobile-pan-hint, .mobile-pan-edge { display: none; pointer-events: none; }
-.mobile-more, .mobile-menu, .mobile-open, .mobile-sheet-header { display: none; }
+.mobile-more, .mobile-menu, .mobile-open, .mobile-sheet-header, .mobile-clock { display: none; }
 
 .caption { position: fixed; left: 50%; top: 21%; transform: translate(-50%, 8px); font-family: var(--serif); font-style: italic; font-size: clamp(20px, 2.6vw, 34px); text-align: center; color: #fff; text-shadow: 0 2px 24px rgba(0, 0, 0, .8), 0 0 3px rgba(0, 0, 0, .6); opacity: 0; transition: opacity .5s ease, transform .5s ease; pointer-events: none; z-index: 4; width: min(92vw, 900px); }
 .caption.on { opacity: 1; transform: translate(-50%, 0); }
@@ -175,6 +175,13 @@ body.photo .photo-exit:focus-visible, body.photo .photo-exit:hover { opacity: 1;
   .mobile-more { display: inline-flex; min-width: 64px; }
   .mobile-open { display: block; position: fixed; left: 50%; bottom: calc(var(--visible-bottom) + env(safe-area-inset-bottom) + 16px); transform: translateX(-50%); z-index: 8; min-width: 112px; min-height: 48px; padding: 0 18px; border: 1px solid var(--acc); border-radius: 999px; background: #131a27; color: var(--txt); font: 700 14px var(--font); box-shadow: 0 4px 20px rgba(0,0,0,.45); cursor: pointer; }
   .mobile-open.is-open, body.photo .mobile-open { visibility: hidden; pointer-events: none; }
+  .mobile-clock { display: grid; gap: 2px; position: fixed; left: 50%; bottom: calc(var(--visible-bottom) + env(safe-area-inset-bottom) + 76px); transform: translateX(-50%); z-index: 7; box-sizing: border-box; width: 196px; max-width: calc(100vw - 32px); padding: 7px 11px 8px; border: 1px solid rgba(255,255,255,.18); border-radius: 13px; background: rgba(10,14,22,.88); color: var(--txt); box-shadow: 0 3px 14px rgba(0,0,0,.32); font: 600 11px/1.2 var(--font); text-align: center; pointer-events: none; user-select: none; }
+  .mobile-clock-head { display: flex; justify-content: space-between; gap: 7px; white-space: nowrap; }
+  #mobileClockStatus { color: var(--acc); }
+  #mobileClockTime { font: 700 22px/1.1 var(--font); font-variant-numeric: tabular-nums; }
+  .mobile-clock-next { color: var(--mut); white-space: nowrap; }
+  .mobile-clock-next[hidden] { display: none; }
+  .panel.is-open ~ .mobile-clock, .mobile-menu.is-open ~ .mobile-clock, body.photo .mobile-clock { display: none; }
   .panel { background: #111824; backdrop-filter: none; -webkit-backdrop-filter: none; max-height: min(80vh, calc(var(--visible-height) - var(--sheet-top))); visibility: hidden; opacity: 0; pointer-events: none; }
   @supports (height: 100dvh) { .panel { max-height: min(80dvh, calc(var(--visible-height) - var(--sheet-top))); } }
   .panel.is-open { visibility: visible; opacity: 1; pointer-events: auto; }
@@ -188,12 +195,13 @@ body.photo .photo-exit:focus-visible, body.photo .photo-exit:hover { opacity: 1;
   .mobile-menu .chip span { display: inline; }
   .mobile-menu .chip { backdrop-filter: none; -webkit-backdrop-filter: none; }
   .mobile-menu .chip svg { flex: none; }
-  .demo-bar { top: auto; bottom: calc(var(--visible-bottom) + env(safe-area-inset-bottom) + 76px); }
-  .toast { top: auto; bottom: calc(var(--visible-bottom) + env(safe-area-inset-bottom) + 76px); }
+  .demo-bar { top: auto; bottom: calc(var(--visible-bottom) + env(safe-area-inset-bottom) + 174px); }
+  .toast { top: auto; bottom: calc(var(--visible-bottom) + env(safe-area-inset-bottom) + 174px); }
   .mobile-open:focus-visible, .mobile-menu button:focus-visible, .mobile-sheet-header button:focus-visible, .title-hide:focus-visible, .title-restore:focus-visible { outline: 3px solid var(--acc); outline-offset: 2px; }
 }
 @media (max-height: 500px) and (min-width: 600px) {
   .title { max-width: min(220px, calc(100% - 88px)); }
   .panel { width: min(40%, 360px); max-height: calc(var(--visible-height) - var(--sheet-top)); }
   .mobile-menu { top: calc(var(--visible-top) + 58px); }
+  .mobile-open, .mobile-clock { left: max(16px, env(safe-area-inset-left)); transform: none; }
 }

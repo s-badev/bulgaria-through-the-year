@@ -63,7 +63,7 @@ async function boot() {
       ui.hideIntro(); demo.start();
     },
     async now() {
-      actions.user(); state.set('playing', false); ui.syncPlay(); state.setNow();
+      actions.user(); state.set('playing', false); ui.syncPlay(); state.setNow(); ui.markRealNow();
       const r = await fetchNow(scene.cfg.location);
       if (r.ok) { state.setLive(r); ui.toast(`София сега: ${r.label}, ${Math.round(r.temperature)}°C, вятър ${Math.round(r.windKmh)} км/ч, облачност ${r.cloudPct}%. Данни: Open-Meteo.`); }
       else ui.toast('Часът и датата са сверени със София. Времето от Open-Meteo не е достъпно в момента, затова оставям избраното време.');
@@ -96,7 +96,7 @@ async function boot() {
 
   let readT = 0;
   clock.add((dt, t) => {
-    demo.update(dt); state.update(dt);
+    demo.update(dt); ui.refreshRealNow(); state.update(dt);
     const reduced = state.S.reducedMotion, k = 1 - Math.exp(-dt / 0.5);
     par.x += ((reduced ? 0 : par.tx) - par.x) * k; par.y += ((reduced ? 0 : par.ty) - par.y) * k;
     comp.view.par = STILL ? [0, 0] : [mobile.matches ? 0 : par.x, par.y]; comp.view.zoom = STILL ? 1 : reduced ? 1.03 : 1.035 + 0.012 * Math.sin(t * 0.05); // ?still=1: pixel-exact framing for QA
