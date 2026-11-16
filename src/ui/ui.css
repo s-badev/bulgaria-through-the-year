@@ -162,7 +162,7 @@ body.photo .photo-exit:focus-visible, body.photo .photo-exit:hover { opacity: 1;
   .mobile-scene-info { display: block; border-bottom: 1px solid var(--line); margin-bottom: 14px; padding-bottom: 12px; }
   .mobile-scene-info h3 { margin: 0 0 8px; font: 400 22px/1.2 var(--serif); }
   .mobile-scene-info .readout { margin: 0; }
-  .tr { flex: 0 0 auto; }
+  .tr { flex: 0 0 auto; margin-left: auto; }
   .mobile-more { display: inline-flex; min-width: 64px; }
   .mobile-open { display: block; position: fixed; left: 50%; bottom: calc(var(--visible-bottom) + env(safe-area-inset-bottom) + 16px); transform: translateX(-50%); z-index: 8; min-width: 112px; min-height: 48px; padding: 0 18px; border: 1px solid var(--acc); border-radius: 999px; background: #131a27; color: var(--txt); font: 700 14px var(--font); box-shadow: 0 4px 20px rgba(0,0,0,.45); cursor: pointer; }
   .mobile-open.is-open, body.photo .mobile-open { visibility: hidden; pointer-events: none; }

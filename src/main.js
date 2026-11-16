@@ -10,6 +10,7 @@ import { Sound } from './audio/audio.js';
 import { fetchNow } from './weather/now.js';
 import { buildUI } from './ui/ui.js';
 import { Demo } from './ui/demo.js';
+import { installMobilePan } from './ui/mobile-pan.js';
 
 const params = new URLSearchParams(location.search);
 const QA = params.has('qa'), STILL = params.get('still') === '1', app = document.querySelector('#app');
@@ -29,6 +30,9 @@ async function boot() {
   const scene = await loadScene(gl, params.get('scene') || 'ndk', { onProgress: p => { loading.querySelector('i').style.width = Math.round(p * 100) + '%'; } });
   const state = new State(scene.cfg.location);
   const comp = new Compositor(gl, scene);
+  if (STILL) comp.view.zoom = 1;
+  const mobile = matchMedia('(max-width: 820px), (max-height: 500px)');
+  comp.panEnabled = mobile.matches;
   const sound = new Sound();
   const life = new Life(gl, scene, { hooks: { onPlane: d => sound.plane(d), onBolt: km => sound.thunder(km) } });
   comp.trafficLayer = life.trafficLayer;
@@ -37,13 +41,16 @@ async function boot() {
   const reduceMq = matchMedia('(prefers-reduced-motion: reduce)');
   const applyReduced = () => { state.S.reducedMotion = reduceMq.matches || params.get('reduce') === '1'; };
   applyReduced(); reduceMq.addEventListener('change', applyReduced);
+  installMobilePan(canvas, comp, mobile, () => state.S.reducedMotion);
 
   const resize = () => {
     const dpr = Math.min(window.devicePixelRatio || 1, quality.dprCap) * quality.scale;
     canvas.width = Math.max(2, Math.round(innerWidth * dpr)); canvas.height = Math.max(2, Math.round(innerHeight * dpr));
     comp.layout(canvas.width, canvas.height);
   };
-  addEventListener('resize', resize); quality.onChange = () => { comp.shadowSteps = quality.shadowSteps; comp.maxPhotos = quality.maxPhotos; resize(); }; quality.onChange();
+  addEventListener('resize', resize);
+  mobile.addEventListener('change', () => { comp.panEnabled = mobile.matches; resize(); });
+  quality.onChange = () => { comp.shadowSteps = quality.shadowSteps; comp.maxPhotos = quality.maxPhotos; resize(); }; quality.onChange();
 
   let demo, ui, wantFrame = false;
   const actions = {
@@ -92,7 +99,8 @@ async function boot() {
     demo.update(dt); state.update(dt);
     const reduced = state.S.reducedMotion, k = 1 - Math.exp(-dt / 0.5);
     par.x += ((reduced ? 0 : par.tx) - par.x) * k; par.y += ((reduced ? 0 : par.ty) - par.y) * k;
-    comp.view.par = STILL ? [0, 0] : [par.x, par.y]; comp.view.zoom = STILL ? 1 : reduced ? 1.03 : 1.035 + 0.012 * Math.sin(t * 0.05); // ?still=1: pixel-exact framing for QA
+    comp.view.par = STILL ? [0, 0] : [mobile.matches ? 0 : par.x, par.y]; comp.view.zoom = STILL ? 1 : reduced ? 1.03 : 1.035 + 0.012 * Math.sin(t * 0.05); // ?still=1: pixel-exact framing for QA
+    comp.applyPan();
     const blend = comp.render(state.snapshot(), t, { flash: life.lightning.level, boltX: life.lightning.boltX, fountainColor: life.ctx.fountainColor, reducedMotion: reduced, grain: quality.grain });
     const ctx = life.context(state, blend, t, quality.particles);
     life.update(dt, ctx); life.draw(ctx, comp.view);
@@ -110,8 +118,9 @@ async function boot() {
   (async () => { for (const id of rest.slice(0, quality.maxPhotos - 1)) { await loadPhoto(gl, scene, id); await new Promise(r => setTimeout(r, 60)); } })();
 
   // first visit: the demo plays by itself, muted, behind a small welcome card
-  let seen = true; try { seen = localStorage.getItem('btty.seen') === '1'; localStorage.setItem('btty.seen', '1'); } catch { /* private mode */ }
-  if (!QA && params.get('ui') !== '0') { if (!seen || params.get('intro') === '1') { ui.showIntro(state.S.reducedMotion); if (!state.S.reducedMotion) demo.start(); } }
+  let seen = true;
+  if (!mobile.matches) try { seen = localStorage.getItem('btty.seen') === '1'; localStorage.setItem('btty.seen', '1'); } catch { /* private mode */ }
+  if (!QA && params.get('ui') !== '0' && !mobile.matches) { if (!seen || params.get('intro') === '1') { ui.showIntro(state.S.reducedMotion); if (!state.S.reducedMotion) demo.start(); } }
   window.__app = { state, comp, clock, scene, gl, life, sound, ui, demo, quality, actions, version };
   if (import.meta.env.DEV) import('./ui/debug-overlay.js').then(d => { window.__app.debug = d.install({ scene, comp, life, clock }); }); // key D; stripped from production builds
 }

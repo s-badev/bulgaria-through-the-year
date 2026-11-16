@@ -218,6 +218,7 @@ try {
   await blocked.close();
   const desktop = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
   await desktop.goto(base + '?qa=1&still=1&reduce=1&date=2026-04-22&h=12&w=clear');
+  await desktop.waitForFunction(() => window.__app);
   assert(await desktop.locator('#date').isVisible(), 'desktop calendar remains available');
   await desktop.waitForFunction(() => window.__app && Object.values(window.__app.scene.photos).every(photo => photo.state !== 'loading'));
   await desktop.waitForTimeout(2000);

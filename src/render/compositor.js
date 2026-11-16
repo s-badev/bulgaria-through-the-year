@@ -18,6 +18,7 @@ export class Compositor {
     this.prevKey = ''; this.prevSunKey = ''; this.baseRenders = 0; this.shadowRenders = 0;
     this.shadowSteps = 30; this.maxPhotos = 12;
     this.view = { cov: [0, 0, 1, 1], zoom: 1.03, par: [0, 0] };
+    this.panEnabled = false; this.panX = null; this.coverWidth = 1; this.focusX = 0.5;
     this.blend = null; this.trafficLayer = null; this.trafficRenders = 0;
   }
   /** Which photographs the current state needs; streams them in and reports what is ready. */
@@ -123,8 +124,37 @@ export class Compositor {
   /** Fit the image to the canvas like CSS object-fit: cover, keeping the focus column in view. */
   layout(cw, ch) {
     const as = cw / ch, ai = this.W / this.H, fx = this.scene.cfg.camera.focusX ?? 0.5;
+    this.focusX = fx;
     if (as > ai) { const k = ai / as; this.view.cov = [0, 0.5 - k / 2, 1, k]; }
     else { const k = as / ai; this.view.cov = [clamp(fx - k / 2, 0, 1 - k), 0, k, 1]; }
+    this.coverWidth = this.view.cov[2];
+    if (this.panEnabled) this.applyPan();
+  }
+  panBounds() {
+    const zoom = this.view.zoom, k = this.coverWidth;
+    return [(1 - zoom) / 2, (1 + zoom) / 2 - k];
+  }
+  centerPan() {
+    const [min, max] = this.panBounds();
+    const center = clamp(this.focusX - this.coverWidth / 2, 0, 1 - this.coverWidth);
+    return max > min ? clamp((center - min) / (max - min)) : 0.5;
+  }
+  applyPan() {
+    if (!this.panEnabled) return;
+    if (this.panX === null) this.panX = this.centerPan();
+    const [min, max] = this.panBounds();
+    this.view.cov[0] = min + this.panX * Math.max(0, max - min);
+  }
+  setPan(x) {
+    this.panX = clamp(x);
+    this.applyPan();
+  }
+  panByPixels(dx, width) {
+    if (!this.panEnabled || !width) return;
+    const [min, max] = this.panBounds();
+    if (max <= min) return;
+    const x = clamp(this.view.cov[0] - dx / width * this.coverWidth, min, max);
+    this.setPan((x - min) / (max - min));
   }
 }
 const luma = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
