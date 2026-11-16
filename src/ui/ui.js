@@ -66,10 +66,10 @@ export function buildUI({ state, scene, version, actions }) {
   root.append(h(`<dialog class="credits" id="credits" aria-labelledby="creditsTitle">
     <h2 id="creditsTitle">Информация и права</h2>
     <div class="mobile-scene-info"><h3>${cfg.title}</h3><div class="readout" id="detailsReadout"></div></div>
-    <p>Снимката на НДК е на автора на проекта. Вариантите за сезони, час и време са направени с изкуствен интелект върху нея, а маските, дълбочината и движението са изчислени. Всички изображения: <b>всички права запазени</b>. Изходният код: MIT (виж <a href="./THIRD-PARTY-LICENSES.txt" target="_blank" rel="noopener">пълните лицензи</a>).</p>
+    <p>Вариантите за сезони, час и време са направени с изкуствен интелект върху нея, а маските, дълбочината и движението са изчислени. Всички изображения: <b>всички права запазени</b>. Изходният код: MIT (виж <a href="https://bulgaria-through-the-year.vercel.app/THIRD-PARTY-LICENSES.txt" target="_blank" rel="noopener">пълните лицензи</a>).</p>
     <ul>
       <li><b>Дълбочина:</b> Depth Anything V2 Small (Apache-2.0), Yang и др., 2024.</li>
-      <li><b>Времето:</b> данни от <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">Open-Meteo.com</a> (CC BY 4.0), само при натискане на „Сега“.</li>
+      <li><b>Времето:</b> данни от <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo.com</a> (CC BY 4.0), само при натискане на „Сега“.</li>
       <li><b>Слънцето:</b> алгоритъм на NOAA Solar Calculator (Jean Meeus), изчислено за София; изгрев и залез са намерени чрез търсене.</li>
       <li><b>Шрифт:</b> Manrope, © The Manrope Project Authors (SIL Open Font License 1.1).</li>
     </ul>
