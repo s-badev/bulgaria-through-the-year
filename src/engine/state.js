@@ -28,7 +28,13 @@ export class State {
   setLive(m) { this.S.weather = m.preset; this.S.live = m.env; this.S.wind = m.wind; this.S.fogLvl = m.fogLvl; this.emit('weather'); this.emit('wind'); }
   set(key, value) { this.S[key] = value; this.emit(key); }
   /** Set the real current Sofia date and time. */
-  setNow(ms = Date.now()) { const t = utcToSofia(ms); this.setDate(t.y, t.m, t.d); this.setHour(t.hour); }
+  setNow(ms = Date.now()) {
+    const t = utcToSofia(ms);
+    // Only recompute sunrise/sunset when the Sofia date changes.
+    if (this.S.y !== t.y || this.S.m !== t.m || this.S.d !== t.d) this.setDate(t.y, t.m, t.d);
+    // Live clock displays the *current* minute, not the next minute at second 30.
+    this.setHour(Math.floor(t.hour * 60 + 1e-7) / 60);
+  }
   get seasonName() { return dominantSeason(this.seasonTarget); }
   /** Snow needs the cold part of the year; otherwise the same clouds bring rain. */
   get effectiveWeather() { return this.S.weather === 'snow' && !snowAllowed(this.doy) ? 'rain' : this.S.weather; }
