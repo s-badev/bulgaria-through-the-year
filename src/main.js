@@ -14,6 +14,8 @@ import { installMobilePan } from './ui/mobile-pan.js';
 
 const params = new URLSearchParams(location.search);
 const QA = params.has('qa'), STILL = params.get('still') === '1', app = document.querySelector('#app');
+// Explicit scene URLs and deterministic QA keep their chosen state; ordinary visits start live.
+const startLive = !QA && !['date', 'h', 'w', 'wind', 'fog'].some(key => params.has(key));
 const version = `версия ${__APP_COMMIT__} · ${__APP_BUILD_TIME__.slice(0, 16).replace('T', ' ')} UTC`;
 
 const canvas = document.createElement('canvas');
@@ -29,6 +31,8 @@ async function boot() {
   if (!gl) throw new Error('Браузърът не поддържа WebGL 2, затова живата снимка не може да се покаже.');
   const scene = await loadScene(gl, params.get('scene') || 'ndk', { onProgress: p => { loading.querySelector('i').style.width = Math.round(p * 100) + '%'; } });
   const state = new State(scene.cfg.location);
+  let liveMode = startLive, weatherRequest = 0;
+  if (liveMode) state.setNow();
   const comp = new Compositor(gl, scene);
   if (STILL) comp.view.zoom = 1;
   const mobile = matchMedia('(max-width: 820px), (max-height: 500px)');
@@ -54,7 +58,7 @@ async function boot() {
 
   let demo, ui, wantFrame = false;
   const actions = {
-    user() { demo && demo.stop(); },
+    user() { liveMode = false; weatherRequest++; demo && demo.stop(); },
     sound(on) { state.S.sound = on; if (on) { sound.enable(); sound.setVolume(state.S.vol); } else sound.disable(); },
     volume(v) { sound.setVolume(v); },
     demo(start, keepSound) {
@@ -63,16 +67,43 @@ async function boot() {
       ui.hideIntro(); demo.start();
     },
     async now() {
-      actions.user(); state.set('playing', false); ui.syncPlay(); state.setNow();
-      const r = await fetchNow(scene.cfg.location);
-      if (r.ok) { state.setLive(r); ui.toast(`София сега: ${r.label}, ${Math.round(r.temperature)}°C, вятър ${Math.round(r.windKmh)} км/ч, облачност ${r.cloudPct}%. Данни: Open-Meteo.`); }
-      else ui.toast('Часът и датата са сверени със София. Времето от Open-Meteo не е достъпно в момента, затова оставям избраното време.');
-      ui.syncWeather(); return r;
+      demo && demo.stop();
+      liveMode = true;
+      state.set('playing', false);
+      ui.syncPlay();
+      syncLiveClock();
+      const r = await refreshLiveWeather(true);
+      return r;
     },
     saveFrame() { wantFrame = true; },
   };
   ui = buildUI({ state, scene, version, actions });
   demo = new Demo(state, ui, life);
+
+  function syncLiveClock() {
+    if (!liveMode || state.S.playing || demo.on) return;
+    const old = [state.S.y, state.S.m, state.S.d, state.S.hour].join('/');
+    state.setNow();
+    if ([state.S.y, state.S.m, state.S.d, state.S.hour].join('/') !== old) {
+      ui.syncTime(); ui.syncDate();
+    }
+  }
+  async function refreshLiveWeather(announce = false) {
+    if (!liveMode) return { ok: false, error: 'manual scene' };
+    const requestId = ++weatherRequest;
+    const r = await fetchNow(scene.cfg.location);
+    // A slow response must never undo a user's later selection.
+    if (requestId !== weatherRequest || !liveMode) return r;
+    syncLiveClock();
+    if (r.ok) {
+      state.setLive(r);
+      ui.syncWeather();
+      if (announce) ui.toast(`София сега: ${r.label}, ${Math.round(r.temperature)}°C, вятър ${Math.round(r.windKmh)} км/ч, облачност ${r.cloudPct}%. Данни: Open-Meteo.`);
+    } else if (announce) {
+      ui.toast('Часът и датата са сверени със София. Актуалното време от Open-Meteo не е достъпно.');
+    }
+    return r;
+  }
 
   // parallax: pointer on desktop, gyroscope on phones; never in reduced motion
   const par = { tx: 0, ty: 0, x: 0, y: 0 };
@@ -82,7 +113,10 @@ async function boot() {
   } else if ('DeviceOrientationEvent' in window) {
     addEventListener('deviceorientation', e => { if (e.gamma == null) return; par.tx = Math.max(-1, Math.min(1, e.gamma / 18)); par.ty = Math.max(-1, Math.min(1, ((e.beta ?? 45) - 45) / 18)); }, { passive: true });
   }
-  document.addEventListener('visibilitychange', () => sound.suspend(document.hidden));
+  document.addEventListener('visibilitychange', () => {
+    sound.suspend(document.hidden);
+    if (!document.hidden) { syncLiveClock(); if (liveMode) void refreshLiveWeather(); }
+  });
 
   // URL state (also drives the QA grid): ?date=2026-07-15&h=18.5&w=rain&wind=.3&fog=.55&ui=0
   if (params.get('date')) { const [y, m, d] = params.get('date').split('-').map(Number); state.setDate(y, m - 1, d); }
@@ -93,6 +127,9 @@ async function boot() {
   if (params.get('flash') === '0') state.S.flashes = false;
   if (params.get('ui') === '0') document.body.classList.add('photo');
   state.settle(); ui.syncTime(); ui.syncDate(); ui.syncFlash();
+  // Keep the live wall clock exact without enabling accelerated time playback.
+  setInterval(() => { if (!document.hidden) syncLiveClock(); }, 1000);
+  setInterval(() => { if (!document.hidden && liveMode) void refreshLiveWeather(); }, 10 * 60 * 1000);
 
   let readT = 0;
   clock.add((dt, t) => {
@@ -118,11 +155,11 @@ async function boot() {
   const rest = ['night', 'dawn-golden', 'dawn-bluehour', 'autumn', 'winter-snow', 'winter-night', 'fog', 'rain-night', 'evening-golden', 'evening-bluehour', 'spring'].filter(id => scene.photos[id]);
   (async () => { for (const id of rest.slice(0, quality.maxPhotos - 1)) { await loadPhoto(gl, scene, id); await new Promise(r => setTimeout(r, 60)); } })();
 
-  // first visit: the demo plays by itself, muted, behind a small welcome card
-  let seen = true;
-  if (!mobile.matches) try { seen = localStorage.getItem('btty.seen') === '1'; localStorage.setItem('btty.seen', '1'); } catch { /* private mode */ }
-  if (!QA && params.get('ui') !== '0' && !mobile.matches) { if (!seen || params.get('intro') === '1') { ui.showIntro(state.S.reducedMotion); if (!state.S.reducedMotion) demo.start(); } }
+  // Starting at the real current time takes priority over the former automatic demo.
+  // The demo stays available through its explicit button, and intro via ?intro=1.
+  if (!QA && params.get('ui') !== '0' && !mobile.matches && params.get('intro') === '1') ui.showIntro(state.S.reducedMotion);
   window.__app = { state, comp, clock, scene, gl, life, sound, ui, demo, quality, actions, version };
+  if (liveMode) void refreshLiveWeather();
   if (import.meta.env.DEV) import('./ui/debug-overlay.js').then(d => { window.__app.debug = d.install({ scene, comp, life, clock }); }); // key D; stripped from production builds
 }
 boot().catch(err => {
