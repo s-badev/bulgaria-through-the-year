@@ -13,6 +13,15 @@ const maskA = await sharp(DIR + 'masks-a.png').raw().toBuffer({ resolveWithObjec
 const onRoad = (x, y, ch) => road.data[(Math.round(y) * RW + Math.round(x)) * RC + ch] > 127;
 const CAR_W = 1.9;
 
+test('spring plate cleaning preserves the established base traffic lanes', () => {
+  assert.deepEqual(
+    data.lanes.filter(lane => lane.set === 'base').map(lane => lane.id).sort(),
+    ['left-in-0', 'left-in-1', 'left-out-0', 'left-out-1'],
+  );
+  assert.ok(data.stats.spring.bakedCars > 0, 'spring road plate contains cars to remove');
+  assert.equal(data.stats.spring.damagedPx, 0, 'spring road plate is clean');
+});
+
 test('lanes: every visible point lies on the strict asphalt mask with half a car width of margin on both sides', () => {
   assert.ok(data.lanes.length >= 4);
   for (const lane of data.lanes) {

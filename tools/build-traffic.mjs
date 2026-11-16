@@ -206,8 +206,9 @@ function relitRoad(rgb, plate) {
 }
 
 // ---------- run over the photographs ----------
-// Two strict masks: 'base' = asphalt in every day photo except the autumn one, 'all' = asphalt in every day photo.
-// (The autumn photo redrew the kerb of the outbound carriageway a few pixels to the side; lanes that are not asphalt there are switched off in autumn.)
+// Two strict masks: 'base' = asphalt in the reference day photos except autumn, 'all' includes autumn.
+// Spring gets its own cleaned road plate, but its extra generated cars can be mistaken for static obstacles;
+// its otherwise aligned road geometry must not remove an established lane in every season.
 ensureDir(path.join(WORK, 'plates'));
 const AUTUMN_FAMILY = ['autumn'];
 const plates = {}, stats = {}, strictBase = new Uint8Array(N).fill(1), strictAll = new Uint8Array(N).fill(1), sprites = [], analyses = {};
@@ -229,7 +230,7 @@ for (const id of DAY) {
   const count = (a2, cw) => a2.comps.filter(c => c.kind === CLS.CAR && (!cw || c.cw === cw)).reduce((t, c) => t + c.cars, 0);
   stats[id] = { bakedCars: count(first), remainingCars: count(an), byCarriageway: Object.fromEntries(cws.map(c => [c.id, { baked: count(first, c.id), remaining: count(an, c.id) }])), staticObjects: first.comps.filter(c => c.kind === CLS.STATIC).length, damagedPx, cleanZones: cleanStats };
   // what is NOT drivable asphalt in this photo: big foreign objects, posts, crowns over the road, and whatever could not be cleaned
-  let veto = 0, poly = 0; const targets = AUTUMN_FAMILY.includes(id) ? [strictAll] : [strictBase, strictAll];
+  let veto = 0, poly = 0; const targets = id === 'spring' && !MASK_FROM ? [] : AUTUMN_FAMILY.includes(id) ? [strictAll] : [strictBase, strictAll];
   if (!MASK_FROM || MASK_FROM.includes(id)) for (let i = 0; i < N; i++) { if (!cwId[i]) continue; poly++; const k = first.cls[i], k2 = an.cls[i]; if (skip.includes(cws[cwId[i] - 1].id)) { if (AUTUMN_FAMILY.includes(id)) strictAll[i] = 0; veto++; } else if (k === CLS.STATIC || k === CLS.POST || k2 === CLS.STATIC || k2 === CLS.POST || k2 === CLS.CAR) { for (const t of targets) t[i] = 0; veto++; } }
   stats[id].vetoShare = poly ? +(veto / poly).toFixed(3) : 0; stats[id].untouched = skip;
   await saveRGB(path.join(WORK, 'plates', id + '.png'), rgb);
