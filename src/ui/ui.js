@@ -56,7 +56,7 @@ export function buildUI({ state, scene, version, actions }) {
       <div class="sl"><span class="lab">Мъгла</span><label class="sr" for="fogLvl">Гъстота и височина на мъглата</label><input id="fogLvl" type="range" min="0" max="1" step="0.01" value="0.55"></div>
       <div class="sl" style="max-width:220px"><span class="lab">Звук</span><label class="sr" for="vol">Сила на звука</label><input id="vol" type="range" min="0" max="1" step="0.01" value="0.7"></div>
     </div>
-    <div class="note"><span>сезоните и времето са върху нейни варианти. Слънцето, изгревът и залезът са изчислени за София. Звукът е синтезиран. Симулация, не прогноза.</span><span class="foot"><button type="button" class="linkbtn" id="creditsBtn" aria-haspopup="dialog">Информация и права</button><span class="stamp" id="version" hidden aria-hidden="true">${version}</span></span></div>
+    <div class="note"><span>Сезоните и времето са върху нейни варианти. Слънцето, изгревът и залезът са изчислени за София. Звукът е синтезиран. Симулация, не прогноза.</span><span class="foot"><button type="button" class="linkbtn" id="creditsBtn" aria-haspopup="dialog">Информация и права</button><span class="stamp" id="version" hidden aria-hidden="true">${version}</span></span></div>
   </section>`));
   root.append(h(`<button class="chip photo-exit" id="photoExit" type="button">Покажи управлението (H)</button>`));
   root.append(h(`<div class="intro gone" id="intro" role="dialog" aria-labelledby="introTitle" aria-describedby="introText">
