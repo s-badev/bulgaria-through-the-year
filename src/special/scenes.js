@@ -1,6 +1,8 @@
 import { SPECIAL_BASE, specialScene } from './registry.js';
 import { SpecialEffects } from './effects.js';
+import { SpecialLighting } from './lighting.js';
 import './scenes.css';
+import './lighting.css';
 
 const FADE_MS = 480;
 
@@ -16,6 +18,7 @@ export class SpecialScenes {
     this.layers = [];
     this.inactiveWaiters = [];
     this.manifest = null;
+    this.settings = new Map();
     this.root = document.createElement('div');
     this.root.className = 'special-world';
     this.root.setAttribute('aria-hidden', 'true');
@@ -38,6 +41,24 @@ export class SpecialScenes {
   get active() { return !!this.id && !this.exiting; }
   get renderNormal() { return !this.id || this.exiting; }
   whenInactive() { return this.id ? new Promise(resolve => this.inactiveWaiters.push(resolve)) : Promise.resolve(); }
+  setting(id = this.id) {
+    if (!id) return null;
+    if (!this.settings.has(id)) this.settings.set(id, { condition: specialScene(id).defaultCondition, intensity: .55 });
+    return this.settings.get(id);
+  }
+  setCondition(condition) {
+    const scene = specialScene(this.id);
+    if (!scene?.conditions.some(([value]) => value === condition)) return false;
+    this.setting().condition = condition;
+    this.onSetting?.(this.setting());
+    return true;
+  }
+  setIntensity(value) {
+    if (!this.id) return false;
+    this.setting().intensity = Math.max(0, Math.min(1, +value || 0));
+    this.onSetting?.(this.setting());
+    return true;
+  }
 
   async select(id) {
     const definition = specialScene(id);
@@ -71,6 +92,8 @@ export class SpecialScenes {
     }
     if (request !== this.sequence) { layer.remove(); return false; }
     layer.effects = new SpecialEffects(id, layer);
+    layer.lighting = new SpecialLighting(id, layer);
+    layer.asset = asset;
     const old = this.layers;
     this.layers = [layer];
     this.id = id;
@@ -80,6 +103,7 @@ export class SpecialScenes {
     requestAnimationFrame(() => { layer.classList.add('is-visible'); old.forEach(node => node.classList.remove('is-visible')); });
     setTimeout(() => old.forEach(node => { node.effects?.destroy(); node.querySelector('img')?.removeAttribute('src'); node.remove(); }), FADE_MS + 80);
     this.onChange(id);
+    this.onSetting?.(this.setting());
     return true;
   }
 
@@ -114,16 +138,50 @@ export class SpecialScenes {
     const left = -(0.5 + (cov[0] - 0.5) / zoom) * imageWidth;
     const top = -(0.5 + (cov[1] - 0.5) / zoom) * imageHeight;
     for (const layer of this.layers) {
-      for (const element of [layer.querySelector('picture'), layer.querySelector('.special-atmosphere'), layer.effects?.canvas, layer.effects?.lightning]) {
+      for (const element of [...layer.querySelectorAll('picture'), layer.querySelector('.special-atmosphere'), layer.lighting?.root, layer.effects?.canvas, layer.effects?.lightning]) {
         if (!element) continue;
         Object.assign(element.style, { left: `${left}px`, top: `${top}px`, width: `${imageWidth}px`, height: `${imageHeight}px` });
       }
     }
   }
 
-  update(dt, detail, reduced, flashes) {
-    this.root.classList.toggle('is-reduced', reduced);
-    if (this.active) this.layers[0]?.effects?.update(dt, detail, reduced, flashes);
+  update(dt, state, detail) {
+    this.root.classList.toggle('is-reduced', state.S.reducedMotion);
+    if (!this.active) return;
+    const layer = this.layers[0], setting = this.setting();
+    const photographicNight = !!layer.asset.variants?.night && !!layer.variant && layer.variant.phase === 'night' && layer.variant.opacity > .5;
+    const light = layer.lighting.update(state, setting, photographicNight);
+    this.updateVariant(layer, light);
+    layer.effects.update(dt, detail, state.S.reducedMotion, state.S.flashes, setting);
+    return light;
+  }
+
+  updateVariant(layer, light) {
+    const definition = specialScene(this.id), variants = layer.asset.variants;
+    if (!variants) return;
+    const phase = light.night > .02 ? 'night' : light.day > .02 ? 'day' : 'dusk';
+    const opacity = phase === 'night' ? light.night : phase === 'day' ? light.day : light.twilight;
+    if (!variants[phase] || definition.basePhase === phase || opacity < .02) {
+      if (layer.variant) layer.variant.picture.style.opacity = '0';
+      return;
+    }
+    if (layer.variant?.phase === phase) { layer.variant.opacity = opacity; layer.variant.picture.style.opacity = opacity.toFixed(3); return; }
+    if (layer.variantPending === phase) return;
+    layer.variantPending = phase;
+    const asset = variants[phase], picture = document.createElement('picture'), source = document.createElement('source'), image = document.createElement('img');
+    source.type = 'image/avif'; source.srcset = `${SPECIAL_BASE}${asset.avif}?v=${asset.hash.slice(0, 12)}`;
+    image.src = `${SPECIAL_BASE}${asset.webp}?v=${asset.hash.slice(0, 12)}`; image.alt = ''; image.decoding = 'async';
+    picture.className = 'special-variant'; picture.append(source, image);
+    image.decode().catch(async () => { source.remove(); image.src = `${SPECIAL_BASE}${asset.source}?v=${asset.hash.slice(0, 12)}`; await image.decode(); }).then(() => {
+      if (!this.layers.includes(layer) || layer.variantPending !== phase) return;
+      const old = layer.variant?.picture;
+      layer.querySelector('picture').after(picture);
+      layer.variant = { phase, picture, opacity };
+      layer.variantPending = null;
+      this.layout();
+      requestAnimationFrame(() => { picture.style.opacity = opacity.toFixed(3); if (old) old.style.opacity = '0'; });
+      if (old) setTimeout(() => old.remove(), FADE_MS + 80);
+    }).catch(() => { layer.variantPending = null; });
   }
 
   capture() {

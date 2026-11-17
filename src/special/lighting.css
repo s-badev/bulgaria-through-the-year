@@ -1,0 +1,12 @@
+.special-lighting { position: absolute; pointer-events: none; }
+.special-lighting > div { position: absolute; inset: 0; opacity: 0; transition: opacity .65s ease; }
+.special-light-sky { background: linear-gradient(180deg, #081326 0%, rgba(17,31,51,.94) 23%, rgba(18,32,50,.46) 37%, transparent 52%); }
+.special-light-mountain { background: radial-gradient(ellipse 96% 30% at 53% 39%, rgba(10,24,42,.9), transparent 90%); }
+.special-light-city { background: linear-gradient(180deg, transparent 30%, rgba(14,27,45,.44) 45%, rgba(8,19,34,.83) 76%, #07111f 100%); }
+.special-light-warm { background: radial-gradient(ellipse 72% 58% at 3% 48%, rgba(207,139,74,.48), transparent 90%); }
+.special-lighting.is-evening .special-light-warm { background: radial-gradient(ellipse 72% 58% at 97% 48%, rgba(207,139,74,.48), transparent 90%); }
+.special-light-day { background: linear-gradient(180deg, rgba(142,168,185,.58), rgba(112,144,164,.23) 38%, transparent 68%); }
+.special-light-haze { background: radial-gradient(ellipse 94% 27% at 50% 45%, rgba(196,202,202,.6), transparent 96%); }
+.special-light-moon { background: radial-gradient(ellipse 38% 35% at 48% 55%, rgba(111,145,191,.42), transparent 92%); }
+.special-world.is-reduced .special-lighting > div { transition: none; }
+@media (prefers-reduced-motion: reduce) { .special-lighting > div { transition: none; } }

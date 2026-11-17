@@ -85,7 +85,7 @@ async function boot() {
   let demo, ui, special, wantFrame = false;
   const actions = {
     user() { liveMode = false; weatherRequest++; demo && demo.stop(); ui?.markSimulated(); },
-    sound(on) { state.S.sound = on; if (on) { sound.enable(); sound.setVolume(state.S.vol); sound.suspend(document.hidden || !!special?.active); } else sound.disable(); },
+    sound(on) { state.set('sound', on); if (on) { sound.enable(); sound.setVolume(state.S.vol); sound.suspend(document.hidden); } else sound.disable(); },
     volume(v) { sound.setVolume(v); },
     demo(start, keepSound) {
       if (!start) { demo.stop(); return; }
@@ -107,9 +107,13 @@ async function boot() {
     specialManifest() { return special.loadManifest(); },
     selectSpecial(id) { return special.select(id); },
     exitSpecial() { return special.exit(); },
+    specialSetting() { return special.setting(); },
+    specialCondition(condition) { return special.setCondition(condition); },
+    specialIntensity(value) { return special.setIntensity(value); },
   };
   ui = buildUI({ state, scene, version, actions });
-  special = new SpecialScenes(app, comp, id => { ui.syncSpecial(id); sound.suspend(document.hidden || !!id); });
+  special = new SpecialScenes(app, comp, id => { ui.syncSpecial(id); sound.setSpecialScene(id); sound.suspend(document.hidden); });
+  special.onSetting = setting => ui.syncSpecialSetting(setting);
   activeSpecial = special;
   void special.loadManifest().then(manifest => ui.setSpecialManifest(manifest));
   if (liveMode) ui.markRealNow();
@@ -150,7 +154,7 @@ async function boot() {
   }
   document.addEventListener('visibilitychange', () => {
     if (failed) return;
-    sound.suspend(document.hidden || !!special?.active);
+    sound.suspend(document.hidden);
     if (!document.hidden) { syncLiveClock(); if (liveMode) void refreshLiveWeather(); }
   });
 
@@ -180,7 +184,7 @@ async function boot() {
     comp.applyPan();
     mobilePan.update();
     special.layout();
-    special.update(dt, quality.particles, reduced, state.S.flashes);
+    const specialLight = special.update(dt, state, quality.particles);
     let blend = { alt: state.sun.elevation };
     if (special.renderNormal) {
       blend = comp.render(state.snapshot(), t, { flash: life.lightning.level, boltX: life.lightning.boltX, fountainColor: life.ctx.fountainColor, reducedMotion: reduced, grain: quality.grain, effectDetail: quality.particles });
@@ -188,6 +192,9 @@ async function boot() {
       life.update(dt, ctx); life.draw(ctx, comp.view);
       sound.update(dt, { env: state.V, season: state.season, alt: blend.alt, activity: state.activity, time: t });
       special.normalFrameReady();
+    } else if (special.active) {
+      const setting = special.setting();
+      sound.update(dt, { time: t, special: { id: special.id, condition: setting.condition, intensity: setting.intensity, light: specialLight } });
     }
     quality.update(clock.dtAvg, dt);
     if (wantFrame) { wantFrame = false; if (special.active) void special.capture().then(downloadFrame); else canvas.toBlob(downloadFrame, 'image/png'); }

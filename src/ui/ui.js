@@ -144,9 +144,16 @@ export function buildUI({ state, scene, version, actions }) {
   $('#creditsClose').addEventListener('click', () => dlg.close());
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });   // click on the backdrop
   dlg.addEventListener('close', () => creditsReturn.focus({ preventScroll: true }));
-  const specialUI = installSpecialUI(root, actions);
+  const specialUI = installSpecialUI(root, actions, state, {
+    togglePlayback,
+    setHour(hour) { actions.user(); state.setHour(hour); ui.syncTime(); },
+    setDate(value) { const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (!m) return; actions.user(); state.setDate(+m[1], +m[2] - 1, +m[3]); ui.syncDate(); },
+    toggleSound() { actions.sound(!S.sound); ui.syncSound(); specialUI.syncShared(); },
+    setVolume(value) { state.set('vol', value); actions.volume(value); },
+  });
   ui.setSpecialManifest = specialUI.setManifest;
   ui.syncSpecial = id => { document.body.classList.toggle('special-active', !!id); specialUI.sync(id); };
+  ui.syncSpecialSetting = specialUI.syncSetting;
   const mobileSheet = installMobileSheet(root, openCredits);
   addEventListener('keydown', e => {
     if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || dlg.open || $('#specialDialog').open) return;   // a modal dialog owns the keyboard
