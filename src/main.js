@@ -81,7 +81,7 @@ async function boot() {
 
   let demo, ui, wantFrame = false;
   const actions = {
-    user() { liveMode = false; weatherRequest++; demo && demo.stop(); },
+    user() { liveMode = false; weatherRequest++; demo && demo.stop(); ui?.markSimulated(); },
     sound(on) { state.S.sound = on; if (on) { sound.enable(); sound.setVolume(state.S.vol); } else sound.disable(); },
     volume(v) { sound.setVolume(v); },
     demo(start, keepSound) {
@@ -96,12 +96,14 @@ async function boot() {
       state.set('playing', false);
       ui.syncPlay();
       syncLiveClock();
+      ui.markRealNow();
       const r = await refreshLiveWeather(true);
       return r;
     },
     saveFrame() { wantFrame = true; },
   };
   ui = buildUI({ state, scene, version, actions });
+  if (liveMode) ui.markRealNow();
   demo = new Demo(state, ui, life);
 
   function syncLiveClock() {
