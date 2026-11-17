@@ -3,6 +3,7 @@ import { createProgram, drawFullscreen, createTarget, bindTarget } from './gl.js
 import { SHADOW_FS, BASE_FS, COMPOSITE_FS } from './shaders.js';
 import { blendState, sunDirection, skyColors, mix3, clamp, sstep, lerp, SEASONS } from '../engine/blend.js';
 import { loadPhoto, disposePhoto, photoReady } from '../engine/scene.js';
+import { moonParameters } from './sky-effects.js';
 
 const SEASON_PHOTO = { spring: 'spring', summer: 'master', autumn: 'autumn', winter: 'winter-snow' };
 
@@ -107,6 +108,9 @@ export class Compositor {
     fogCol = fogCol.map((v, i) => v + [0.17, 0.12, 0.078][i] * b.lightsOn * (1 - 0.5 * dayL)); // lamps make night fog glow
     const haze = mix3(b.sky.hor, lit.map((v, i) => v * [0.80, 0.83, 0.90][i]), clamp(b.overcast * 1.1));
     const reduce = !!opts.reducedMotion;
+    const moon = state.date ? moonParameters(state.date, b.wNight, env) : [0, 0, 0, 0];
+    const volcano = env.volcano || 0;
+    const detail = opts.effectDetail ?? 1;
     bindTarget(gl, null);
     const v = this.view;
     this.pComp.use().tex('tBase', this.base.tex).tex('tMaskA', s.tex.a).tex('tMaskB', s.tex.b).tex('tGeo', s.tex.geo).tex('tDeck', s.tex.deck).tex('tCumulus', s.tex.cumulus)
@@ -118,6 +122,7 @@ export class Compositor {
       .set('uFogCol', fogCol).set('uHazeCol', haze).set('uCloudLit', lit).set('uCloudDark', dark).set('uSunHor', b.sky.sun)
       .set('uCam', [cam.focalPx, W / 2, H / 2, cam.z0]).set('uFogP', [Math.cos(cam.pitchRad), Math.sin(cam.pitchRad), fogTop(env.fogLvl)])
       .set('uFountCol', opts.fountainColor || [0.2, 0.5, 1]).set('uSkyP', [glowX, b.sky.glow * (1 - b.overcast), b.lightsOn, opts.boltX ?? 0.5]);
+    this.pComp.set('uMoon', moon).set('uVolcano', [volcano, detail, reduce ? 0 : time, reduce ? 1 : 0]);
     drawFullscreen(gl);
     return b;
   }

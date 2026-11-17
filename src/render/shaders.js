@@ -189,7 +189,59 @@ uniform vec3 uFogCol, uHazeCol, uCloudLit, uCloudDark, uSunHor, uFountCol;
 uniform vec4 uSkyP;           // sunX, glow, lightsOn, boltX
 uniform vec4 uCam;            // focal px, cx, cy, z0 (camera heights)
 uniform vec3 uFogP;           // cos(pitch), sin(pitch), fog top height (camera heights)
+uniform vec4 uMoon;           // image x, image y, lunar phase, night visibility
+uniform vec4 uVolcano;        // strength, quality, animation time, reduced motion
 vec3 baseAt(vec2 uv){ vec3 c = texture(tBase, uv).rgb; return c * c * (c * 0.305306011 + 0.682171111) + c * 0.012522878; } // ~pow 2.2
+vec3 volcanoAt(vec2 uv, float sky, float mtn, vec3 c){
+  float strength = uVolcano.x;
+  if (strength < 0.002) return c;
+  vec2 p = uv - vec2(0.608, 0.203); // Vitosha's calibrated summit in the source photograph
+  float t = uVolcano.z;
+  float y = p.y;
+  // Three shallow streams fan down the photographed slopes. The mountain mask
+  // stops lava at the skyline and before it can wash over NDK or the city.
+  if (mtn > 0.02 && y > 0.003 && y < 0.145) {
+    float n = vnoise(uv * vec2(350., 240.) - vec2(0., t * 0.10)) - 0.5;
+    float left = -0.72 * y + 0.17 * y * y + n * 0.004;
+    float right = 0.92 * y - 0.30 * y * y + n * 0.004;
+    float width = 0.0020 + y * 0.022;
+    float flow = exp(-pow((p.x-left) / width, 2.)) + exp(-pow((p.x-right) / (width * 0.82), 2.));
+    float fleck = (0.72 + 0.28 * vnoise(uv * vec2(900., 500.) - vec2(0., t * 0.8))) * (0.82 + 0.18 * sin(y * 180. - t * 5. + p.x * 60.));
+    float lava = clamp(flow * fleck * mtn * smoothstep(0.003, 0.018, y) * (1. - smoothstep(0.105, 0.145, y)), 0., 1.);
+    c += vec3(0.95, 0.15, 0.012) * lava * 0.65 * strength;
+    c += vec3(1.0, 0.55, 0.09) * pow(lava, 2.) * 0.35 * strength;
+  }
+  float crater = exp(-pow(p.x / 0.019, 2.) - pow(p.y / 0.012, 2.));
+  c += vec3(1.0, 0.26, 0.035) * crater * strength * (0.44 + 0.12 * sin(t * 5.));
+  if (sky > 0.01 && p.y < 0.015 && p.y > -0.18 && abs(p.x) < 0.19) {
+    float rise = max(-p.y, 0.);
+    float swirl = fbm(vec2(p.x * 22. - t * 0.035, rise * 24. + t * 0.07));
+    float center = 0.015 * sin(rise * 17. + t * 0.35);
+    float spread = 0.021 + rise * 0.67;
+    float plume = 1. - smoothstep(spread * 0.35, spread, abs(p.x - center) + (swirl - 0.5) * 0.028);
+    plume *= smoothstep(0.014, 0.045, rise) * (1. - smoothstep(0.13, 0.18, rise));
+    vec3 ash = mix(vec3(0.025, 0.027, 0.038), vec3(0.12, 0.075, 0.062), exp(-rise * 19.));
+    c = mix(c, ash + vec3(0.06, 0.018, 0.003) * swirl, plume * sky * 0.76 * strength);
+    float glow = exp(-length(p * vec2(4., 7.)) * 15.);
+    c += vec3(0.34, 0.075, 0.012) * glow * sky * strength;
+  }
+  // Fixed loop bound and explicit quality gate are safe on older mobile drivers.
+  if (uv.y < 0.36 && abs(p.x) < 0.27 && uVolcano.w < 0.5) {
+    for (int i = 0; i < 10; i++) {
+      if (float(i) >= 3. + uVolcano.y * 7.) break;
+      float seed = float(i);
+      float age = fract(t / (2.8 + hash12(vec2(seed, 3.)) * 2.2) + seed * 0.163);
+      float side = hash12(vec2(seed, 8.)) * 2. - 1.;
+      vec2 rock = vec2(0.608 + side * (0.045 + seed * 0.011) * age, 0.199 - (0.13 + seed * 0.004) * age + (0.22 + seed * 0.009) * age * age);
+      vec2 delta = (uv - rock) * vec2(1., 1.55);
+      float r = length(delta);
+      float ember = exp(-pow(r / (0.0016 + 0.00035 * uVolcano.y), 2.));
+      float halo = exp(-pow(r / 0.006, 2.));
+      c += (vec3(1.0, 0.45, 0.045) * ember + vec3(0.28, 0.055, 0.002) * halo) * strength * (sky + mtn * 0.7);
+    }
+  }
+  return c;
+}
 void main(){
   vec2 uv = uCov.xy + vUv * uCov.zw;
   uv = .5 + (uv - .5) / uZoom;
@@ -268,6 +320,20 @@ void main(){
     float tw = 0.6 + 0.4 * sin(uTime * (1.5 + sh * 3.) + sh * 40.);
     c += vec3(0.75, 0.82, 1.0) * step(0.9985, sh) * uEnvC.y * tw * (1. - calpha) * sky * 0.55;
   }
+  // The moon is drawn in source-photo coordinates so panning leaves it in the sky.
+  // The photographed cloud layer above has already set calpha, naturally hiding it.
+  if (uMoon.w > 0.003 && sky > 0.01) {
+    vec2 mp = (uv - uMoon.xy) * vec2(uSize.x / uSize.y, 1.) / 0.024;
+    float rr = length(mp);
+    float limb = sqrt(max(0., 1. - mp.y * mp.y));
+    float phaseCos = cos(uMoon.z * 6.2831853);
+    float lit = uMoon.z < 0.5 ? smoothstep(phaseCos * limb - 0.08, phaseCos * limb + 0.08, mp.x) : 1. - smoothstep(-phaseCos * limb - 0.08, -phaseCos * limb + 0.08, mp.x);
+    float disc = (1. - smoothstep(0.92, 1.04, rr)) * lit;
+    float halo = exp(-rr * 2.5) * 0.13;
+    float visible = uMoon.w * (1. - calpha) * sky;
+    c += vec3(0.78, 0.83, 0.88) * disc * visible * (0.86 + 0.14 * vnoise(px / 4.));
+    c += vec3(0.23, 0.29, 0.40) * halo * visible;
+  }
   // aerial haze (rain, snowfall) and fog by depth; an inversion keeps Vitosha above the fog line
   float far = 1. - clamp(inv, 0., 1.);
   c = mix(c, uHazeCol, clamp(far * far * uEnvA.w, 0., 0.9) * (1. - sky));
@@ -287,6 +353,7 @@ void main(){
   }
   // lightning: the whole scene lifts for a moment, far things more
   c += uEnvC.x * vec3(0.42, 0.47, 0.62) * (0.3 + 0.7 * far) * (1. - sky);
+  c = volcanoAt(uv, sky, mtn, c);
   // vignette, soft shoulder, grain
   vec2 vv = vUv - .5; c *= 1. - uMisc.y * smoothstep(0.35, 0.95, length(vv * vec2(1.05, 1.25)));
   c = mix(c, 0.78 + 0.22 * tanh((c - 0.78) / 0.22), step(0.78, c));
