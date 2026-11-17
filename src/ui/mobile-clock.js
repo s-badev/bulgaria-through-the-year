@@ -1,13 +1,16 @@
 import { formatClock, sunTimes, utcToSofia } from '../engine/sun.js';
 
 /** The mobile view reads the shared state; "Now" resyncs that same state once a minute. */
-export function installMobileClock(root, state) {
+export function installMobileClock(root, state, togglePlayback, icons) {
   const card = document.createElement('div');
   card.className = 'mobile-clock'; card.id = 'mobileClock'; card.setAttribute('aria-live', 'off');
-  card.innerHTML = '<div class="mobile-clock-head"><span id="mobileClockSource"></span><span id="mobileClockStatus"></span></div><strong id="mobileClockTime"></strong><span class="mobile-clock-next" id="mobileClockNext"></span>';
+  card.innerHTML = `<div class="mobile-clock-head"><span id="mobileClockSource"></span><span id="mobileClockDate"></span></div>
+    <div class="mobile-clock-main"><strong id="mobileClockTime"></strong><button class="mobile-clock-play" id="mobileClockPlay" type="button"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" id="mobileClockPlayIcon">${icons.play}</svg><span id="mobileClockPlayLabel"></span></button></div>
+    <span class="mobile-clock-next" id="mobileClockNext"></span>`;
   root.append(card);
-  const source = card.querySelector('#mobileClockSource'), status = card.querySelector('#mobileClockStatus');
+  const source = card.querySelector('#mobileClockSource'), date = card.querySelector('#mobileClockDate');
   const time = card.querySelector('#mobileClockTime'), next = card.querySelector('#mobileClockNext');
+  const play = card.querySelector('#mobileClockPlay'), playIcon = card.querySelector('#mobileClockPlayIcon'), playLabel = card.querySelector('#mobileClockPlayLabel');
   const S = state.S;
   let realNow = false, realMinute = -1, tomorrowKey = '', tomorrowRise = null;
   const mobile = matchMedia('(max-width: 820px), (max-height: 500px)');
@@ -26,11 +29,16 @@ export function installMobileClock(root, state) {
   }
   function sync() {
     if (S.playing) realNow = false;
-    const date = `${String(S.d).padStart(2, '0')}.${String(S.m + 1).padStart(2, '0')}`;
-    const values = [realNow ? `София сега · ${date}` : `Симулация · ${date}`, S.playing ? '▶ Пуснато' : '⏸ Пауза', formatClock(S.hour), S.playing ? upcomingSun() : ''];
-    for (const [node, value] of [[source, values[0]], [status, values[1]], [time, values[2]], [next, values[3]]]) if (node.textContent !== value) node.textContent = value;
-    next.hidden = !S.playing;
+    const values = [realNow ? 'София сега' : 'Симулация', `${String(S.d).padStart(2, '0')}.${String(S.m + 1).padStart(2, '0')}.${S.y}`, formatClock(S.hour), upcomingSun()];
+    for (const [node, value] of [[source, values[0]], [date, values[1]], [time, values[2]], [next, values[3]]]) if (node.textContent !== value) node.textContent = value;
+    const label = S.playing ? 'Пауза' : 'Пусни';
+    if (playLabel.textContent !== label) {
+      playLabel.textContent = label;
+      playIcon.innerHTML = S.playing ? icons.pause : icons.play;
+      play.setAttribute('aria-label', S.playing ? 'Постави симулацията на пауза' : 'Пусни симулацията');
+    }
   }
+  play.addEventListener('click', togglePlayback);
   state.on(what => { if (['tick', 'date', 'hour', 'playing'].includes(what)) sync(); });
   sync();
   return {
