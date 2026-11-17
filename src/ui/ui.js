@@ -80,8 +80,10 @@ export function buildUI({ state, scene, version, actions }) {
   root.append(h(`<div class="toast" id="toast" role="status" aria-live="polite"></div>`));
 
   const hourEl = $('#hour'), clockEl = $('#clock'), dateEl = $('#date'), S = state.S;
-  const mobileClock = installMobileClock(root, state);
-  const ui = {
+  let ui;
+  const togglePlayback = () => { actions.user(); state.set('playing', !S.playing); ui.syncPlay(); };
+  const mobileClock = installMobileClock(root, state, togglePlayback, ICON);
+  ui = {
     markRealNow() { mobileClock.markRealNow(); },
     markSimulated() { mobileClock.markSimulated(); },
     toast(msg, ms = 5200) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(ui._tt); ui._tt = setTimeout(() => t.classList.remove('on'), ms); },
@@ -92,7 +94,7 @@ export function buildUI({ state, scene, version, actions }) {
       root.querySelectorAll('#weather button').forEach(b => { b.setAttribute('aria-pressed', String(b.dataset.w === S.weather)); if (b.dataset.w === 'snow') b.title = snowAllowed(state.doy) ? '' : 'През топлите месеци вали дъжд, не сняг'; });
       $('#wind').value = S.wind; $('#fogLvl').value = S.fogLvl;
     },
-    syncPlay() { $('#playIco').innerHTML = S.playing ? ICON.pause : ICON.play; $('#play').setAttribute('aria-label', S.playing ? 'Спри деня' : 'Пусни деня'); },
+    syncPlay() { $('#playIco').innerHTML = S.playing ? ICON.pause : ICON.play; $('#play').setAttribute('aria-label', S.playing ? 'Спри деня' : 'Пусни деня'); mobileClock.sync(); },
     syncSound() { const on = S.sound; $('#soundBtn').setAttribute('aria-pressed', String(on)); $('#soundLbl').textContent = on ? 'Звук: включен' : 'Включи звука'; $('#soundBtn').setAttribute('aria-label', $('#soundLbl').textContent); $('#soundBtn .wave').setAttribute('opacity', on ? '1' : '.35'); },
     syncFlash() { $('#flashBtn').setAttribute('aria-pressed', String(!S.flashes)); },
     readout(alt) {
@@ -108,7 +110,7 @@ export function buildUI({ state, scene, version, actions }) {
   };
   // ---- events ----
   hourEl.addEventListener('input', () => { actions.user(); state.setHour(+hourEl.value); ui.syncTime(); });
-  $('#play').addEventListener('click', () => { actions.user(); state.set('playing', !S.playing); ui.syncPlay(); });
+  $('#play').addEventListener('click', togglePlayback);
   root.querySelectorAll('#seasons button').forEach(b => b.addEventListener('click', () => { actions.user(); state.setSeason(b.dataset.s); ui.syncDate(); if (S.weather === 'snow' && !snowAllowed(state.doy)) ui.toast('През топлите месеци не вали сняг: времето „Сняг“ се показва като дъжд.'); mobileSheet.applied(); }));
   dateEl.addEventListener('change', () => { const m = dateEl.value.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (m) { actions.user(); state.setDate(+m[1], +m[2] - 1, +m[3]); ui.syncDate(); mobileSheet.applied(); } });
   root.querySelectorAll('#weather button').forEach(b => b.addEventListener('click', () => {
