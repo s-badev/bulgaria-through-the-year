@@ -17,6 +17,13 @@ try {
   await page.waitForFunction(() => window.__app.special.layers[0].lighting.values.night > .99);
   assert.equal(await page.locator('#specialWorldTime').textContent(), '02:00');
   assert.equal(await page.evaluate(() => window.__app.state.S.hour), 2);
+  assert.equal(await page.evaluate(() => window.__app.special.layers[0].effects.type), 'abandoned');
+  assert.equal(await page.evaluate(() => window.__app.special.layers[0].lighting.values.day), 0);
+  await page.locator('[data-condition="fog"]').click();
+  await page.waitForFunction(() => window.__app.special.layers[0].lighting.values.haze > .1);
+  await page.locator('[data-condition="rain"]').click();
+  await page.waitForFunction(() => document.querySelector('.special-world-layer').dataset.condition === 'rain');
+  await page.locator('[data-condition="clear"]').click();
   await page.locator('#specialSound').click();
   await page.waitForTimeout(500);
   const audio = await page.evaluate(() => ({ on: window.__app.sound.on, id: window.__app.sound.specialId, context: !!window.__app.sound.ctx, city: window.__app.sound.cityG.gain.value, fountain: window.__app.sound.fountG.gain.value }));

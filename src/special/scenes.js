@@ -152,7 +152,9 @@ export class SpecialScenes {
     const photographicNight = !!layer.asset.variants?.night && !!layer.variant && layer.variant.phase === 'night' && layer.variant.opacity > .5;
     const light = layer.lighting.update(state, setting, photographicNight);
     this.updateVariant(layer, light);
-    layer.effects.update(dt, detail, state.S.reducedMotion, state.S.flashes, setting);
+    layer.dataset.condition = setting.condition;
+    layer.style.setProperty('--special-intensity', setting.intensity.toFixed(3));
+    layer.effects.update(dt, detail, state.S.reducedMotion, state.S.flashes, setting, light);
     return light;
   }
 

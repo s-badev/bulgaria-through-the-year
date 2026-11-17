@@ -10,6 +10,8 @@
 .special-snow .special-atmosphere { background: linear-gradient(180deg, rgba(214, 231, 242, .055), transparent 52%); animation: special-sky-breathe 24s ease-in-out infinite alternate; }
 .special-dust .special-atmosphere { background: linear-gradient(110deg, rgba(190, 149, 101, .035), rgba(239, 200, 144, .065) 37%, transparent 75%); animation: special-dust-breathe 15s ease-in-out infinite alternate; }
 .special-quiet-haze .special-atmosphere { background: linear-gradient(180deg, rgba(216, 223, 210, .05), transparent 55%); animation: special-sky-breathe 26s ease-in-out infinite alternate; }
+.special-quiet-haze[data-condition='fog'] .special-atmosphere { background: radial-gradient(ellipse 90% 24% at 51% 48%, rgba(200,207,203,.24), transparent 96%); }
+.special-quiet-haze[data-condition='rain'] .special-atmosphere { background: linear-gradient(180deg, rgba(113,136,148,.09), transparent 61%); }
 .special-neon .special-atmosphere { background: radial-gradient(ellipse 28% 18% at 50% 59%, rgba(219, 73, 226, .12), transparent 85%), radial-gradient(ellipse 25% 14% at 50% 75%, rgba(55, 173, 236, .09), transparent 90%); animation: special-neon-breathe 8s ease-in-out infinite alternate; }
 .special-storm .special-atmosphere { background: linear-gradient(180deg, rgba(179, 195, 222, .04), transparent 48%); animation: special-sky-breathe 21s ease-in-out infinite alternate; }
 .special-flash { opacity: 0; background: radial-gradient(ellipse 50% 33% at 40% 17%, rgba(220, 231, 247, .76), transparent 90%); }

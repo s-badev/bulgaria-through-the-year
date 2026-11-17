@@ -35,14 +35,15 @@ export class SpecialLighting {
     const mix = solarMix(state.sun), p = this.profile;
     const nightScale = photographicNight ? .14 : 1;
     const weatherHaze = ['fog', 'cloudy', 'partly'].includes(setting.condition) ? setting.intensity : 0;
+    const cloud = setting.condition === 'cloudy' ? .23 : setting.condition === 'fog' ? .19 : setting.condition === 'rain' ? .27 : 0;
     const values = {
-      sky: mix.night * p.sky * nightScale,
+      sky: mix.night * p.sky * nightScale + mix.day * cloud * setting.intensity,
       mountain: mix.night * p.mountain * nightScale,
       city: mix.night * p.city * nightScale,
       warm: mix.warm * p.warm,
       daylight: mix.day * p.daylight,
-      haze: weatherHaze * (.08 + mix.twilight * .08),
-      moon: mix.night * (this.id === 'abandoned' ? .11 : this.id === 'ice-age' ? .13 : .04),
+      haze: weatherHaze * (this.id === 'abandoned' && setting.condition === 'fog' ? .34 : .08 + mix.twilight * .08),
+      moon: mix.night * (this.id === 'abandoned' ? .11 : this.id === 'ice-age' ? .13 : .04) * (setting.condition === 'clear' || setting.condition === 'light' ? 1 : .2),
     };
     this.values = { ...mix, ...values };
     const elements = this.root.children;
