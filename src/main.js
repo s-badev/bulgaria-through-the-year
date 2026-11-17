@@ -11,6 +11,7 @@ import { fetchNow } from './weather/now.js';
 import { buildUI } from './ui/ui.js';
 import { Demo } from './ui/demo.js';
 import { installMobilePan } from './ui/mobile-pan.js';
+import { showStaticView } from './static-view.js';
 
 const params = new URLSearchParams(location.search);
 const QA = params.has('qa'), STILL = params.get('still') === '1', app = document.querySelector('#app');
@@ -25,11 +26,30 @@ app.append(canvas);
 const loading = document.createElement('div');
 loading.className = 'loading'; loading.innerHTML = '<div><div>Зареждам снимката…</div><div class="bar"><i></i></div></div>';
 app.append(loading);
+let failed = false, activeClock = null, activeSound = null;
+const timers = [];
+function showFallback(error) {
+  if (failed) return;
+  failed = true;
+  try { activeClock?.stop(); } catch (cleanupError) { console.error(cleanupError); }
+  try { if (activeSound) { activeSound.disable(); activeSound.suspend(true); } } catch (cleanupError) { console.error(cleanupError); }
+  for (const timer of timers) clearInterval(timer);
+  delete window.__app;
+  console.error(error);
+  showStaticView(false);
+}
+canvas.addEventListener('webglcontextlost', event => {
+  event.preventDefault();
+  showFallback(new Error('WebGL контекстът е изгубен.'));
+});
 
 async function boot() {
   const gl = createGL(canvas);
   if (!gl) throw new Error('Браузърът не поддържа WebGL 2, затова живата снимка не може да се покаже.');
+  if (failed) return;
   const scene = await loadScene(gl, params.get('scene') || 'ndk', { onProgress: p => { loading.querySelector('i').style.width = Math.round(p * 100) + '%'; } });
+  if (failed) return;
+  if (scene.photos.master?.state !== 'ready') throw new Error('Основната снимка не можа да се зареди.');
   const state = new State(scene.cfg.location);
   let liveMode = startLive, weatherRequest = 0;
   if (liveMode) state.setNow();
@@ -38,9 +58,11 @@ async function boot() {
   const mobile = matchMedia('(max-width: 820px), (max-height: 500px)');
   comp.panEnabled = mobile.matches;
   const sound = new Sound();
+  activeSound = sound;
   const life = new Life(gl, scene, { hooks: { onPlane: d => sound.plane(d), onBolt: km => sound.thunder(km) } });
   comp.trafficLayer = life.trafficLayer;
   const clock = new Clock();
+  activeClock = clock;
   const quality = new Quality({ mobile: matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 700, fixed: QA });
   const reduceMq = matchMedia('(prefers-reduced-motion: reduce)');
   const applyReduced = () => { state.S.reducedMotion = reduceMq.matches || params.get('reduce') === '1'; };
@@ -48,6 +70,7 @@ async function boot() {
   const mobilePan = installMobilePan(canvas, comp, mobile, () => state.S.reducedMotion);
 
   const resize = () => {
+    if (failed) return;
     const dpr = Math.min(window.devicePixelRatio || 1, quality.dprCap) * quality.scale;
     canvas.width = Math.max(2, Math.round(innerWidth * dpr)); canvas.height = Math.max(2, Math.round(innerHeight * dpr));
     comp.layout(canvas.width, canvas.height);
@@ -115,6 +138,7 @@ async function boot() {
     addEventListener('deviceorientation', e => { if (e.gamma == null) return; par.tx = Math.max(-1, Math.min(1, e.gamma / 18)); par.ty = Math.max(-1, Math.min(1, ((e.beta ?? 45) - 45) / 18)); }, { passive: true });
   }
   document.addEventListener('visibilitychange', () => {
+    if (failed) return;
     sound.suspend(document.hidden);
     if (!document.hidden) { syncLiveClock(); if (liveMode) void refreshLiveWeather(); }
   });
@@ -129,11 +153,13 @@ async function boot() {
   if (params.get('ui') === '0') document.body.classList.add('photo');
   state.settle(); ui.syncTime(); ui.syncDate(); ui.syncFlash();
   // Keep the live wall clock exact without enabling accelerated time playback.
-  setInterval(() => { if (!document.hidden) syncLiveClock(); }, 1000);
-  setInterval(() => { if (!document.hidden && liveMode) void refreshLiveWeather(); }, 10 * 60 * 1000);
+  timers.push(setInterval(() => { if (!document.hidden) syncLiveClock(); }, 1000));
+  timers.push(setInterval(() => { if (!document.hidden && liveMode) void refreshLiveWeather(); }, 10 * 60 * 1000));
 
   let readT = 0;
   clock.add((dt, t) => {
+    if (failed) return;
+    try {
     demo.update(dt); state.update(dt);
     const reduced = state.S.reducedMotion, k = 1 - Math.exp(-dt / 0.5);
     par.x += ((reduced ? 0 : par.tx) - par.x) * k; par.y += ((reduced ? 0 : par.ty) - par.y) * k;
@@ -148,13 +174,15 @@ async function boot() {
     quality.update(clock.dtAvg, dt);
     if (state.S.playing) ui.syncTime();
     readT += dt; if (readT > 0.25) { readT = 0; ui.readout(blend.alt); }
+    } catch (error) { showFallback(error); }
   });
+  if (failed) return;
   clock.start();
   loading.classList.add('gone'); setTimeout(() => loading.remove(), 900);
 
   // stream the rest of the photographs in the background, nearest states first
   const rest = ['night', 'dawn-golden', 'dawn-bluehour', 'autumn', 'winter-snow', 'winter-night', 'fog', 'rain-night', 'evening-golden', 'evening-bluehour', 'spring'].filter(id => scene.photos[id]);
-  (async () => { for (const id of rest.slice(0, quality.maxPhotos - 1)) { await loadPhoto(gl, scene, id); await new Promise(r => setTimeout(r, 60)); } })();
+  (async () => { for (const id of rest.slice(0, quality.maxPhotos - 1)) { if (failed) break; await loadPhoto(gl, scene, id); await new Promise(r => setTimeout(r, 60)); } })();
 
   // Starting at the real current time takes priority over the former automatic demo.
   // The demo stays available through its explicit button, and intro via ?intro=1.
@@ -163,8 +191,4 @@ async function boot() {
   if (liveMode) void refreshLiveWeather();
   if (import.meta.env.DEV) import('./ui/debug-overlay.js').then(d => { window.__app.debug = d.install({ scene, comp, life, clock }); }); // key D; stripped from production builds
 }
-boot().catch(err => {
-  console.error(err);
-  loading.classList.remove('gone'); loading.innerHTML = `<div role="alert">Живата снимка не може да се покаже.<br><small>${String(err.message || err)}</small></div>`;
-  if (!loading.isConnected) app.append(loading);
-});
+boot().catch(showFallback);

@@ -3,11 +3,13 @@
 // "image row 0 at texel row 0" and sampled with the same vUv.
 const COMMON = `#version 300 es
 precision highp float;
+precision highp int;
 in vec2 vUv; out vec4 o;
 float hash12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f); return mix(mix(hash12(i), hash12(i+vec2(1,0)), f.x), mix(hash12(i+vec2(0,1)), hash12(i+vec2(1,1)), f.x), f.y); }
 float fbm(vec2 p){ float a = .5, r = 0.; for(int i=0;i<4;i++){ r += a*vnoise(p); p = p*2.03 + 7.1; a *= .5; } return r; }
 float luma(vec3 c){ return dot(c, vec3(.2126,.7152,.0722)); }
+float fadeDown(float high, float low, float x){ return 1. - smoothstep(low, high, x); }
 `;
 
 // ---------- cast shadows: screen-space ray march through the calibrated depth map ----------
@@ -70,9 +72,16 @@ vec3 springFrom(vec3 c, float veg, float mtn, vec2 uv){
   vec3 v = mix(c, fresh, veg * crown);
   float blossom = step(0.86, vnoise(uv * uSize / 9.)) * step(0.55, vnoise(uv * uSize / 60. + 3.)) * veg * smoothstep(0.05, 0.2, l);
   v = mix(v, vec3(0.80, 0.70, 0.74) * (0.55 + l), blossom * 0.55);
-  float snow = mtn * smoothstep(0.250, 0.215, uv.y + (vnoise(uv * vec2(60., 34.)) - .5) * 0.03) * smoothstep(0.05, 0.22, l);
+  float snow = mtn * fadeDown(0.250, 0.215, uv.y + (vnoise(uv * vec2(60., 34.)) - .5) * 0.03) * smoothstep(0.05, 0.22, l);
   v = mix(v, vec3(0.86, 0.90, 0.96) * (0.55 + 0.6 * l), snow * 0.8);
   return v;
+}
+// Explicit selection avoids GLSL vector arrays and dynamic indexing rejected by some Android drivers.
+vec3 seasonColor(int index, vec3 spring, vec3 summer, vec3 autumn, vec3 winter){
+  if (index == 0) return spring;
+  if (index == 1) return summer;
+  if (index == 2) return autumn;
+  return winter;
 }
 void main(){
   vec2 uv = vUv;
@@ -82,7 +91,6 @@ void main(){
 
   vec3 cDay = texture(tDay, uv).rgb, cAut = texture(tAutumn, uv).rgb, cWin = texture(tWinter, uv).rgb;
   vec3 cSpr = uHasSpring > .5 ? texture(tSpring, uv).rgb : springFrom(cDay, veg, mtn, uv);
-  vec3 S[4] = vec3[4](cSpr, cDay, cAut, cWin);
   int iA = int(uSeason.x + .5), iB = int(uSeason.y + .5);
 
   // seasons change tree by tree: a crown-sized dissolve inside vegetation, a plain cross-fade elsewhere (no ghosting of regenerated trees)
@@ -90,7 +98,7 @@ void main(){
   float crown = vnoise(px / 46.) * 0.65 + vnoise(px / 17. + 11.) * 0.35;
   float t = uSeason.z, tv = smoothstep(crown * 0.7, crown * 0.7 + 0.3, t);
   float ts = mix(t, tv, clamp(veg * 1.4 + mtn, 0., 1.));
-  vec3 D = mix(S[iA], S[iB], ts);
+  vec3 D = mix(seasonColor(iA, cSpr, cDay, cAut, cWin), seasonColor(iB, cSpr, cDay, cAut, cWin), ts);
   float wWin = (iA == 3 ? 1. - ts : 0.) + (iB == 3 ? ts : 0.);
   float wSum = (iA == 1 ? 1. - ts : 0.) + (iB == 1 ? ts : 0.) + (uHasSpring > .5 ? 0. : (iA == 0 ? 1. - ts : 0.) + (iB == 0 ? ts : 0.));
   // snow that settles from the weather outside winter: whitest-in-winter places first
@@ -127,7 +135,7 @@ void main(){
   // sky of the day image: photo sky re-coloured by the analytic model (keeps real wisps); overcast winter sky is replaced
   vec3 skyNow = skyModel(uv, uZen, uHor, uSunHor, uSkyP.x, uSkyP.y), skyRef = skyModel(uv, uRefZen, uRefHor, uRefHor, 0.2, 0.);
   vec2 sd = (uv - vec2(uSkyP.x, uSkyP.z)) * vec2(uSize.x / uSize.y, 1.);
-  vec3 sunDisc = uSunHor * (exp(-length(sd) * 9.) * 0.9 + smoothstep(0.016, 0.010, length(sd)) * 3.) * uSkyP.w;
+  vec3 sunDisc = uSunHor * (exp(-length(sd) * 9.) * 0.9 + fadeDown(0.016, 0.010, length(sd)) * 3.) * uSkyP.w;
   // low frequencies from the analytic sky (the photo has its bright side baked on the left), wisps and grain from the photo
   vec3 skyLo = max(textureLod(tDay, uv, 5.).rgb, vec3(0.01));
   vec3 detail = clamp(mix(vec3(1.), cDay / skyLo, smoothstep(0.03, 0.14, 0.36 - uv.y)), 0.85, 1.3);
@@ -232,7 +240,7 @@ void main(){
 
   // sky: photographic cloud layers (overcast deck + cumulus), gently compressed toward the horizon, drifting with the wind
   float cloud = uEnvA.x, lowCloud = smoothstep(0.6, 1., cloud) * clamp(uEnvB.w * 0.9 + uEnvC.w * 0.3 + uMisc.z, 0., 1.);
-  float cmask = clamp(max(sky, skyEdge * lowCloud) + mtn * smoothstep(0.34, 0.20, uv.y + (vnoise(px / 90.) - .5) * 0.07) * lowCloud, 0., 1.);
+  float cmask = clamp(max(sky, skyEdge * lowCloud) + mtn * fadeDown(0.34, 0.20, uv.y + (vnoise(px / 90.) - .5) * 0.07) * lowCloud, 0., 1.);
   float calpha = 0.;
   if (cmask > 0.003 && cloud > 0.01) {
     float yy = clamp(uv.y / 0.385, 0., 1.);
@@ -271,7 +279,7 @@ void main(){
     hgt = mix(hgt, (0.372 - uv.y) / 0.17 * 3.2, mtn);
     float dist = clamp(0.18 / (inv + 0.07), 0., 1.);
     float wob = (fbm(vec2(uv.x * 2.4 - uTime * 0.012 * (1. + wind * 4.), uv.y * 5.5)) - .5) * 0.5;
-    float layer = smoothstep(uFogP.z + 0.28 + mtn * 0.7, uFogP.z - 0.12 - mtn * 0.5, hgt + wob * (1. + mtn * 1.5));
+    float layer = fadeDown(uFogP.z + 0.28 + mtn * 0.7, uFogP.z - 0.12 - mtn * 0.5, hgt + wob * (1. + mtn * 1.5));
     float fd = fog * (0.25 + 0.75 * dist) * layer * (1. - sky);
     // seen from inside the fog, the low sky is fog too
     fd = max(fd, fog * sky * smoothstep(0.75, 1.5, uFogP.z) * smoothstep(0.02, 0.36, uv.y + wob * 0.1) * 0.9);

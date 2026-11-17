@@ -16,6 +16,7 @@ void main(){
 }`;
 const FS = `#version 300 es
 precision highp float;
+precision highp int;
 in vec2 vTex; in vec2 vImg; flat in vec4 vCol; out vec4 o;
 uniform sampler2D tAtlas, tRoad; uniform float uAutumn;
 void main(){

@@ -21,27 +21,28 @@ void main(){
 }`;
 const FS = `#version 300 es
 precision highp float;
+precision highp int;
 in vec2 vQ; in vec2 vImg; flat in vec4 vB; flat in vec4 vC; out vec4 o;
 uniform sampler2D tGeo, tRoad; uniform float uAutumn;
+float fadeDown(float high, float low, float x){ return 1. - smoothstep(low, high, x); }
 void main(){
   vec2 q = vQ; float m = 0., p = vB.w; int shape = int(vB.y + .5);
   if (shape == 0) { float r2 = dot(q, q); m = max(exp(-r2 * 4.6) - 0.0101, 0.) + 0.55 * max(exp(-r2 * 26.) - 0.0, 0.) * step(r2, 1.); }       // glow with a hot core
-  else if (shape == 1) { m = pow(max(1. - abs(q.x), 0.), 1.5) * smoothstep(1., 0.15, abs(q.y)); }                                    // streak (rain, reflection)
-  else if (shape == 2) { m = smoothstep(1., 0.35, length(q)); }                                                                     // soft disc (snowflake, speck)
-  else if (shape == 3) { float e = length(q * vec2(1., 2.1 + 3. * (1. - p))); m = smoothstep(1., 0.8, e + 0.25 * abs(q.x) * abs(q.x)); } // leaf (param = facing)
-  else if (shape == 4) { float ax = abs(q.x); float wing = p * ax * 0.9 - 0.35 * sin(ax * 3.1416) ; float dd = abs(q.y - wing); m = smoothstep(0.26, 0.04, dd) * smoothstep(1., 0.85, ax) + smoothstep(0.2, 0.05, length(q * vec2(2.2, 1.5))); } // bird (param = flap -1..1)
-  else if (shape == 5) { float f = smoothstep(0.12, 0.04, abs(q.y)) * smoothstep(1., 0.9, abs(q.x));                                  // aircraft seen from below/side
-    float w = smoothstep(0.08, 0.0, abs(q.y - (abs(q.x + 0.1) - 0.0) * -0.0) - 0.0) * 0.;
-    float wingx = q.x + 0.05, wing = smoothstep(0.16, 0.06, abs(wingx + abs(q.y) * 0.55)) * smoothstep(0.95, 0.75, abs(q.y));
-    float tail = smoothstep(0.1, 0.03, abs(q.x + 0.82 + abs(q.y) * 0.4)) * smoothstep(0.4, 0.3, abs(q.y));
+  else if (shape == 1) { m = pow(max(1. - abs(q.x), 0.), 1.5) * fadeDown(1., 0.15, abs(q.y)); }                                    // streak (rain, reflection)
+  else if (shape == 2) { m = fadeDown(1., 0.35, length(q)); }                                                                     // soft disc (snowflake, speck)
+  else if (shape == 3) { float e = length(q * vec2(1., 2.1 + 3. * (1. - p))); m = fadeDown(1., 0.8, e + 0.25 * abs(q.x) * abs(q.x)); } // leaf (param = facing)
+  else if (shape == 4) { float ax = abs(q.x); float wing = p * ax * 0.9 - 0.35 * sin(ax * 3.1416) ; float dd = abs(q.y - wing); m = fadeDown(0.26, 0.04, dd) * fadeDown(1., 0.85, ax) + fadeDown(0.2, 0.05, length(q * vec2(2.2, 1.5))); } // bird (param = flap -1..1)
+  else if (shape == 5) { float f = fadeDown(0.12, 0.04, abs(q.y)) * fadeDown(1., 0.9, abs(q.x));                                  // aircraft seen from below/side
+    float wingx = q.x + 0.05, wing = fadeDown(0.16, 0.06, abs(wingx + abs(q.y) * 0.55)) * fadeDown(0.95, 0.75, abs(q.y));
+    float tail = fadeDown(0.1, 0.03, abs(q.x + 0.82 + abs(q.y) * 0.4)) * fadeDown(0.4, 0.3, abs(q.y));
     m = max(max(f, wing), tail); }
   else if (shape == 6) { float t = q.y * .5 + .5; m = exp(-q.x * q.x * (3. + 5. * t)) * pow(t, 0.7) * (0.75 + 0.25 * sin(t * 18. + p)); }      // water jet: bright base (q.y=+1 is the foot)
-  else if (shape == 8) { m = exp(-q.y * q.y * 5.) * smoothstep(1., 0.96, abs(q.x)); }                                                // soft line (bolt, contrail)
-  else if (shape == 9) { float r = length(q); m = smoothstep(0.22, 0.0, abs(r - 0.72)) ; }                                           // splash ring
+  else if (shape == 8) { m = exp(-q.y * q.y * 5.) * fadeDown(1., 0.96, abs(q.x)); }                                                // soft line (bolt, contrail)
+  else if (shape == 9) { float r = length(q); m = fadeDown(0.22, 0.0, abs(r - 0.72)) ; }                                           // splash ring
   else if (shape == 11) { float r2 = dot(q, q); m = max(exp(-r2 * 4.6) - 0.0101, 0.) + 0.55 * exp(-r2 * 26.) * step(r2, 1.); }                 // car lamp (clipped to the asphalt below)
-  else if (shape == 12) { m = pow(max(1. - abs(q.x), 0.), 1.5) * smoothstep(1., 0.1, abs(q.y)); }                                    // light on the asphalt
+  else if (shape == 12) { m = pow(max(1. - abs(q.x), 0.), 1.5) * fadeDown(1., 0.1, abs(q.y)); }                                    // light on the asphalt
   if (shape >= 11) { vec2 rd = texture(tRoad, vImg).rg; m *= smoothstep(0.5, 0.8, mix(rd.r, rd.g, uAutumn)); }                        // car light never leaves the road
-  if (vB.z >= 0.) { float sd = texture(tGeo, vImg).b; m *= smoothstep(0.035, 0.008, sd - vB.z); }
+  if (vB.z >= 0.) { float sd = texture(tGeo, vImg).b; m *= fadeDown(0.035, 0.008, sd - vB.z); }
   if (m <= 0.002) discard;
   o = vC.a < 0. ? vec4(vC.rgb * (-vC.a) * m, 0.) : vec4(vC.rgb * vC.a * m, vC.a * m);
 }`;
