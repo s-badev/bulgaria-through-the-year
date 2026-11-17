@@ -8,6 +8,54 @@
       "width": 1672,
       "height": 941,
       "hash": "0892fc0a7f85908c2e1e012f504ebfd689aa2069443b0795bf5363f29c9e9160"
+    },
+    "aurora": {
+      "source": "aurora.png",
+      "webp": "optimized/aurora.webp",
+      "avif": "optimized/aurora.avif",
+      "width": 1672,
+      "height": 941,
+      "hash": "9e8abc4abfb7e30addfdd847bd176465d71c37a9068940fc9b6225df1246974a"
+    },
+    "ice-age": {
+      "source": "ice-age.png",
+      "webp": "optimized/ice-age.webp",
+      "avif": "optimized/ice-age.avif",
+      "width": 1672,
+      "height": 941,
+      "hash": "d62d55c1fcda491fa6fd2d8e7cdd0ca850fd430fd63775de6b2f2f26653f6ca0"
+    },
+    "sandstorm": {
+      "source": "sandstorm.png",
+      "webp": "optimized/sandstorm.webp",
+      "avif": "optimized/sandstorm.avif",
+      "width": 1672,
+      "height": 941,
+      "hash": "9cb05c208e80546e52aef0871e8891b2097517c466035e727c39e652245b3f7c"
+    },
+    "abandoned": {
+      "source": "abandoned.png",
+      "webp": "optimized/abandoned.webp",
+      "avif": "optimized/abandoned.avif",
+      "width": 1672,
+      "height": 941,
+      "hash": "01eb9018f4054a214d0f7f416c87a082c2d8fa6b9809ce3025b28e2c9e4a48d3"
+    },
+    "cyberpunk": {
+      "source": "cyberpunk.png",
+      "webp": "optimized/cyberpunk.webp",
+      "avif": "optimized/cyberpunk.avif",
+      "width": 1672,
+      "height": 941,
+      "hash": "4f3e946de3d289dc0fd5b9a6808d25f57809b4b8ed8497dfc63032e01cce3bc0"
+    },
+    "supercell": {
+      "source": "supercell.png",
+      "webp": "optimized/supercell.webp",
+      "avif": "optimized/supercell.avif",
+      "width": 1672,
+      "height": 941,
+      "hash": "9912bda934589656c83a90601d26bec1cdd517d6c3853349727c42ba949718aa"
     }
   }
 }

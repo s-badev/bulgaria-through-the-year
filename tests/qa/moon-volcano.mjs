@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { chromium } from 'playwright';
 
-const base = 'http://127.0.0.1:8080/';
+const base = `http://127.0.0.1:${process.argv[2] || 8080}/`;
 const out = 'tests/qa-out/moon-volcano';
 fs.mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });

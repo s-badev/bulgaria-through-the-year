@@ -16,12 +16,20 @@ export function installSpecialUI(root, actions) {
   menuEntry.textContent = 'Невъзможна София';
   root.querySelector('#mobileMenu').prepend(menuEntry);
 
+  const nav = document.createElement('div');
+  nav.className = 'special-nav';
+  const change = document.createElement('button');
+  change.id = 'specialChange';
+  change.type = 'button';
+  change.className = 'sec';
+  change.textContent = 'Смени сцената';
   const back = document.createElement('button');
   back.id = 'specialBack';
   back.type = 'button';
-  back.className = 'sec special-back';
+  back.className = 'sec';
   back.textContent = 'Обратно към София';
-  root.append(back);
+  nav.append(change, back);
+  root.append(nav);
 
   const dialog = document.createElement('dialog');
   dialog.id = 'specialDialog';
@@ -49,26 +57,38 @@ export function installSpecialUI(root, actions) {
 
   function sync(id) {
     active = id;
-    back.classList.toggle('is-visible', !!id);
+    nav.classList.toggle('is-visible', !!id);
     for (const button of dialog.querySelectorAll('[data-special]')) button.setAttribute('aria-pressed', String(button.dataset.special === id));
     dialog.querySelector('#specialReturn').disabled = !id;
   }
 
   function open(opener) {
+    if (dialog.open) return;
     returnFocus = opener;
     status.textContent = 'Проверявам наличните снимки…';
     dialog.showModal();
     void actions.specialManifest().then(setManifest);
   }
   entry.addEventListener('click', () => open(entry));
+  change.addEventListener('click', () => open(change));
   // The mobile menu closes and returns focus during the same click bubble.
   menuEntry.addEventListener('click', () => setTimeout(() => open(menuEntry), 0));
   dialog.querySelector('#specialClose').addEventListener('click', () => dialog.close());
   dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
-  dialog.addEventListener('close', () => returnFocus.focus({ preventScroll: true }));
+  dialog.addEventListener('close', () => {
+    const focus = returnFocus.getClientRects().length ? returnFocus : document.querySelector('#moreBtn') || entry;
+    focus.focus({ preventScroll: true });
+  });
   const exit = () => { actions.exitSpecial(); if (dialog.open) dialog.close(); };
   back.addEventListener('click', exit);
   dialog.querySelector('#specialReturn').addEventListener('click', exit);
+  // Some in-app touch browsers suppress the first synthesized click after a
+  // captured panorama drag. Pointer-up still reaches these explicit buttons.
+  const touchFallback = (button, action) => button.addEventListener('pointerup', event => {
+    if (event.pointerType === 'touch' && event.isPrimary) setTimeout(action, 0);
+  });
+  touchFallback(change, () => { if (!dialog.open) open(change); });
+  touchFallback(back, () => { if (nav.classList.contains('is-visible')) exit(); });
   for (const button of dialog.querySelectorAll('[data-special]')) button.addEventListener('click', async () => {
     status.textContent = `Зареждам „${button.querySelector('strong').textContent}“…`;
     button.disabled = true;

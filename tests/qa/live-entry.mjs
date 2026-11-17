@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });
-const base = 'http://127.0.0.1:8080/';
+const base = `http://127.0.0.1:${process.argv[2] || 8080}/`;
 const mocked = { current: { weather_code: 3, cloud_cover: 91, temperature_2m: 11, wind_speed_10m: 9, visibility: 18000, precipitation: 0, rain: 0, showers: 0, snowfall: 0 } };
 const sofiaNow = () => {
   const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Sofia', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());

@@ -180,15 +180,16 @@ async function boot() {
     comp.applyPan();
     mobilePan.update();
     special.layout();
+    special.update(dt, quality.particles, reduced, state.S.flashes);
     let blend = { alt: state.sun.elevation };
     if (special.renderNormal) {
       blend = comp.render(state.snapshot(), t, { flash: life.lightning.level, boltX: life.lightning.boltX, fountainColor: life.ctx.fountainColor, reducedMotion: reduced, grain: quality.grain, effectDetail: quality.particles });
       const ctx = life.context(state, blend, t, quality.particles);
       life.update(dt, ctx); life.draw(ctx, comp.view);
       sound.update(dt, { env: state.V, season: state.season, alt: blend.alt, activity: state.activity, time: t });
-      quality.update(clock.dtAvg, dt);
       special.normalFrameReady();
     }
+    quality.update(clock.dtAvg, dt);
     if (wantFrame) { wantFrame = false; if (special.active) void special.capture().then(downloadFrame); else canvas.toBlob(downloadFrame, 'image/png'); }
     if (state.S.playing) ui.syncTime();
     readT += dt; if (readT > 0.25) { readT = 0; ui.readout(blend.alt); }

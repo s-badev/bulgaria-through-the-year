@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 
 const output = 'docs/screenshots/mobile-pan-hint';
 fs.mkdirSync(output, { recursive: true });
-const base = 'http://127.0.0.1:8080/?qa=1&still=1&reduce=1&date=2026-04-22&h=12&w=clear';
+const base = `http://127.0.0.1:${process.argv[2] || process.env.QA_PORT || 8080}/?qa=1&still=1&reduce=1&date=2026-04-22&h=12&w=clear`;
 const sizes = [[360, 640], [390, 844], [412, 915], [360, 500], [390, 700], [844, 390]];
 const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });
 const failures = [];

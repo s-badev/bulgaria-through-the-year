@@ -3,8 +3,9 @@ import fs from 'node:fs';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
 
-const base = 'http://127.0.0.1:8080/';
+const base = `http://127.0.0.1:${process.argv[2] || process.env.QA_PORT || 8080}/`;
 const out = 'tests/qa-out/impossible-sofia';
+const scenes = ['planet', 'aurora', 'ice-age', 'sandstorm', 'abandoned', 'cyberpunk', 'supercell'];
 fs.mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });
 const errors = [];
@@ -20,12 +21,12 @@ async function drag(cdp, from, to, y) {
 try {
   const desktop = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
   desktop.on('pageerror', error => errors.push(error.message));
+  desktop.on('response', response => { if (response.url().includes('/special/') && response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
   await desktop.goto(`${base}?qa=1&still=1&date=2026-07-15&h=18.75&w=clear`);
   await ready(desktop);
   await desktop.locator('#specialEntry').click();
   assert.equal(await desktop.locator('[data-special]').count(), 7);
-  assert.equal(await desktop.locator('[data-special]:enabled').count(), 1, 'only supplied planet can be selected');
-  assert.match(await desktop.locator('[data-special="aurora"]').textContent(), /Недостъпно/);
+  assert.equal(await desktop.locator('[data-special]:enabled').count(), 7, 'all seven supplied photographs can be selected');
   await desktop.locator('[data-special="planet"]').click();
   await desktop.waitForFunction(() => window.__app.special.id === 'planet' && document.querySelector('.special-world-layer.is-visible'));
   assert(await desktop.locator('#specialBack').isVisible());
@@ -56,6 +57,25 @@ try {
   assert(await desktop.evaluate(() => window.__app.state.S.hour) > playingHour, 'playback continues on return');
   assert.equal(await desktop.locator('#play').getAttribute('aria-label'), 'Спри деня');
   assert(await desktop.locator('#specialEntry').isVisible());
+  for (const id of scenes) {
+    if (id === 'planet') continue;
+    const opener = await desktop.locator('#specialChange').isVisible() ? '#specialChange' : '#specialEntry';
+    await desktop.locator(opener).click();
+    assert.equal(await desktop.locator('[data-special]:enabled').count(), 7);
+    await desktop.locator(`[data-special="${id}"]`).click();
+    await desktop.waitForFunction(expected => window.__app.special.id === expected, id);
+    const loaded = await desktop.locator('.special-world-layer.is-visible img').last().evaluate(image => ({ src: image.currentSrc, ok: image.complete && image.naturalWidth === 1672 }));
+    assert(loaded.ok && loaded.src.includes(`${id}.`), `${id}: correct photographic source loaded`);
+    assert.equal(await desktop.locator('.special-world-layer.is-visible .special-atmosphere').evaluate(node => getComputedStyle(node).animationName), 'none', `${id}: reduced motion disables atmosphere`);
+    assert.equal(await desktop.locator(`[data-special="${id}"]`).getAttribute('aria-pressed'), 'true');
+    await desktop.waitForTimeout(650);
+    assert.equal(await desktop.locator('.special-world-layer').count(), 1, `${id}: old image released after crossfade`);
+    await desktop.screenshot({ path: `${out}/${id}-desktop.png` });
+  }
+  await desktop.locator('#specialBack').click();
+  await desktop.waitForFunction(() => !window.__app.special.id);
+  assert.equal(await desktop.evaluate(() => window.__app.state.S.weather), before.S.weather);
+  assert.equal(await desktop.evaluate(() => window.__app.state.S.playing), true);
   await desktop.close();
 
   for (const [width, height] of [[320, 568], [360, 640], [390, 844], [390, 700], [412, 915], [844, 390]]) {
@@ -68,7 +88,7 @@ try {
     await page.locator('#moreBtn').tap();
     await page.locator('#menuSpecial').tap();
     await page.locator('#specialDialog').waitFor({ state: 'visible' });
-    assert.equal(await page.locator('[data-special]:enabled').count(), 1);
+    assert.equal(await page.locator('[data-special]:enabled').count(), 7);
     const target = await page.locator('[data-special="planet"]').boundingBox();
     assert(target.width >= 44 && target.height >= 44);
     await page.locator('[data-special="planet"]').tap();
@@ -78,6 +98,13 @@ try {
       return { left: r.left, right: r.right, width: r.width, scroll: document.documentElement.scrollWidth, viewport: innerWidth };
     });
     assert(geometry.left <= 0 && geometry.right >= width && geometry.scroll <= width, `${width}x${height}: image covers view`);
+    const chrome = await page.evaluate(() => {
+      const box = selector => document.querySelector(selector).getBoundingClientRect();
+      const nav = box('.special-nav'), title = box('.title'), more = box('#moreBtn');
+      const intersects = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+      return { nav: { left: nav.left, right: nav.right, top: nav.top, bottom: nav.bottom }, overlap: intersects(nav, title) || intersects(nav, more), back: box('#specialBack').height };
+    });
+    assert(chrome.nav.left >= 0 && chrome.nav.right <= width && chrome.nav.top >= 0 && chrome.nav.bottom <= height && !chrome.overlap && chrome.back >= 44, `${width}x${height}: special navigation fits viewport`);
     if (width === 390 && height === 844) {
       await page.locator('#specialBack').tap();
       await page.waitForFunction(() => !window.__app.special.id);
@@ -103,12 +130,64 @@ try {
       assert(leftCrop >= 0 && leftCrop <= 0.1 && Math.abs(right.x - left.x) > width / 2, `${width}x${height}: left edge and image travel ${JSON.stringify({ leftCrop, rightCrop, leftX: left.x, rightX: right.x })}`);
     }
     if (width === 390) await page.screenshot({ path: `${out}/planet-mobile-left.png` });
+    if (width === 390 && height === 844) {
+      const savedPan = await page.evaluate(() => window.__app.comp.panX);
+      for (const id of scenes.slice(1)) {
+        const change = page.locator('#specialChange');
+        const bounds = await change.boundingBox();
+        assert(bounds.width >= 44 && bounds.height >= 44, 'change scene is touch accessible');
+        await change.tap();
+        await page.locator(`[data-special="${id}"]`).tap();
+        await page.waitForFunction(expected => window.__app.special.id === expected, id);
+        assert.equal(await page.evaluate(() => window.__app.comp.panX), savedPan, `${id}: mobile pan preserved`);
+        await page.evaluate(() => { window.__app.comp.panX = .5; window.__app.comp.applyPan(); });
+        await page.waitForTimeout(650);
+        const frame = await page.locator('.special-world-layer img').boundingBox();
+        assert(frame.x <= 0 && frame.x + frame.width >= width, `${id}: full viewport covered`);
+        await page.screenshot({ path: `${out}/${id}-mobile.png` });
+        if (id !== scenes.at(-1)) await page.evaluate(pan => { window.__app.comp.panX = pan; window.__app.comp.applyPan(); }, savedPan);
+      }
+    }
     await page.locator('#specialBack').click();
     await page.waitForFunction(() => !window.__app.special.id);
     assert(await page.locator('#mobileOpen').isVisible());
     await context.close();
     console.log(`PASS ${width}x${height}: selector, image, return and pan geometry`);
   }
+
+  const motion = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'no-preference' });
+  motion.on('pageerror', error => errors.push(`motion: ${error.message}`));
+  await motion.goto(`${base}?qa=1&still=1&special=ice-age`);
+  await motion.waitForFunction(() => window.__app?.special.id === 'ice-age');
+  for (const id of ['ice-age', 'sandstorm', 'abandoned', 'supercell']) {
+    if (id !== 'ice-age') {
+      await motion.locator('#specialChange').click();
+      await motion.locator(`[data-special="${id}"]`).click();
+      await motion.waitForFunction(expected => window.__app.special.id === expected, id);
+    }
+    await motion.waitForTimeout(220);
+    const effect = await motion.evaluate(() => {
+      const item = document.querySelector('.special-world-layer.is-visible').effects;
+      const pixels = item.ctx.getImageData(0, 0, item.canvas.width, item.canvas.height).data;
+      let active = 0;
+      for (let i = 3; i < pixels.length; i += 4) if (pixels[i]) active++;
+      return { elapsed: item.elapsed, active, count: item.points.length };
+    });
+    assert(effect.elapsed > 0 && effect.active > 0, `${id}: lightweight particles move and draw`);
+    await motion.screenshot({ path: `${out}/${id}-motion.png` });
+    if (id === 'supercell') {
+      const flash = await motion.evaluate(() => {
+        const app = window.__app, item = document.querySelector('.special-world-layer.is-visible').effects;
+        item.nextFlash = item.elapsed;
+        app.clock.step(1 / 60);
+        return item.flash;
+      });
+      assert(flash > 0, 'supercell has a brief calculated flash');
+      await motion.evaluate(() => { const app = window.__app; app.state.S.flashes = false; app.clock.step(1 / 60); });
+      assert.equal(await motion.locator('.special-flash').last().evaluate(node => +node.style.opacity), 0, 'no-flashes preference suppresses lightning');
+    }
+  }
+  await motion.close();
 
   const lite = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await lite.addInitScript(() => {
@@ -125,6 +204,11 @@ try {
   await drag(liteCdp, 300, 80, 400);
   assert.notEqual(await lite.locator('.static-view > img').evaluate(image => image.style.objectPosition), '50% center', 'lite touch pan works');
   await lite.screenshot({ path: `${out}/planet-lite.png` });
+  await lite.locator('.static-special-nav button').first().click();
+  assert.equal(await lite.locator('.static-special-dialog [data-special]:enabled').count(), 7);
+  await lite.locator('.static-special-dialog [data-special="aurora"]').click();
+  await lite.waitForFunction(() => document.querySelector('.static-view > img')?.src.includes('aurora.webp'));
+  await lite.screenshot({ path: `${out}/aurora-lite.png` });
   await lite.locator('.static-special-nav button').last().click();
   assert.match(await lite.locator('.static-view img').getAttribute('src'), /master\.webp/);
   await lite.close();

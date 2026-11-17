@@ -1,4 +1,5 @@
 import { SPECIAL_BASE, specialScene } from './registry.js';
+import { SpecialEffects } from './effects.js';
 import './scenes.css';
 
 const FADE_MS = 480;
@@ -69,6 +70,7 @@ export class SpecialScenes {
       try { await image.decode(); } catch { layer.remove(); throw new Error('Снимката на сцената не можа да се зареди.'); }
     }
     if (request !== this.sequence) { layer.remove(); return false; }
+    layer.effects = new SpecialEffects(id, layer);
     const old = this.layers;
     this.layers = [layer];
     this.id = id;
@@ -76,7 +78,7 @@ export class SpecialScenes {
     this.root.classList.add('is-active');
     this.layout();
     requestAnimationFrame(() => { layer.classList.add('is-visible'); old.forEach(node => node.classList.remove('is-visible')); });
-    setTimeout(() => old.forEach(node => { node.querySelector('img')?.removeAttribute('src'); node.remove(); }), FADE_MS + 80);
+    setTimeout(() => old.forEach(node => { node.effects?.destroy(); node.querySelector('img')?.removeAttribute('src'); node.remove(); }), FADE_MS + 80);
     this.onChange(id);
     return true;
   }
@@ -99,7 +101,7 @@ export class SpecialScenes {
     this.layers = [];
     old.forEach(node => node.classList.remove('is-visible'));
     setTimeout(() => {
-      old.forEach(node => { node.querySelector('img')?.removeAttribute('src'); node.remove(); });
+      old.forEach(node => { node.effects?.destroy(); node.querySelector('img')?.removeAttribute('src'); node.remove(); });
       if (!this.id) this.root.classList.remove('is-active');
     }, FADE_MS + 80);
   }
@@ -112,10 +114,16 @@ export class SpecialScenes {
     const left = -(0.5 + (cov[0] - 0.5) / zoom) * imageWidth;
     const top = -(0.5 + (cov[1] - 0.5) / zoom) * imageHeight;
     for (const layer of this.layers) {
-      for (const element of [layer.querySelector('picture'), layer.querySelector('.special-atmosphere')]) {
+      for (const element of [layer.querySelector('picture'), layer.querySelector('.special-atmosphere'), layer.effects?.canvas, layer.effects?.lightning]) {
+        if (!element) continue;
         Object.assign(element.style, { left: `${left}px`, top: `${top}px`, width: `${imageWidth}px`, height: `${imageHeight}px` });
       }
     }
+  }
+
+  update(dt, detail, reduced, flashes) {
+    this.root.classList.toggle('is-reduced', reduced);
+    if (this.active) this.layers[0]?.effects?.update(dt, detail, reduced, flashes);
   }
 
   capture() {
@@ -124,7 +132,10 @@ export class SpecialScenes {
     const output = document.createElement('canvas'), glCanvas = this.comp.gl.canvas;
     output.width = glCanvas.width; output.height = glCanvas.height;
     const rect = image.getBoundingClientRect(), scaleX = output.width / glCanvas.clientWidth, scaleY = output.height / glCanvas.clientHeight;
-    output.getContext('2d').drawImage(image, rect.left * scaleX, rect.top * scaleY, rect.width * scaleX, rect.height * scaleY);
+    const context = output.getContext('2d');
+    context.drawImage(image, rect.left * scaleX, rect.top * scaleY, rect.width * scaleX, rect.height * scaleY);
+    const overlay = this.layers[0]?.effects?.canvas;
+    if (overlay) context.drawImage(overlay, rect.left * scaleX, rect.top * scaleY, rect.width * scaleX, rect.height * scaleY);
     return new Promise(resolve => output.toBlob(resolve, 'image/png'));
   }
 }

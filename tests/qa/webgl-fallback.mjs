@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
-const base = 'http://127.0.0.1:8080/';
+const base = `http://127.0.0.1:${process.argv[2] || process.env.QA_PORT || 8080}/`;
 const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });
 
 async function staticPhoto(page, label) {

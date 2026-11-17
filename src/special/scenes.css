@@ -2,9 +2,20 @@
 .special-world.is-active { visibility: visible; }
 .special-world-layer { position: absolute; inset: 0; opacity: 0; transition: opacity 480ms ease; }
 .special-world-layer.is-visible { opacity: 1; }
-.special-world picture, .special-world .special-atmosphere { position: absolute; display: block; }
+.special-world picture, .special-world .special-atmosphere, .special-world .special-particles, .special-world .special-flash { position: absolute; display: block; pointer-events: none; }
 .special-world img { display: block; width: 100%; height: 100%; max-width: none; }
 .special-atmosphere { opacity: 0; }
 .special-planet-atmosphere .special-atmosphere { background: linear-gradient(180deg, rgba(117, 140, 205, .08), rgba(93, 69, 112, .025) 24%, transparent 43%); animation: special-sky-breathe 16s ease-in-out infinite alternate; }
+.special-aurora-glow .special-atmosphere { background: radial-gradient(ellipse 52% 27% at 68% 11%, rgba(68, 207, 157, .12), transparent 80%), radial-gradient(ellipse 39% 25% at 29% 8%, rgba(183, 85, 205, .1), transparent 80%); animation: special-sky-breathe 19s ease-in-out infinite alternate; }
+.special-snow .special-atmosphere { background: linear-gradient(180deg, rgba(214, 231, 242, .055), transparent 52%); animation: special-sky-breathe 24s ease-in-out infinite alternate; }
+.special-dust .special-atmosphere { background: linear-gradient(110deg, rgba(190, 149, 101, .035), rgba(239, 200, 144, .065) 37%, transparent 75%); animation: special-dust-breathe 15s ease-in-out infinite alternate; }
+.special-quiet-haze .special-atmosphere { background: linear-gradient(180deg, rgba(216, 223, 210, .05), transparent 55%); animation: special-sky-breathe 26s ease-in-out infinite alternate; }
+.special-neon .special-atmosphere { background: radial-gradient(ellipse 28% 18% at 50% 59%, rgba(219, 73, 226, .12), transparent 85%), radial-gradient(ellipse 25% 14% at 50% 75%, rgba(55, 173, 236, .09), transparent 90%); animation: special-neon-breathe 8s ease-in-out infinite alternate; }
+.special-storm .special-atmosphere { background: linear-gradient(180deg, rgba(179, 195, 222, .04), transparent 48%); animation: special-sky-breathe 21s ease-in-out infinite alternate; }
+.special-flash { opacity: 0; background: radial-gradient(ellipse 50% 33% at 40% 17%, rgba(220, 231, 247, .76), transparent 90%); }
 @keyframes special-sky-breathe { from { opacity: .2; } to { opacity: .75; } }
-@media (prefers-reduced-motion: reduce) { .special-world-layer { transition: none; } .special-planet-atmosphere .special-atmosphere { animation: none; opacity: .3; } }
+@keyframes special-dust-breathe { from { opacity: .28; transform: translateX(-3px); } to { opacity: .72; transform: translateX(4px); } }
+@keyframes special-neon-breathe { from { opacity: .22; } to { opacity: .64; } }
+.special-world.is-reduced .special-atmosphere { animation: none; opacity: .3; }
+.special-world.is-reduced .special-world-layer { transition: none; }
+@media (prefers-reduced-motion: reduce) { .special-world-layer { transition: none; } .special-atmosphere { animation: none !important; opacity: .3; } }
