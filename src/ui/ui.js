@@ -1,6 +1,7 @@
 // Interface (Bulgarian): time, season, weather, wind, fog, sound, "Сега", "Без проблясвания", photo mode, demo.
 import './ui.css';
 import { installMobileSheet } from './mobile-sheet.js';
+import { installMobileClock } from './mobile-clock.js';
 import { formatClock } from '../engine/sun.js';
 import { snowAllowed } from '../engine/blend.js';
 
@@ -79,7 +80,10 @@ export function buildUI({ state, scene, version, actions }) {
   root.append(h(`<div class="toast" id="toast" role="status" aria-live="polite"></div>`));
 
   const hourEl = $('#hour'), clockEl = $('#clock'), dateEl = $('#date'), S = state.S;
+  const mobileClock = installMobileClock(root, state);
   const ui = {
+    markRealNow() { mobileClock.markRealNow(); },
+    markSimulated() { mobileClock.markSimulated(); },
     toast(msg, ms = 5200) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(ui._tt); ui._tt = setTimeout(() => t.classList.remove('on'), ms); },
     caption(txt, ms = 2800) { const c = $('#caption'); c.textContent = txt; c.classList.add('on'); clearTimeout(ui._ct); ui._ct = setTimeout(() => c.classList.remove('on'), ms); },
     syncTime() { hourEl.value = S.hour.toFixed(2); const f = formatClock(S.hour); if (clockEl.textContent !== f) { clockEl.textContent = f; hourEl.setAttribute('aria-valuetext', f); } },
@@ -98,7 +102,7 @@ export function buildUI({ state, scene, version, actions }) {
     },
     setPhotoMode(on) { document.body.classList.toggle('photo', on); $('#panelBtn').setAttribute('aria-pressed', String(on)); if (on) { $('#photoExit').focus({ preventScroll: true }); ui.toast('Само снимката. Натисни H или Esc, за да върнеш управлението.', 2600); } else $('#panelBtn').focus({ preventScroll: true }); },
     get photoMode() { return document.body.classList.contains('photo'); },
-    setDemo(on) { $('#demoBar').classList.toggle('on', on); },
+    setDemo(on) { if (on) mobileClock.markSimulated(); $('#demoBar').classList.toggle('on', on); },
     showIntro(reduced) { if (matchMedia('(max-width: 820px), (max-height: 500px)').matches) return; if (reduced) { $('#introText').textContent += ' Включено е намалено движение, затова демото не тръгва само.'; $('#introKeep').hidden = true; $('#introSound').textContent = 'Включи звука'; } $('#intro').classList.remove('gone'); $('#introExplore').focus({ preventScroll: true }); },
     hideIntro() { $('#intro').classList.add('gone'); },
   };
