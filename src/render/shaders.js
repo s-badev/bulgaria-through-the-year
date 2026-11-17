@@ -82,15 +82,17 @@ void main(){
 
   vec3 cDay = texture(tDay, uv).rgb, cAut = texture(tAutumn, uv).rgb, cWin = texture(tWinter, uv).rgb;
   vec3 cSpr = uHasSpring > .5 ? texture(tSpring, uv).rgb : springFrom(cDay, veg, mtn, uv);
-  vec3 S[4] = vec3[4](cSpr, cDay, cAut, cWin);
+  // Avoid array constructors/dynamic indexing: some Android WebGL2 drivers reject vec3[4].
   int iA = int(uSeason.x + .5), iB = int(uSeason.y + .5);
+  vec3 cA = iA == 0 ? cSpr : (iA == 1 ? cDay : (iA == 2 ? cAut : cWin));
+  vec3 cB = iB == 0 ? cSpr : (iB == 1 ? cDay : (iB == 2 ? cAut : cWin));
 
   // seasons change tree by tree: a crown-sized dissolve inside vegetation, a plain cross-fade elsewhere (no ghosting of regenerated trees)
   vec2 px = uv * uSize;
   float crown = vnoise(px / 46.) * 0.65 + vnoise(px / 17. + 11.) * 0.35;
   float t = uSeason.z, tv = smoothstep(crown * 0.7, crown * 0.7 + 0.3, t);
   float ts = mix(t, tv, clamp(veg * 1.4 + mtn, 0., 1.));
-  vec3 D = mix(S[iA], S[iB], ts);
+  vec3 D = mix(cA, cB, ts);
   float wWin = (iA == 3 ? 1. - ts : 0.) + (iB == 3 ? ts : 0.);
   float wSum = (iA == 1 ? 1. - ts : 0.) + (iB == 1 ? ts : 0.) + (uHasSpring > .5 ? 0. : (iA == 0 ? 1. - ts : 0.) + (iB == 0 ? ts : 0.));
   // snow that settles from the weather outside winter: whitest-in-winter places first
