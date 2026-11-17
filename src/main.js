@@ -26,7 +26,7 @@ app.append(canvas);
 const loading = document.createElement('div');
 loading.className = 'loading'; loading.innerHTML = '<div><div>Зареждам снимката…</div><div class="bar"><i></i></div></div>';
 app.append(loading);
-let failed = false, activeClock = null, activeSound = null;
+let failed = false, activeClock = null, activeSound = null, activeState = null;
 const timers = [];
 function showFallback(error) {
   if (failed) return;
@@ -36,7 +36,7 @@ function showFallback(error) {
   for (const timer of timers) clearInterval(timer);
   delete window.__app;
   console.error(error);
-  showStaticView(false);
+  showStaticView(false, activeState?.S.volcano ?? params.get('volcano') === '1');
 }
 canvas.addEventListener('webglcontextlost', event => {
   event.preventDefault();
@@ -51,6 +51,8 @@ async function boot() {
   if (failed) return;
   if (scene.photos.master?.state !== 'ready') throw new Error('Основната снимка не можа да се зареди.');
   const state = new State(scene.cfg.location);
+  activeState = state;
+  if (params.get('volcano') === '1') state.S.volcano = true;
   let liveMode = startLive, weatherRequest = 0;
   if (liveMode) state.setNow();
   const comp = new Compositor(gl, scene);
@@ -153,7 +155,7 @@ async function boot() {
   if (params.get('fog')) state.S.fogLvl = +params.get('fog');
   if (params.get('flash') === '0') state.S.flashes = false;
   if (params.get('ui') === '0') document.body.classList.add('photo');
-  state.settle(); ui.syncTime(); ui.syncDate(); ui.syncFlash();
+  state.settle(); ui.syncTime(); ui.syncDate(); ui.syncFlash(); ui.syncVolcano();
   // Keep the live wall clock exact without enabling accelerated time playback.
   timers.push(setInterval(() => { if (!document.hidden) syncLiveClock(); }, 1000));
   timers.push(setInterval(() => { if (!document.hidden && liveMode) void refreshLiveWeather(); }, 10 * 60 * 1000));
@@ -168,7 +170,7 @@ async function boot() {
     comp.view.par = STILL ? [0, 0] : [mobile.matches ? 0 : par.x, par.y]; comp.view.zoom = STILL ? 1 : reduced ? 1.03 : 1.035 + 0.012 * Math.sin(t * 0.05); // ?still=1: pixel-exact framing for QA
     comp.applyPan();
     mobilePan.update();
-    const blend = comp.render(state.snapshot(), t, { flash: life.lightning.level, boltX: life.lightning.boltX, fountainColor: life.ctx.fountainColor, reducedMotion: reduced, grain: quality.grain });
+    const blend = comp.render(state.snapshot(), t, { flash: life.lightning.level, boltX: life.lightning.boltX, fountainColor: life.ctx.fountainColor, reducedMotion: reduced, grain: quality.grain, effectDetail: quality.particles });
     const ctx = life.context(state, blend, t, quality.particles);
     life.update(dt, ctx); life.draw(ctx, comp.view);
     if (wantFrame) { wantFrame = false; canvas.toBlob(b => { if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `sofia-ndk-${state.S.y}-${String(state.S.m + 1).padStart(2, '0')}-${String(state.S.d).padStart(2, '0')}-${String(Math.floor(state.S.hour)).padStart(2, '0')}${String(Math.floor(state.S.hour % 1 * 60)).padStart(2, '0')}.png`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); ui.toast('Кадърът е запазен като PNG.', 2400); }, 'image/png'); }

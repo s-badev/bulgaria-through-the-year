@@ -5,8 +5,8 @@ import { seasonWeights, WEATHER, snowAllowed, clamp, dominantSeason, SEASON_DATE
 export class State {
   constructor(location) {
     this.loc = location;
-    this.S = { y: 2026, m: 6, d: 15, hour: 18.75, weather: 'clear', live: null, wind: 0.3, fogLvl: 0.55, playing: false, flashes: true, sound: false, vol: 0.7, reducedMotion: false };
-    this.V = { cloud: 0.04, rain: 0, snow: 0, fog: 0, storm: 0, wind: 0.3, fogLvl: 0.55, cover: 0, wet: 0, water: 1 };
+    this.S = { y: 2026, m: 6, d: 15, hour: 18.75, weather: 'clear', volcano: false, live: null, wind: 0.3, fogLvl: 0.55, playing: false, flashes: true, sound: false, vol: 0.7, reducedMotion: false };
+    this.V = { cloud: 0.04, rain: 0, snow: 0, fog: 0, storm: 0, volcano: 0, wind: 0.3, fogLvl: 0.55, cover: 0, wet: 0, water: 1 };
     this.season = seasonWeights(196); this.seasonTarget = this.season; this.times = null; this.sun = { elevation: 30, azimuth: 180 }; this.morning = false;
     this.listeners = new Set();
     this.setDate(2026, 6, 15);
@@ -53,6 +53,7 @@ export class State {
     if (changed) { const top = Object.keys(next).sort((a, b) => next[b] - next[a]).slice(0, 2), sum = next[top[0]] + next[top[1]]; this.season = { spring: 0, summer: 0, autumn: 0, winter: 0 }; for (const n of top) this.season[n] = next[n] / sum; } else this.season = tgs;
     const k = 1 - Math.exp(-dt / 1.6);
     for (const key of ['cloud', 'rain', 'snow', 'fog', 'storm']) V[key] += (tg[key] - V[key]) * k;
+    V.volcano += ((S.volcano ? 1 : 0) - V.volcano) * (1 - Math.exp(-dt / 1.1));
     const k2 = 1 - Math.exp(-dt / 1.2);
     V.wind += (clamp(S.wind + (S.weather === 'storm' ? 0.35 : 0)) - V.wind) * k2;
     V.fogLvl += (S.fogLvl - V.fogLvl) * k2;
@@ -68,6 +69,7 @@ export class State {
   settle() {
     const V = this.V, tg = this.targets(); this.season = this.seasonTarget;
     Object.assign(V, tg, { wind: clamp(this.S.wind + (this.S.weather === 'storm' ? 0.35 : 0)), fogLvl: this.S.fogLvl });
+    V.volcano = this.S.volcano ? 1 : 0;
     V.cover = tg.snow > 0.4 ? 1 : 0; V.wet = tg.rain > 0.3 ? 1 : 0; delete V.wind2;
     V.water = this.season.winter < 0.4 && V.cover < 0.25 ? 1 : 0;
     this.computeSun();
@@ -80,5 +82,5 @@ export class State {
   /** City activity 0..1 by local hour (traffic density, city hum). */
   get activity() { return State.activityAt(this.S.hour); }
   static activityAt(h) { const s = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); }; return 0.08 + 0.92 * s(4.5, 8, h) * s(23.8, 19.5, h) * (0.75 + 0.25 * (s(7, 8.5, h) * s(10.5, 9, h) + s(16.5, 17.5, h) * s(19.5, 18.5, h))); }
-  snapshot() { return { sun: this.sun, morning: this.morning, season: this.season, env: this.V }; }
+  snapshot() { return { sun: this.sun, morning: this.morning, season: this.season, env: this.V, date: this.S }; }
 }

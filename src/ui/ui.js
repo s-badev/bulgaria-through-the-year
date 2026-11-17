@@ -30,7 +30,7 @@ export function buildUI({ state, scene, version, actions }) {
       <button class="chip mobile-more" id="moreBtn" type="button" aria-expanded="false" aria-controls="mobileMenu">Още</button>
     </div></div>`));
   root.append(h(`<button class="title-restore" id="titleRestore" type="button" aria-label="Покажи заглавието" title="Покажи заглавието"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>`));
-  root.append(h(`<div class="mobile-menu" id="mobileMenu" aria-label="Още действия"><button class="sec" id="menuCredits" type="button">Информация и права</button></div>`));
+  root.append(h(`<div class="mobile-menu" id="mobileMenu" aria-label="Още действия"><button class="sec" id="menuVolcano" type="button" aria-pressed="false">Вулкан</button><button class="sec" id="menuCredits" type="button">Информация и права</button></div>`));
   root.append(h(`<button class="mobile-open" id="mobileOpen" type="button" aria-expanded="false" aria-controls="panel">Контроли</button>`));
   root.append(h(`<div class="demo-bar" id="demoBar" role="status"><span>Демо</span><button type="button" id="demoStop">Спри</button></div>`));
   root.append(h(`<div class="caption" id="caption" aria-live="polite"></div>`));
@@ -57,7 +57,7 @@ export function buildUI({ state, scene, version, actions }) {
       <div class="sl"><span class="lab">Мъгла</span><label class="sr" for="fogLvl">Гъстота и височина на мъглата</label><input id="fogLvl" type="range" min="0" max="1" step="0.01" value="0.55"></div>
       <div class="sl" style="max-width:220px"><span class="lab">Звук</span><label class="sr" for="vol">Сила на звука</label><input id="vol" type="range" min="0" max="1" step="0.01" value="0.7"></div>
     </div>
-    <div class="note"><span>Сезоните и времето са върху нейни варианти. Слънцето, изгревът и залезът са изчислени за София. Звукът е синтезиран. Симулация, не прогноза.</span><span class="foot"><button type="button" class="linkbtn" id="creditsBtn" aria-haspopup="dialog">Информация и права</button><span class="stamp" id="version" hidden aria-hidden="true">${version}</span></span></div>
+    <div class="note"><span>Сезоните и времето са върху нейни варианти. Слънцето, изгревът и залезът са изчислени за София. Звукът е синтезиран. Симулация, не прогноза.</span><span class="foot"><button type="button" class="sec volcano-toggle" id="volcanoBtn" aria-pressed="false">Вулкан</button><button type="button" class="linkbtn" id="creditsBtn" aria-haspopup="dialog">Информация и права</button><span class="stamp" id="version" hidden aria-hidden="true">${version}</span></span></div>
   </section>`));
   root.append(h(`<button class="chip photo-exit" id="photoExit" type="button">Покажи управлението (H)</button>`));
   root.append(h(`<div class="intro gone" id="intro" role="dialog" aria-labelledby="introTitle" aria-describedby="introText">
@@ -97,6 +97,7 @@ export function buildUI({ state, scene, version, actions }) {
     syncPlay() { $('#playIco').innerHTML = S.playing ? ICON.pause : ICON.play; $('#play').setAttribute('aria-label', S.playing ? 'Спри деня' : 'Пусни деня'); mobileClock.sync(); },
     syncSound() { const on = S.sound; $('#soundBtn').setAttribute('aria-pressed', String(on)); $('#soundLbl').textContent = on ? 'Звук: включен' : 'Включи звука'; $('#soundBtn').setAttribute('aria-label', $('#soundLbl').textContent); $('#soundBtn .wave').setAttribute('opacity', on ? '1' : '.35'); },
     syncFlash() { $('#flashBtn').setAttribute('aria-pressed', String(!S.flashes)); },
+    syncVolcano() { for (const id of ['#volcanoBtn', '#menuVolcano']) $(id).setAttribute('aria-pressed', String(S.volcano)); },
     readout(alt) {
       const pos = alt > 0.5 ? `Слънцето е ${Math.round(alt)}° над хоризонта` : alt > -0.833 ? 'Слънцето е на хоризонта' : `Слънцето е ${Math.round(-alt)}° под хоризонта`;
       const html = `<b>${S.d} ${MONTHS[S.m]} ${S.y} · ${formatClock(S.hour)}</b><span class="readout-details"><br>${pos}<br>Изгрев ${formatClock(state.times.rise)} · Залез ${formatClock(state.times.set)}</span>`;
@@ -123,6 +124,9 @@ export function buildUI({ state, scene, version, actions }) {
   $('#vol').addEventListener('input', e => { state.set('vol', +e.target.value); actions.volume(+e.target.value); });
   $('#soundBtn').addEventListener('click', () => { actions.sound(!S.sound); ui.syncSound(); });
   $('#flashBtn').addEventListener('click', () => { state.set('flashes', !S.flashes); ui.syncFlash(); ui.toast(S.flashes ? 'Проблясванията на мълниите са включени.' : 'Без проблясвания: мълниите само меко осветяват облаците.', 2600); });
+  const toggleVolcano = () => { actions.user(); state.set('volcano', !S.volcano); ui.syncVolcano(); ui.toast(S.volcano ? 'Вулканът е включен.' : 'Вулканът е изключен.', 2200); };
+  $('#volcanoBtn').addEventListener('click', toggleVolcano);
+  $('#menuVolcano').addEventListener('click', toggleVolcano);
   $('#panelBtn').addEventListener('click', () => ui.setPhotoMode(!ui.photoMode));
   $('#photoExit').addEventListener('click', () => ui.setPhotoMode(false));
   $('#shotBtn').addEventListener('click', () => actions.saveFrame());
@@ -146,6 +150,6 @@ export function buildUI({ state, scene, version, actions }) {
     if ((e.key === 'h' || e.key === 'H' || e.key === 'х' || e.key === 'Х') && !typing) { ui.setPhotoMode(!ui.photoMode); e.preventDefault(); }
     else if (e.key === 'Escape') { if (mobileSheet.dismiss()) { e.preventDefault(); return; } if (ui.photoMode) ui.setPhotoMode(false); else if (!$('#intro').classList.contains('gone')) { actions.demo(false); ui.hideIntro(); } else actions.demo(false); }
   });
-  ui.syncTime(); ui.syncDate(); ui.syncPlay(); ui.syncSound(); ui.syncFlash();
+  ui.syncTime(); ui.syncDate(); ui.syncPlay(); ui.syncSound(); ui.syncFlash(); ui.syncVolcano();
   return ui;
 }

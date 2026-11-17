@@ -67,10 +67,10 @@ try {
     const header = await page.locator('.title').evaluate(element => {
       const label = element.querySelector('.title-toggle');
       const rect = element.getBoundingClientRect();
-      return { text: label.textContent, size: parseFloat(getComputedStyle(label).fontSize), nowrap: getComputedStyle(label).whiteSpace === 'nowrap', height: rect.height, width: rect.width, blur: getComputedStyle(element).backdropFilter };
+      return { text: label.textContent, size: parseFloat(getComputedStyle(label).fontSize), nowrap: getComputedStyle(label).whiteSpace === 'nowrap', height: rect.height, width: rect.width, clockWidth: document.querySelector('#mobileClock').getBoundingClientRect().width, blur: getComputedStyle(element).backdropFilter };
     });
     assert.equal(header.text, 'София · НДК');
-    assert(header.size >= 14 && header.size <= 16 && header.nowrap && header.height >= 44 && header.height <= 48 && header.width < 180 && header.blur === 'none', JSON.stringify(header));
+    assert(header.size >= 14 && header.size <= 16 && header.nowrap && header.height >= 44 && header.height <= 48 && Math.abs(header.width - header.clockWidth) < 0.1 && header.blur === 'none', JSON.stringify(header));
     await page.locator('.title-toggle').tap();
     assert(await page.locator('#credits').evaluate(dialog => dialog.open));
     assert.match(await page.locator('#credits').textContent(), /Витоша.*Изгрев.*Залез/s);

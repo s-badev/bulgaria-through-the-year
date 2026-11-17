@@ -34,6 +34,7 @@ input[type=date]:focus, input[type=date]:focus-within { outline: 3px solid var(-
 .seg button:hover, .sec:hover { background: rgba(255, 255, 255, .14); }
 .seg button:active, .sec:active { transform: translateY(1px); }
 .seg button[aria-pressed='true'] { background: rgba(255, 179, 90, .24); border-color: var(--acc); }
+.volcano-toggle[aria-pressed='true'], .mobile-menu #menuVolcano[aria-pressed='true'] { border-color: #ff8750; background: rgba(143, 44, 22, .48); color: #fff4e8; }
 .sec.now { border-color: rgba(255, 179, 90, .7); }
 .sec[disabled] { opacity: .6; cursor: progress; }
 .time { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 300px; }
@@ -47,6 +48,7 @@ input[type=date] { min-height: 36px; border-radius: 10px; border: 1px solid var(
 .note { font-size: 12px; color: var(--mut); border-top: 1px solid var(--line); padding-top: 8px; display: flex; gap: 6px 14px; flex-wrap: wrap; justify-content: space-between; }
 .stamp { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .foot { display: inline-flex; gap: 6px 14px; align-items: center; flex-wrap: wrap; }
+.volcano-toggle { min-height: 28px; padding: 0 8px; font-size: 12px; }
 .linkbtn { background: none; border: 0; padding: 4px 2px; min-height: 28px; color: var(--txt); font: 600 12px var(--font); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; border-radius: 4px; }
 .linkbtn:hover { color: var(--acc); }
 .credits { width: min(560px, calc(100vw - 28px)); max-height: calc(var(--visible-height) - 28px); overflow: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 22px 24px 18px; color: var(--txt); background: rgba(12, 16, 26, .96); border: 1px solid var(--line); border-radius: 20px; }
@@ -123,6 +125,7 @@ body.photo .photo-exit:focus-visible, body.photo .photo-exit:hover { opacity: 1;
   .note .long { display: none; }
   .seg button, .sec { min-height: 44px; min-width: 44px; padding: 0 10px; font-size: 13.5px; }
   .linkbtn { min-height: 44px; min-width: 44px; }
+  .volcano-toggle { min-height: 44px; min-width: 44px; }
   .sl { min-width: 0; width: 100%; flex: auto; max-width: none !important; }
   .sl .lab { min-width: 50px; }
   .sl input[type=range] { min-height: 44px; min-width: 44px; width: 100%; }
