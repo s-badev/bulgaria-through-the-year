@@ -95,13 +95,14 @@ export class Sound {
     const profile = SPECIAL_AUDIO[special.id], level = .35 + .75 * special.intensity;
     const night = special.light?.night || 0, day = special.light?.day || 0;
     const gust = .7 + .3 * Math.sin(time * .51) * Math.sin(time * .17 + 1);
+    const winterStorm = special.id === 'ice-age' ? ({ light: .7, storm: 1.25, blizzard: 1.75 }[special.condition] || .7) : 1;
     const quiet = special.id === 'abandoned' ? .32 + .68 * day : 1;
     const rain = ['abandoned', 'cyberpunk'].includes(special.id) ? (special.condition === 'rain' ? .18 * level : 0) : profile.rain * level;
     tgt(this.lp.frequency, special.id === 'ice-age' ? 3400 : special.id === 'sandstorm' ? 5000 : 10500, .7);
     tgt(this.rainG.gain, rain); tgt(this.rainLowG.gain, rain * .5);
-    tgt(this.windG.gain, profile.wind * level * quiet * gust);
+    tgt(this.windG.gain, profile.wind * level * quiet * gust * winterStorm);
     tgt(this.windBp.frequency, special.id === 'ice-age' ? 240 + 190 * gust : 340 + 340 * gust, .5);
-    tgt(this.windG2.gain, profile.highWind * level * quiet * gust);
+    tgt(this.windG2.gain, profile.highWind * level * quiet * gust * winterStorm);
     tgt(this.cityG.gain, profile.city * (special.id === 'cyberpunk' ? .4 + .6 * night : 1), .7);
     tgt(this.cityHiG.gain, profile.city * .05, .7);
     tgt(this.fountG.gain, 0, .4); tgt(this.crickG.gain, 0, .4);
@@ -109,7 +110,7 @@ export class Sound {
     this.nextSpecialEvent -= step;
     if (this.on && profile.event && this.nextSpecialEvent <= 0) {
       this.specialAccent(profile.event, quiet);
-      this.nextSpecialEvent = 15 + Math.random() * 26;
+      this.nextSpecialEvent = special.id === 'ice-age' && special.condition === 'blizzard' ? 9 + Math.random() * 17 : 15 + Math.random() * 26;
     }
     this.nextChirp -= step;
     if (this.on && special.id === 'abandoned' && day > .45 && special.condition !== 'rain' && this.nextChirp <= 0) {

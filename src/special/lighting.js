@@ -13,7 +13,7 @@ export function solarMix(sun) {
 const PROFILES = {
   planet: { sky: .82, mountain: .77, city: .66, warm: .38, daylight: .16 },
   aurora: { sky: .08, mountain: .14, city: .1, warm: .04, daylight: .46 },
-  'ice-age': { sky: .91, mountain: .77, city: .64, warm: .11, daylight: 0 },
+  'ice-age': { sky: .91, mountain: .83, city: .9, warm: .11, daylight: 0 },
   sandstorm: { sky: .77, mountain: .73, city: .64, warm: .38, daylight: 0 },
   abandoned: { sky: .94, mountain: .84, city: .75, warm: .47, daylight: 0 },
   cyberpunk: { sky: .08, mountain: .1, city: .08, warm: .03, daylight: .42 },
@@ -34,7 +34,7 @@ export class SpecialLighting {
   update(state, setting, photographicNight = false) {
     const mix = solarMix(state.sun), p = this.profile;
     const nightScale = photographicNight ? .14 : 1;
-    const weatherHaze = ['fog', 'cloudy', 'partly'].includes(setting.condition) ? setting.intensity : 0;
+    const weatherHaze = ['fog', 'cloudy', 'partly'].includes(setting.condition) ? setting.intensity : this.id === 'ice-age' && setting.condition !== 'light' ? setting.intensity * (setting.condition === 'blizzard' ? 1.4 : .65) : 0;
     const cloud = setting.condition === 'cloudy' ? .23 : setting.condition === 'fog' ? .19 : setting.condition === 'rain' ? .27 : 0;
     const values = {
       sky: mix.night * p.sky * nightScale + mix.day * cloud * setting.intensity,
@@ -42,7 +42,7 @@ export class SpecialLighting {
       city: mix.night * p.city * nightScale,
       warm: mix.warm * p.warm,
       daylight: mix.day * p.daylight,
-      haze: weatherHaze * (this.id === 'abandoned' && setting.condition === 'fog' ? .34 : .08 + mix.twilight * .08),
+      haze: weatherHaze * (this.id === 'abandoned' && setting.condition === 'fog' ? .34 : this.id === 'ice-age' ? .18 : .08 + mix.twilight * .08),
       moon: mix.night * (this.id === 'abandoned' ? .11 : this.id === 'ice-age' ? .13 : .04) * (setting.condition === 'clear' || setting.condition === 'light' ? 1 : .2),
     };
     this.values = { ...mix, ...values };

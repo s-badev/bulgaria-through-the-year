@@ -51,17 +51,18 @@ export class SpecialEffects {
       const mobile = matchMedia('(max-width: 820px), (max-height: 500px)').matches;
       const condition = setting.condition;
       const weatherStrength = .35 + .65 * setting.intensity;
+      const snowStrength = this.type === 'snow' ? ({ light: .45, storm: 1, blizzard: 1.55 }[condition] || .45) * weatherStrength : 1;
       const count = this.type === 'abandoned' && condition !== 'rain'
         ? (light.day > .3 && condition !== 'fog' ? Math.max(1, Math.round(3 * detail)) : 0)
-        : Math.max(10, Math.round(this.points.length * detail * (mobile ? 0.48 : 1) * weatherStrength));
+        : Math.min(this.points.length, Math.max(10, Math.round(this.points.length * detail * (mobile ? 0.48 : 1) * weatherStrength * snowStrength)));
       for (let index = 0; index < count; index++) {
         const point = this.points[index];
         if (this.type === 'snow') {
-          point.y += dt * 17 * point.speed;
-          point.x += dt * (5 + 4 * Math.sin(this.elapsed * .35 + point.phase));
+          point.y += dt * (12 + 14 * snowStrength) * point.speed;
+          point.x += dt * (4 + 21 * snowStrength + 5 * Math.sin(this.elapsed * .35 + point.phase));
           if (point.y > HEIGHT + 3) { point.y = -3; point.x = this.random() * WIDTH; }
           if (point.x > WIDTH + 3) point.x = -3;
-          ctx.fillStyle = `rgba(238,246,255,${point.alpha})`;
+          ctx.fillStyle = `rgba(219,235,252,${point.alpha * (.24 + .76 * light.day + .14 * light.twilight)})`;
           ctx.beginPath(); ctx.arc(point.x, point.y, point.size, 0, Math.PI * 2); ctx.fill();
         } else if (this.type === 'dust') {
           point.x += dt * 26 * point.speed * (1 + .35 * Math.sin(this.elapsed * .37));
