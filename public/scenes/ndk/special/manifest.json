@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "scenes": {
+    "planet": {
+      "source": "planet.png",
+      "webp": "optimized/planet.webp",
+      "avif": "optimized/planet.avif",
+      "width": 1672,
+      "height": 941,
+      "hash": "0892fc0a7f85908c2e1e012f504ebfd689aa2069443b0795bf5363f29c9e9160"
+    }
+  }
+}

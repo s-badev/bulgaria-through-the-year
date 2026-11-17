@@ -12,6 +12,7 @@ import { buildUI } from './ui/ui.js';
 import { Demo } from './ui/demo.js';
 import { installMobilePan } from './ui/mobile-pan.js';
 import { showStaticView } from './static-view.js';
+import { SpecialScenes } from './special/scenes.js';
 
 const params = new URLSearchParams(location.search);
 const QA = params.has('qa'), STILL = params.get('still') === '1', app = document.querySelector('#app');
@@ -26,7 +27,7 @@ app.append(canvas);
 const loading = document.createElement('div');
 loading.className = 'loading'; loading.innerHTML = '<div><div>Зареждам снимката…</div><div class="bar"><i></i></div></div>';
 app.append(loading);
-let failed = false, activeClock = null, activeSound = null, activeState = null;
+let failed = false, activeClock = null, activeSound = null, activeState = null, activeSpecial = null;
 const timers = [];
 function showFallback(error) {
   if (failed) return;
@@ -36,7 +37,7 @@ function showFallback(error) {
   for (const timer of timers) clearInterval(timer);
   delete window.__app;
   console.error(error);
-  showStaticView(false, activeState?.S.volcano ?? params.get('volcano') === '1');
+  showStaticView(false, activeState?.S.volcano ?? params.get('volcano') === '1', activeSpecial?.id || params.get('special'));
 }
 canvas.addEventListener('webglcontextlost', event => {
   event.preventDefault();
@@ -81,10 +82,10 @@ async function boot() {
   mobile.addEventListener('change', () => { comp.panEnabled = mobile.matches; resize(); });
   quality.onChange = () => { comp.shadowSteps = quality.shadowSteps; comp.maxPhotos = quality.maxPhotos; resize(); }; quality.onChange();
 
-  let demo, ui, wantFrame = false;
+  let demo, ui, special, wantFrame = false;
   const actions = {
     user() { liveMode = false; weatherRequest++; demo && demo.stop(); ui?.markSimulated(); },
-    sound(on) { state.S.sound = on; if (on) { sound.enable(); sound.setVolume(state.S.vol); } else sound.disable(); },
+    sound(on) { state.S.sound = on; if (on) { sound.enable(); sound.setVolume(state.S.vol); sound.suspend(document.hidden || !!special?.active); } else sound.disable(); },
     volume(v) { sound.setVolume(v); },
     demo(start, keepSound) {
       if (!start) { demo.stop(); return; }
@@ -103,8 +104,14 @@ async function boot() {
       return r;
     },
     saveFrame() { wantFrame = true; },
+    specialManifest() { return special.loadManifest(); },
+    selectSpecial(id) { return special.select(id); },
+    exitSpecial() { return special.exit(); },
   };
   ui = buildUI({ state, scene, version, actions });
+  special = new SpecialScenes(app, comp, id => { ui.syncSpecial(id); sound.suspend(document.hidden || !!id); });
+  activeSpecial = special;
+  void special.loadManifest().then(manifest => ui.setSpecialManifest(manifest));
   if (liveMode) ui.markRealNow();
   demo = new Demo(state, ui, life);
 
@@ -143,7 +150,7 @@ async function boot() {
   }
   document.addEventListener('visibilitychange', () => {
     if (failed) return;
-    sound.suspend(document.hidden);
+    sound.suspend(document.hidden || !!special?.active);
     if (!document.hidden) { syncLiveClock(); if (liveMode) void refreshLiveWeather(); }
   });
 
@@ -161,21 +168,28 @@ async function boot() {
   timers.push(setInterval(() => { if (!document.hidden && liveMode) void refreshLiveWeather(); }, 10 * 60 * 1000));
 
   let readT = 0;
+  const downloadFrame = b => { if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `sofia-ndk-${state.S.y}-${String(state.S.m + 1).padStart(2, '0')}-${String(state.S.d).padStart(2, '0')}-${String(Math.floor(state.S.hour)).padStart(2, '0')}${String(Math.floor(state.S.hour % 1 * 60)).padStart(2, '0')}.png`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); ui.toast('Кадърът е запазен като PNG.', 2400); };
   clock.add((dt, t) => {
     if (failed) return;
     try {
-    demo.update(dt); state.update(dt);
+    if (!special.active) demo.update(dt);
+    state.update(dt);
     const reduced = state.S.reducedMotion, k = 1 - Math.exp(-dt / 0.5);
     par.x += ((reduced ? 0 : par.tx) - par.x) * k; par.y += ((reduced ? 0 : par.ty) - par.y) * k;
-    comp.view.par = STILL ? [0, 0] : [mobile.matches ? 0 : par.x, par.y]; comp.view.zoom = STILL ? 1 : reduced ? 1.03 : 1.035 + 0.012 * Math.sin(t * 0.05); // ?still=1: pixel-exact framing for QA
+    comp.view.par = STILL ? [0, 0] : [mobile.matches ? 0 : par.x, par.y]; if (!special.active) comp.view.zoom = STILL ? 1 : reduced ? 1.03 : 1.035 + 0.012 * Math.sin(t * 0.05); // ?still=1: pixel-exact framing for QA
     comp.applyPan();
     mobilePan.update();
-    const blend = comp.render(state.snapshot(), t, { flash: life.lightning.level, boltX: life.lightning.boltX, fountainColor: life.ctx.fountainColor, reducedMotion: reduced, grain: quality.grain, effectDetail: quality.particles });
-    const ctx = life.context(state, blend, t, quality.particles);
-    life.update(dt, ctx); life.draw(ctx, comp.view);
-    if (wantFrame) { wantFrame = false; canvas.toBlob(b => { if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `sofia-ndk-${state.S.y}-${String(state.S.m + 1).padStart(2, '0')}-${String(state.S.d).padStart(2, '0')}-${String(Math.floor(state.S.hour)).padStart(2, '0')}${String(Math.floor(state.S.hour % 1 * 60)).padStart(2, '0')}.png`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); ui.toast('Кадърът е запазен като PNG.', 2400); }, 'image/png'); }
-    sound.update(dt, { env: state.V, season: state.season, alt: blend.alt, activity: state.activity, time: t });
-    quality.update(clock.dtAvg, dt);
+    special.layout();
+    let blend = { alt: state.sun.elevation };
+    if (special.renderNormal) {
+      blend = comp.render(state.snapshot(), t, { flash: life.lightning.level, boltX: life.lightning.boltX, fountainColor: life.ctx.fountainColor, reducedMotion: reduced, grain: quality.grain, effectDetail: quality.particles });
+      const ctx = life.context(state, blend, t, quality.particles);
+      life.update(dt, ctx); life.draw(ctx, comp.view);
+      sound.update(dt, { env: state.V, season: state.season, alt: blend.alt, activity: state.activity, time: t });
+      quality.update(clock.dtAvg, dt);
+      special.normalFrameReady();
+    }
+    if (wantFrame) { wantFrame = false; if (special.active) void special.capture().then(downloadFrame); else canvas.toBlob(downloadFrame, 'image/png'); }
     if (state.S.playing) ui.syncTime();
     readT += dt; if (readT > 0.25) { readT = 0; ui.readout(blend.alt); }
     } catch (error) { showFallback(error); }
@@ -184,14 +198,16 @@ async function boot() {
   clock.start();
   loading.classList.add('gone'); setTimeout(() => loading.remove(), 900);
 
+  const initialSpecial = params.get('special') ? special.select(params.get('special')).catch(error => ui.toast(error.message)) : Promise.resolve();
+
   // stream the rest of the photographs in the background, nearest states first
   const rest = ['night', 'dawn-golden', 'dawn-bluehour', 'autumn', 'winter-snow', 'winter-night', 'fog', 'rain-night', 'evening-golden', 'evening-bluehour', 'spring'].filter(id => scene.photos[id]);
-  (async () => { for (const id of rest.slice(0, quality.maxPhotos - 1)) { if (failed) break; await loadPhoto(gl, scene, id); await new Promise(r => setTimeout(r, 60)); } })();
+  (async () => { await initialSpecial; for (const id of rest.slice(0, quality.maxPhotos - 1)) { await special.whenInactive(); if (failed) break; await loadPhoto(gl, scene, id); await new Promise(r => setTimeout(r, 60)); } })();
 
   // Starting at the real current time takes priority over the former automatic demo.
   // The demo stays available through its explicit button, and intro via ?intro=1.
   if (!QA && params.get('ui') !== '0' && !mobile.matches && params.get('intro') === '1') ui.showIntro(state.S.reducedMotion);
-  window.__app = { state, comp, clock, scene, gl, life, sound, ui, demo, quality, actions, version };
+  window.__app = { state, comp, clock, scene, gl, life, sound, ui, demo, quality, special, actions, version };
   if (liveMode) void refreshLiveWeather();
   if (import.meta.env.DEV) import('./ui/debug-overlay.js').then(d => { window.__app.debug = d.install({ scene, comp, life, clock }); }); // key D; stripped from production builds
 }

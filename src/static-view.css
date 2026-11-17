@@ -2,9 +2,23 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 .static-view { position: fixed; inset: 0; width: 100vw; height: 100vh; overflow: hidden; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; color: #f1f4f8; }
 @supports (height: 100dvh) { .static-view { height: 100dvh; } }
 .static-view img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.static-view > img { touch-action: none; }
 .static-volcano-art { position: absolute; inset: 0; pointer-events: none; }
-.static-volcano-art svg { width: 100%; height: 100%; display: block; }
+.static-volcano-art svg { position: absolute; display: block; }
 .static-volcano-art .ash { animation: static-ash 7s ease-in-out infinite alternate; transform-origin: 1017px 191px; }
 @keyframes static-ash { from { opacity: .65; transform: translateY(4px) scale(.85); } to { opacity: 1; transform: translateY(-8px) scale(1.1); } }
 @media (prefers-reduced-motion: reduce) { .static-volcano-art .ash { animation: none; } }
 .static-view p { position: absolute; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: calc(12px + env(safe-area-inset-bottom)); margin: 0 auto; width: fit-content; max-width: min(520px, calc(100% - 24px)); padding: 9px 13px; border-radius: 10px; background: rgba(8, 13, 22, .88); color: #f1f4f8; font-size: 13px; line-height: 1.4; text-align: center; }
+.static-special-nav { position: absolute; top: calc(10px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right)); display: flex; gap: 6px; }
+.static-special-nav button, .static-special-dialog button { min-height: 44px; border: 1px solid #ffffff44; border-radius: 10px; padding: 6px 10px; background: #111824ed; color: #f1f4f8; font: 600 13px system-ui; cursor: pointer; }
+.static-special-nav button[hidden] { display: none; }
+.static-special-dialog { width: min(480px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; padding: 16px; color: #f1f4f8; background: #111824; border: 1px solid #ffffff44; border-radius: 16px; }
+.static-special-dialog::backdrop { background: #03050aa8; }
+.static-special-dialog h2 { margin: 0 0 12px; font: 500 22px system-ui; }
+.static-special-grid { display: grid; gap: 6px; }
+.static-special-grid button { text-align: left; }
+.static-special-grid button:disabled { opacity: .55; cursor: not-allowed; }
+.static-special-grid small { display: block; margin-top: 3px; }
+.static-special-dialog .static-special-close { margin-top: 12px; }
+.static-special-dialog p { position: static; background: none; padding: 0; text-align: left; }
+@media (max-width: 600px) { .static-special-nav { left: 10px; right: 10px; justify-content: flex-end; } .static-special-nav button { max-width: 50%; } }

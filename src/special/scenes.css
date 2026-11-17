@@ -1,0 +1,10 @@
+.special-world { position: fixed; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; visibility: hidden; }
+.special-world.is-active { visibility: visible; }
+.special-world-layer { position: absolute; inset: 0; opacity: 0; transition: opacity 480ms ease; }
+.special-world-layer.is-visible { opacity: 1; }
+.special-world picture, .special-world .special-atmosphere { position: absolute; display: block; }
+.special-world img { display: block; width: 100%; height: 100%; max-width: none; }
+.special-atmosphere { opacity: 0; }
+.special-planet-atmosphere .special-atmosphere { background: linear-gradient(180deg, rgba(117, 140, 205, .08), rgba(93, 69, 112, .025) 24%, transparent 43%); animation: special-sky-breathe 16s ease-in-out infinite alternate; }
+@keyframes special-sky-breathe { from { opacity: .2; } to { opacity: .75; } }
+@media (prefers-reduced-motion: reduce) { .special-world-layer { transition: none; } .special-planet-atmosphere .special-atmosphere { animation: none; opacity: .3; } }

@@ -1,6 +1,7 @@
 import './static-view.css';
+import { SPECIAL_BASE, SPECIAL_SCENES, specialScene } from './special/registry.js';
 
-export function showStaticView(lite = false, volcano = new URLSearchParams(location.search).get('volcano') === '1') {
+export function showStaticView(lite = false, volcano = new URLSearchParams(location.search).get('volcano') === '1', requestedSpecial = new URLSearchParams(location.search).get('special')) {
   const app = document.querySelector('#app');
   if (!app || app.querySelector('.static-view')) return;
   document.body.classList.remove('photo');
@@ -11,6 +12,28 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
   photo.alt = 'София · НДК и Витоша';
   photo.decoding = 'async';
   view.append(photo);
+  let pan = 0.5, drag = null;
+  function position() {
+    photo.style.objectPosition = `${pan * 100}% center`;
+    const art = view.querySelector('.static-volcano-art svg');
+    if (art) {
+      const w = view.clientWidth, h = view.clientHeight, imageW = Math.max(w, h * 1672 / 941), imageH = imageW * 941 / 1672;
+      Object.assign(art.style, { width: `${imageW}px`, height: `${imageH}px`, left: `${-(imageW - w) * pan}px`, top: `${-(imageH - h) / 2}px` });
+    }
+  }
+  view.addEventListener('pointerdown', event => {
+    if (event.target !== photo || !event.isPrimary || (event.pointerType !== 'touch' && event.pointerType !== 'pen')) return;
+    drag = { id: event.pointerId, x: event.clientX };
+    view.setPointerCapture(event.pointerId);
+  });
+  view.addEventListener('pointermove', event => {
+    if (!drag || drag.id !== event.pointerId) return;
+    const imageW = Math.max(view.clientWidth, view.clientHeight * 1672 / 941), range = imageW - view.clientWidth;
+    if (range > 0) pan = Math.max(0, Math.min(1, pan - (event.clientX - drag.x) / range));
+    drag.x = event.clientX;
+    position();
+  });
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) view.addEventListener(type, event => { if (drag?.id === event.pointerId) drag = null; });
   if (volcano) {
     view.classList.add('static-volcano');
     const overlay = document.createElement('div');
@@ -33,5 +56,52 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
     ? volcano ? 'Статична снимка на София · НДК и Витоша · Вулкан (опростен ефект).' : 'Статична снимка на София · НДК и Витоша.'
     : volcano ? 'Показвам статична снимка с опростен вулкан. Интерактивният изглед не е достъпен.' : 'Показвам статична снимка. Интерактивният изглед не е достъпен на това устройство.';
   view.append(message);
+  const nav = document.createElement('div');
+  nav.className = 'static-special-nav';
+  const choose = document.createElement('button'), back = document.createElement('button');
+  choose.type = back.type = 'button';
+  choose.textContent = 'Невъзможна София'; back.textContent = 'Обратно към София';
+  nav.append(choose, back); view.append(nav);
+  const dialog = document.createElement('dialog');
+  dialog.className = 'static-special-dialog';
+  dialog.setAttribute('aria-label', 'Невъзможна София');
+  dialog.innerHTML = `<h2>Невъзможна София</h2><div class="static-special-grid">${SPECIAL_SCENES.map(scene => `<button type="button" data-special="${scene.id}" disabled>${scene.name}<small>Недостъпно · липсва снимка</small></button>`).join('')}</div><button class="static-special-close" type="button">Затвори</button><p aria-live="polite"></p>`;
+  view.append(dialog);
+  let manifestPromise, activeId = null;
+  const status = dialog.querySelector('[aria-live]');
+  const manifest = () => manifestPromise ||= fetch(`${SPECIAL_BASE}manifest.json`).then(r => r.ok ? r.json() : { scenes: {} }).catch(() => ({ scenes: {} }));
+  function available(data) {
+    for (const button of dialog.querySelectorAll('[data-special]')) {
+      const ready = !!data.scenes?.[button.dataset.special];
+      button.disabled = !ready;
+      button.querySelector('small').textContent = ready ? 'Разгледай сцената' : 'Недостъпно · липсва снимка';
+    }
+  }
+  async function select(id) {
+    const data = await manifest(), asset = data.scenes?.[id], definition = specialScene(id);
+    if (!asset || !definition) { status.textContent = 'Сцената все още няма предоставена снимка.'; return; }
+    const next = new Image();
+    next.src = `${SPECIAL_BASE}${asset.webp}?v=${asset.hash.slice(0, 12)}`;
+    try { await next.decode(); } catch { next.src = `${SPECIAL_BASE}${asset.source}?v=${asset.hash.slice(0, 12)}`; try { await next.decode(); } catch { status.textContent = 'Снимката не можа да се зареди.'; return; } }
+    photo.src = next.src;
+    photo.alt = definition.name;
+    activeId = id;
+    back.hidden = false;
+    message.textContent = `${definition.name} · статичен изглед.`;
+    dialog.close();
+    position();
+  }
+  choose.addEventListener('click', async () => { dialog.showModal(); available(await manifest()); });
+  back.addEventListener('click', () => {
+    activeId = null; photo.src = '/scenes/ndk/photos/master.webp'; photo.alt = 'София · НДК и Витоша'; back.hidden = true;
+    message.textContent = 'Статична снимка на София · НДК и Витоша.';
+    const url = new URL(location.href); url.searchParams.delete('special'); history.replaceState(null, '', url);
+  });
+  dialog.querySelector('.static-special-close').addEventListener('click', () => dialog.close());
+  for (const button of dialog.querySelectorAll('[data-special]')) button.addEventListener('click', () => void select(button.dataset.special));
+  back.hidden = true;
   app.replaceChildren(view);
+  position();
+  addEventListener('resize', position);
+  if (requestedSpecial) void select(requestedSpecial);
 }

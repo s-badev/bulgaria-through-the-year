@@ -2,6 +2,7 @@
 import './ui.css';
 import { installMobileSheet } from './mobile-sheet.js';
 import { installMobileClock } from './mobile-clock.js';
+import { installSpecialUI } from '../special/ui.js';
 import { formatClock } from '../engine/sun.js';
 import { snowAllowed } from '../engine/blend.js';
 
@@ -143,9 +144,12 @@ export function buildUI({ state, scene, version, actions }) {
   $('#creditsClose').addEventListener('click', () => dlg.close());
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });   // click on the backdrop
   dlg.addEventListener('close', () => creditsReturn.focus({ preventScroll: true }));
+  const specialUI = installSpecialUI(root, actions);
+  ui.setSpecialManifest = specialUI.setManifest;
+  ui.syncSpecial = id => { document.body.classList.toggle('special-active', !!id); specialUI.sync(id); };
   const mobileSheet = installMobileSheet(root, openCredits);
   addEventListener('keydown', e => {
-    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || dlg.open) return;   // a modal dialog owns the keyboard
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || dlg.open || $('#specialDialog').open) return;   // a modal dialog owns the keyboard
     const typing = e.target instanceof HTMLInputElement && e.target.type !== 'range';
     if ((e.key === 'h' || e.key === 'H' || e.key === 'х' || e.key === 'Х') && !typing) { ui.setPhotoMode(!ui.photoMode); e.preventDefault(); }
     else if (e.key === 'Escape') { if (mobileSheet.dismiss()) { e.preventDefault(); return; } if (ui.photoMode) ui.setPhotoMode(false); else if (!$('#intro').classList.contains('gone')) { actions.demo(false); ui.hideIntro(); } else actions.demo(false); }
