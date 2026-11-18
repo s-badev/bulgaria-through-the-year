@@ -1,6 +1,6 @@
 import { SPECIAL_BASE, specialScene } from './registry.js';
 import { SpecialEffects } from './effects.js';
-import { SpecialLighting } from './lighting.js';
+import { SpecialLighting, paintSpecialLighting } from './lighting.js';
 import './scenes.css';
 import './lighting.css';
 
@@ -154,7 +154,12 @@ export class SpecialScenes {
     this.updateVariant(layer, light);
     layer.dataset.condition = setting.condition;
     layer.style.setProperty('--special-intensity', setting.intensity.toFixed(3));
-    layer.effects.update(dt, detail, state.S.reducedMotion, state.S.flashes, setting, light);
+    layer.style.setProperty('--special-night', light.night.toFixed(3));
+    layer.style.setProperty('--special-day', light.day.toFixed(3));
+    layer.style.setProperty('--special-haze', light.haze.toFixed(3));
+    layer.style.setProperty('--special-aurora', (setting.condition === 'partly' ? .02 + light.night * .28 : .04 + light.night * .58).toFixed(3));
+    layer.style.setProperty('--special-neon', (.08 + light.night * .52).toFixed(3));
+    light.flash = layer.effects.update(dt, detail, state.S.reducedMotion, state.S.flashes, setting, light) === true;
     return light;
   }
 
@@ -164,7 +169,13 @@ export class SpecialScenes {
     const phase = light.night > .02 ? 'night' : light.day > .02 ? 'day' : 'dusk';
     const opacity = phase === 'night' ? light.night : phase === 'day' ? light.day : light.twilight;
     if (!variants[phase] || definition.basePhase === phase || opacity < .02) {
-      if (layer.variant) layer.variant.picture.style.opacity = '0';
+      layer.variantPending = null;
+      if (layer.variant) {
+        const old = layer.variant.picture;
+        layer.variant = null;
+        old.style.opacity = '0';
+        setTimeout(() => old.remove(), FADE_MS + 80);
+      }
       return;
     }
     if (layer.variant?.phase === phase) { layer.variant.opacity = opacity; layer.variant.picture.style.opacity = opacity.toFixed(3); return; }
@@ -187,14 +198,25 @@ export class SpecialScenes {
   }
 
   capture() {
-    const image = this.layers[0]?.querySelector('img');
+    const layer = this.layers[0], image = layer?.querySelector('picture img');
     if (!image) return Promise.resolve(null);
     const output = document.createElement('canvas'), glCanvas = this.comp.gl.canvas;
     output.width = glCanvas.width; output.height = glCanvas.height;
     const rect = image.getBoundingClientRect(), scaleX = output.width / glCanvas.clientWidth, scaleY = output.height / glCanvas.clientHeight;
     const context = output.getContext('2d');
     context.drawImage(image, rect.left * scaleX, rect.top * scaleY, rect.width * scaleX, rect.height * scaleY);
-    const overlay = this.layers[0]?.effects?.canvas;
+    const variant = layer.variant;
+    if (variant?.picture.querySelector('img')?.complete) {
+      context.globalAlpha = variant.opacity;
+      context.drawImage(variant.picture.querySelector('img'), rect.left * scaleX, rect.top * scaleY, rect.width * scaleX, rect.height * scaleY);
+      context.globalAlpha = 1;
+    }
+    context.save();
+    context.translate(rect.left * scaleX, rect.top * scaleY);
+    context.scale(rect.width * scaleX / 1672, rect.height * scaleY / 941);
+    paintSpecialLighting(context, 1672, 941, layer.lighting.values);
+    context.restore();
+    const overlay = layer.effects?.canvas;
     if (overlay) context.drawImage(overlay, rect.left * scaleX, rect.top * scaleY, rect.width * scaleX, rect.height * scaleY);
     return new Promise(resolve => output.toBlob(resolve, 'image/png'));
   }

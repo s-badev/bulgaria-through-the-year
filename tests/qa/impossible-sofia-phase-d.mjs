@@ -17,6 +17,19 @@ try {
   await page.waitForFunction(() => window.__app.special.layers[0].lighting.values.night > .99);
   assert.equal(await page.locator('#specialWorldTime').textContent(), '02:00');
   assert.equal(await page.evaluate(() => window.__app.state.S.hour), 2);
+  const captureLuma = () => page.evaluate(async () => {
+    const bitmap = await createImageBitmap(await window.__app.special.capture());
+    const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
+    const context = canvas.getContext('2d'); context.drawImage(bitmap, 0, 0);
+    const pixels = context.getImageData(Math.round(canvas.width * .55), Math.round(canvas.height * .68), 1, 1).data;
+    bitmap.close(); return (pixels[0] + pixels[1] + pixels[2]) / 3;
+  });
+  const nightLuma = await captureLuma();
+  await page.locator('#specialHour').fill('12');
+  await page.waitForFunction(() => window.__app.special.layers[0].lighting.values.day > .99);
+  assert(await captureLuma() > nightLuma + 15, 'saved frame includes time-dependent regional light');
+  await page.locator('#specialHour').fill('2');
+  await page.waitForFunction(() => window.__app.special.layers[0].lighting.values.night > .99);
   assert.equal(await page.evaluate(() => window.__app.special.layers[0].effects.type), 'abandoned');
   assert.equal(await page.evaluate(() => window.__app.special.layers[0].lighting.values.day), 0);
   await page.locator('[data-condition="fog"]').click();
