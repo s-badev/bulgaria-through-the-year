@@ -4,6 +4,8 @@
 .special-world-layer.is-visible { opacity: 1; }
 .special-world picture, .special-world .special-atmosphere, .special-world .special-particles, .special-world .special-flash { position: absolute; display: block; pointer-events: none; }
 .special-world img { display: block; width: 100%; height: 100%; max-width: none; }
+.special-plates { position: absolute; }
+.special-plates picture { inset: 0; }
 .special-atmosphere { opacity: 0; }
 .special-planet-atmosphere .special-atmosphere { background: linear-gradient(180deg, rgba(117, 140, 205, .08), rgba(93, 69, 112, .025) 24%, transparent 43%); animation: special-sky-breathe 16s ease-in-out infinite alternate; }
 .special-aurora-glow .special-atmosphere { background: radial-gradient(ellipse 52% 27% at 68% 11%, rgba(68, 207, 157, .12), transparent 80%), radial-gradient(ellipse 39% 25% at 29% 8%, rgba(183, 85, 205, .1), transparent 80%); animation: special-sky-breathe 19s ease-in-out infinite alternate; }

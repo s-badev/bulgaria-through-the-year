@@ -112,7 +112,7 @@ async function boot() {
     specialIntensity(value) { return special.setIntensity(value); },
   };
   ui = buildUI({ state, scene, version, actions });
-  special = new SpecialScenes(app, comp, id => { ui.syncSpecial(id); sound.setSpecialScene(id); sound.suspend(document.hidden); });
+  special = new SpecialScenes(app, comp, state, id => { ui.syncSpecial(id); sound.setSpecialScene(id); sound.suspend(document.hidden); });
   special.onSetting = setting => ui.syncSpecialSetting(setting);
   activeSpecial = special;
   void special.loadManifest().then(manifest => ui.setSpecialManifest(manifest));

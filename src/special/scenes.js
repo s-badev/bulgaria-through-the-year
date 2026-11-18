@@ -1,6 +1,7 @@
 import { SPECIAL_BASE, specialScene } from './registry.js';
 import { SpecialEffects } from './effects.js';
 import { SpecialLighting, paintSpecialLighting } from './lighting.js';
+import { SpecialPlates } from './plates.js';
 import './scenes.css';
 import './lighting.css';
 
@@ -8,9 +9,10 @@ const FADE_MS = 480;
 
 /** A photographic layer in the compositor's image coordinates, without another GPU texture. */
 export class SpecialScenes {
-  constructor(app, comp, onChange = () => {}) {
+  constructor(app, comp, state, onChange = () => {}) {
     this.app = app;
     this.comp = comp;
+    this.state = state;
     this.onChange = onChange;
     this.id = null;
     this.exiting = false;
@@ -67,49 +69,42 @@ export class SpecialScenes {
     if (!definition || !asset) throw new Error('Сцената все още няма предоставена снимка.');
     if (this.id === id && !this.exiting) return true;
     const request = ++this.sequence;
+    this.pendingPlates?.destroy();
     const layer = document.createElement('div');
     layer.className = `special-world-layer special-${definition.animation}`;
-    const picture = document.createElement('picture');
-    const source = document.createElement('source');
-    source.type = 'image/avif';
-    source.srcset = `${SPECIAL_BASE}${asset.avif}?v=${asset.hash.slice(0, 12)}`;
-    const image = document.createElement('img');
-    image.src = `${SPECIAL_BASE}${asset.webp}?v=${asset.hash.slice(0, 12)}`;
-    image.alt = definition.name;
-    image.decoding = 'async';
-    picture.append(source, image);
-    layer.append(picture);
+    const plates = new SpecialPlates(definition, asset, layer);
+    this.pendingPlates = plates;
+    const ready = await plates.initialize(this.state.sun, this.setting(id));
+    if (request !== this.sequence) { plates.destroy(); return false; }
+    this.pendingPlates = null;
+    if (!ready) { plates.destroy(); throw new Error('Снимката на сцената не можа да се зареди.'); }
+    layer.plates = plates;
     const atmosphere = document.createElement('div');
     atmosphere.className = 'special-atmosphere';
     layer.append(atmosphere);
     this.root.append(layer);
-    try {
-      await image.decode();
-    } catch {
-      source.remove();
-      image.src = `${SPECIAL_BASE}${asset.source}?v=${asset.hash.slice(0, 12)}`;
-      try { await image.decode(); } catch { layer.remove(); throw new Error('Снимката на сцената не можа да се зареди.'); }
-    }
-    if (request !== this.sequence) { layer.remove(); return false; }
     layer.effects = new SpecialEffects(id, layer);
     layer.lighting = new SpecialLighting(id, layer);
-    layer.asset = asset;
+    if (this.fadingLayer) this.removeLayer(this.fadingLayer);
     const old = this.layers;
     this.layers = [layer];
     this.id = id;
     this.exiting = false;
     this.root.classList.add('is-active');
     this.layout();
-    requestAnimationFrame(() => { layer.classList.add('is-visible'); old.forEach(node => node.classList.remove('is-visible')); });
-    setTimeout(() => old.forEach(node => { node.effects?.destroy(); node.querySelector('img')?.removeAttribute('src'); node.remove(); }), FADE_MS + 80);
+    this.fadingLayer = old[0];
+    requestAnimationFrame(() => layer.classList.add('is-visible'));
+    if (old[0]) setTimeout(() => this.removeLayer(old[0]), FADE_MS + 80);
     this.onChange(id);
     this.onSetting?.(this.setting());
     return true;
   }
 
   exit() {
-    if (!this.id) return false;
     this.sequence++;
+    this.pendingPlates?.destroy();
+    this.pendingPlates = null;
+    if (!this.id) return false;
     this.exiting = true;
     this.onChange(null);
     return true;
@@ -122,12 +117,21 @@ export class SpecialScenes {
     this.id = null;
     this.inactiveWaiters.splice(0).forEach(resolve => resolve());
     const old = this.layers;
+    if (this.fadingLayer) this.removeLayer(this.fadingLayer);
     this.layers = [];
     old.forEach(node => node.classList.remove('is-visible'));
     setTimeout(() => {
-      old.forEach(node => { node.effects?.destroy(); node.querySelector('img')?.removeAttribute('src'); node.remove(); });
+      old.forEach(node => this.removeLayer(node));
       if (!this.id) this.root.classList.remove('is-active');
     }, FADE_MS + 80);
+  }
+
+  removeLayer(layer) {
+    if (this.fadingLayer === layer) this.fadingLayer = null;
+    if (!layer.isConnected) return;
+    layer.effects.destroy();
+    layer.plates.destroy();
+    layer.remove();
   }
 
   layout() {
@@ -137,8 +141,8 @@ export class SpecialScenes {
     const imageWidth = width * zoom / cov[2], imageHeight = height * zoom / cov[3];
     const left = -(0.5 + (cov[0] - 0.5) / zoom) * imageWidth;
     const top = -(0.5 + (cov[1] - 0.5) / zoom) * imageHeight;
-    for (const layer of this.layers) {
-      for (const element of [...layer.querySelectorAll('picture'), layer.querySelector('.special-atmosphere'), layer.lighting?.root, layer.effects?.canvas, layer.effects?.lightning]) {
+    for (const layer of [...this.layers, this.fadingLayer].filter(Boolean)) {
+      for (const element of [layer.plates.root, layer.querySelector('.special-atmosphere'), layer.lighting.root, layer.effects.canvas, layer.effects.lightning]) {
         if (!element) continue;
         Object.assign(element.style, { left: `${left}px`, top: `${top}px`, width: `${imageWidth}px`, height: `${imageHeight}px` });
       }
@@ -149,9 +153,8 @@ export class SpecialScenes {
     this.root.classList.toggle('is-reduced', state.S.reducedMotion);
     if (!this.active) return;
     const layer = this.layers[0], setting = this.setting();
-    const photographicNight = !!layer.asset.variants?.night && !!layer.variant && layer.variant.phase === 'night' && layer.variant.opacity > .5;
-    const light = layer.lighting.update(state, setting, photographicNight);
-    this.updateVariant(layer, light);
+    layer.plates.update(dt, state.sun, setting, state.S.reducedMotion);
+    const light = layer.lighting.update(state, setting, layer.plates.photographicWeight);
     layer.dataset.condition = setting.condition;
     layer.style.setProperty('--special-intensity', setting.intensity.toFixed(3));
     layer.style.setProperty('--special-night', light.night.toFixed(3));
@@ -163,54 +166,14 @@ export class SpecialScenes {
     return light;
   }
 
-  updateVariant(layer, light) {
-    const definition = specialScene(this.id), variants = layer.asset.variants;
-    if (!variants) return;
-    const phase = light.night > .02 ? 'night' : light.day > .02 ? 'day' : 'dusk';
-    const opacity = phase === 'night' ? light.night : phase === 'day' ? light.day : light.twilight;
-    if (!variants[phase] || definition.basePhase === phase || opacity < .02) {
-      layer.variantPending = null;
-      if (layer.variant) {
-        const old = layer.variant.picture;
-        layer.variant = null;
-        old.style.opacity = '0';
-        setTimeout(() => old.remove(), FADE_MS + 80);
-      }
-      return;
-    }
-    if (layer.variant?.phase === phase) { layer.variant.opacity = opacity; layer.variant.picture.style.opacity = opacity.toFixed(3); return; }
-    if (layer.variantPending === phase) return;
-    layer.variantPending = phase;
-    const asset = variants[phase], picture = document.createElement('picture'), source = document.createElement('source'), image = document.createElement('img');
-    source.type = 'image/avif'; source.srcset = `${SPECIAL_BASE}${asset.avif}?v=${asset.hash.slice(0, 12)}`;
-    image.src = `${SPECIAL_BASE}${asset.webp}?v=${asset.hash.slice(0, 12)}`; image.alt = ''; image.decoding = 'async';
-    picture.className = 'special-variant'; picture.append(source, image);
-    image.decode().catch(async () => { source.remove(); image.src = `${SPECIAL_BASE}${asset.source}?v=${asset.hash.slice(0, 12)}`; await image.decode(); }).then(() => {
-      if (!this.layers.includes(layer) || layer.variantPending !== phase) return;
-      const old = layer.variant?.picture;
-      layer.querySelector('picture').after(picture);
-      layer.variant = { phase, picture, opacity };
-      layer.variantPending = null;
-      this.layout();
-      requestAnimationFrame(() => { picture.style.opacity = opacity.toFixed(3); if (old) old.style.opacity = '0'; });
-      if (old) setTimeout(() => old.remove(), FADE_MS + 80);
-    }).catch(() => { layer.variantPending = null; });
-  }
-
   capture() {
-    const layer = this.layers[0], image = layer?.querySelector('picture img');
-    if (!image) return Promise.resolve(null);
+    const layer = this.layers[0];
+    if (!layer) return Promise.resolve(null);
     const output = document.createElement('canvas'), glCanvas = this.comp.gl.canvas;
     output.width = glCanvas.width; output.height = glCanvas.height;
-    const rect = image.getBoundingClientRect(), scaleX = output.width / glCanvas.clientWidth, scaleY = output.height / glCanvas.clientHeight;
+    const rect = layer.plates.root.getBoundingClientRect(), scaleX = output.width / glCanvas.clientWidth, scaleY = output.height / glCanvas.clientHeight;
     const context = output.getContext('2d');
-    context.drawImage(image, rect.left * scaleX, rect.top * scaleY, rect.width * scaleX, rect.height * scaleY);
-    const variant = layer.variant;
-    if (variant?.picture.querySelector('img')?.complete) {
-      context.globalAlpha = variant.opacity;
-      context.drawImage(variant.picture.querySelector('img'), rect.left * scaleX, rect.top * scaleY, rect.width * scaleX, rect.height * scaleY);
-      context.globalAlpha = 1;
-    }
+    layer.plates.capture(context, rect.left * scaleX, rect.top * scaleY, rect.width * scaleX, rect.height * scaleY);
     context.save();
     context.translate(rect.left * scaleX, rect.top * scaleY);
     context.scale(rect.width * scaleX / 1672, rect.height * scaleY / 941);
