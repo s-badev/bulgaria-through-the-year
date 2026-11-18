@@ -191,6 +191,7 @@ uniform vec4 uCam;            // focal px, cx, cy, z0 (camera heights)
 uniform vec3 uFogP;           // cos(pitch), sin(pitch), fog top height (camera heights)
 uniform vec4 uMoon;           // image x, image y, lunar phase, atmospheric visibility
 uniform vec3 uMoonLight;      // sky darkness, half a pixel in lunar radius units, texture LOD
+uniform vec3 uMoonPhase;      // Sun direction on the horizontal cross section (x, z), Earthshine
 uniform vec4 uVolcano;        // strength, quality, animation time, reduced motion
 vec3 baseAt(vec2 uv){ vec3 c = texture(tBase, uv).rgb; return c * c * (c * 0.305306011 + 0.682171111) + c * 0.012522878; } // ~pow 2.2
 vec3 volcanoAt(vec2 uv, float sky, float mtn, vec3 c){
@@ -328,29 +329,32 @@ void main(){
     vec2 mp = (uv - uMoon.xy) * vec2(uSize.x / uSize.y, 1.) / 0.024;
     float rr = length(mp);
     if (rr < 1.4) {
-      float angle = uMoon.z * 6.2831853;
       float facing = sqrt(max(0., 1. - rr * rr));
       // Sunlight on the projected sphere. Positive X is lit when waxing.
-      float lit = mp.x * sin(angle) - facing * cos(angle);
-      float terminator = smoothstep(-0.018, 0.024, lit);
+      float lit = dot(vec2(mp.x, facing), uMoonPhase.xy);
+      float terminator = smoothstep(0., 0.032, lit);
       float edge = 1. - smoothstep(1. - uMoonLight.y, 1. + uMoonLight.y, rr);
       float visible = uMoon.w * (1. - calpha) * sky;
-      starlight *= 1. - edge; // the unlit side is still in front of the stars
-      if (edge > 0. && terminator > 0.) {
+      starlight *= 1. - edge * visible; // the lunar body also covers stars on the unlit side
+      if (edge > 0. && (terminator > 0. || uMoonPhase.z > 0.001)) {
         // The mosaic is already an orthographic disk. Pull its limb inward
         // slightly so transparent source pixels do not tint the silhouette.
         vec2 texUV = .5 + mp * (.49 / max(1., rr));
         float albedo = textureLod(tMoon, texUV, uMoonLight.z).r;
         float grade = min(.8, .025 + albedo * 1.48);
-        grade *= mix(.56, 1., sqrt(max(0., lit)));
-        vec3 lunar = grade * vec3(.99, 1., 1.02);
+        grade *= mix(.50, 1., sqrt(clamp(lit, 0., 1.)));
+        vec3 lunar = grade * vec3(1.02, 1., .97);
         vec3 daylight = c * .82 + lunar * .78 + .10;
-        c = mix(c, mix(daylight, lunar, uMoonLight.x), edge * terminator * visible);
+        // Reflected Earth light is faint, cool and carries the same albedo
+        // detail. The limb stays circular and shares the cloud mask.
+        float reflected = (.006 + .036 * sqrt(albedo)) * mix(.48, 1., facing) * uMoonPhase.z;
+        vec3 shadow = c + reflected * vec3(.69, .79, .93);
+        c = mix(c, mix(shadow, mix(daylight, lunar, uMoonLight.x), terminator), edge * visible);
       }
       // Thin atmospheric scatter only in a lightly hazy dark sky.
       float scatter = smoothstep(.06, .25, cloud) * (1. - smoothstep(.36, .66, cloud));
-      float halo = (1. - edge) * exp(-max(rr - 1., 0.) * 13.) * (1. - cos(angle));
-      c += vec3(.73, .82, 1.) * (halo * scatter * visible * uMoonLight.x * .006);
+      float halo = (1. - edge) * exp(-max(rr - 1., 0.) * 13.) * (1. + uMoonPhase.y);
+      c += vec3(.73, .82, 1.) * (halo * scatter * visible * uMoonLight.x * .004);
     }
   }
   c += starlight;

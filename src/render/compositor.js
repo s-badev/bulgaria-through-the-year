@@ -3,7 +3,7 @@ import { createProgram, drawFullscreen, createTarget, bindTarget, createTexture 
 import { SHADOW_FS, BASE_FS, COMPOSITE_FS } from './shaders.js';
 import { blendState, sunDirection, skyColors, mix3, clamp, sstep, lerp, SEASONS } from '../engine/blend.js';
 import { loadPhoto, disposePhoto, photoReady, loadBitmap } from '../engine/scene.js';
-import { moonParameters } from './sky-effects.js';
+import { moonLighting, moonParameters } from './sky-effects.js';
 
 const SEASON_PHOTO = { spring: 'spring', summer: 'master', autumn: 'autumn', winter: 'winter-snow' };
 const moonImage = new URL('./moon-nearside.webp', import.meta.url);
@@ -143,6 +143,7 @@ export class Compositor {
     const halfPixel = v.cov[3] / (2 * gl.drawingBufferHeight * v.zoom * .024);
     const moonLod = Math.max(0, Math.log2(256 * halfPixel));
     this.pComp.tex('tMoon', this.moonTexture ?? s.grey).set('uMoon', moon).set('uMoonLight', [darkness, halfPixel, moonLod])
+      .set('uMoonPhase', moonLighting(moon[2], darkness))
       .set('uVolcano', [volcano, detail, reduce ? 0 : time, reduce ? 1 : 0]);
     drawFullscreen(gl);
     return b;
