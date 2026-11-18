@@ -3,19 +3,8 @@ import { formatClock } from '../engine/sun.js';
 import './ui.css';
 
 export function installSpecialUI(root, actions, state, shared) {
-  const entry = document.createElement('button');
-  entry.id = 'specialEntry';
-  entry.type = 'button';
-  entry.className = 'sec special-entry';
-  entry.textContent = 'Невъзможна София';
-  root.querySelector('.foot').prepend(entry);
-
-  const menuEntry = document.createElement('button');
-  menuEntry.id = 'menuSpecial';
-  menuEntry.type = 'button';
-  menuEntry.className = 'sec';
-  menuEntry.textContent = 'Невъзможна София';
-  root.querySelector('#mobileMenu').prepend(menuEntry);
+  const entry = root.querySelector('#specialEntry');
+  const mobileOpen = root.querySelector('#mobileOpen');
 
   const nav = document.createElement('div');
   nav.className = 'special-nav';
@@ -128,12 +117,11 @@ export function installSpecialUI(root, actions, state, shared) {
   }
   entry.addEventListener('click', () => open(entry));
   change.addEventListener('click', () => open(change));
-  // The mobile menu closes and returns focus during the same click bubble.
-  menuEntry.addEventListener('click', () => setTimeout(() => open(menuEntry), 0));
   dialog.querySelector('#specialClose').addEventListener('click', () => dialog.close());
   dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
   dialog.addEventListener('close', () => {
-    const focus = returnFocus.getClientRects().length ? returnFocus : document.querySelector('#moreBtn') || entry;
+    const openerVisible = returnFocus.getClientRects().length && !returnFocus.closest('[inert]');
+    const focus = openerVisible ? returnFocus : mobileOpen.getClientRects().length ? mobileOpen : change;
     focus.focus({ preventScroll: true });
   });
   const exit = () => { actions.exitSpecial(); if (dialog.open) dialog.close(); };
@@ -151,7 +139,10 @@ export function installSpecialUI(root, actions, state, shared) {
     button.disabled = true;
     try {
       const selected = await actions.selectSpecial(button.dataset.special);
-      if (selected) dialog.close();
+      if (selected) {
+        dialog.close();
+        shared.closeMobilePanel();
+      }
     } catch (error) {
       status.textContent = error.message;
     } finally { button.disabled = !available.has(button.dataset.special); }

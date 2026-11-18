@@ -166,7 +166,7 @@ async function boot() {
   if (params.get('fog')) state.S.fogLvl = +params.get('fog');
   if (params.get('flash') === '0') state.S.flashes = false;
   if (params.get('ui') === '0') document.body.classList.add('photo');
-  state.settle(); ui.syncTime(); ui.syncDate(); ui.syncFlash(); ui.syncVolcano();
+  state.settle(); ui.syncTime(); ui.syncDate(); ui.syncFlash();
   // Keep the live wall clock exact without enabling accelerated time playback.
   timers.push(setInterval(() => { if (!document.hidden) syncLiveClock(); }, 1000));
   timers.push(setInterval(() => { if (!document.hidden && liveMode) void refreshLiveWeather(); }, 10 * 60 * 1000));

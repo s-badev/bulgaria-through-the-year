@@ -11,6 +11,25 @@ const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gp
 const errors = [];
 
 async function ready(page) { await page.waitForFunction(() => window.__app?.clock?.frame > 3); }
+const entryButtons = page => page.getByRole('button', { name: /^(Другата София|Невъзможна София|Вулкан)$/ });
+async function openFromControls(page, mobile = false) {
+  if (mobile) {
+    assert.equal(await entryButtons(page).count(), 0, 'no floating entry with controls closed');
+    await page.locator('#mobileOpen').tap();
+  }
+  assert.equal(await entryButtons(page).count(), 1, 'exactly one visible scene entry');
+  const entry = page.locator('#panel .foot > #specialEntry:first-child');
+  assert.equal(await entry.textContent(), 'Другата София');
+  if (mobile) {
+    const target = await entry.boundingBox();
+    assert(target.width >= 44 && target.height >= 44, 'mobile entry has a full touch target');
+    await entry.tap();
+  } else {
+    await entry.click();
+  }
+  assert(await page.getByRole('dialog', { name: 'Невъзможна София', exact: true }).isVisible());
+}
+
 async function drag(cdp, from, to, y) {
   const send = (type, x) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
   await send('touchStart', from);
@@ -24,7 +43,10 @@ try {
   desktop.on('response', response => { if (response.url().includes('/special/') && response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
   await desktop.goto(`${base}?qa=1&still=1&date=2026-07-15&h=18.75&w=clear`);
   await ready(desktop);
-  await desktop.locator('#specialEntry').click();
+  await openFromControls(desktop);
+  await desktop.keyboard.press('Escape');
+  await desktop.waitForFunction(() => document.activeElement?.id === 'specialEntry');
+  await openFromControls(desktop);
   assert.deepEqual(await desktop.locator('[data-special]').evaluateAll(buttons => buttons.map(button => button.dataset.special)), scenes);
   assert.equal(await desktop.locator('[data-special]:enabled').count(), 6, 'all six selected worlds can be opened');
   await desktop.locator('[data-special="planet"]').click();
@@ -85,14 +107,22 @@ try {
     page.on('pageerror', error => errors.push(`${width}x${height}: ${error.message}`));
     await page.goto(`${base}?qa=1&still=1&date=2026-07-15&h=18.75&w=clear`);
     await ready(page);
-    await page.locator('#moreBtn').tap();
-    await page.locator('#menuSpecial').tap();
-    await page.locator('#specialDialog').waitFor({ state: 'visible' });
+    if (width === 390 && height === 700) {
+      await page.locator('#moreBtn').tap();
+      assert.equal(await entryButtons(page).count(), 0, 'no alternate entry in the More menu');
+      await page.locator('#moreBtn').tap();
+      await openFromControls(page, true);
+      await page.locator('#specialClose').tap();
+      await page.waitForFunction(() => document.activeElement?.id === 'specialEntry');
+      await page.locator('#mobileClose').tap();
+    }
+    await openFromControls(page, true);
     assert.equal(await page.locator('[data-special]:enabled').count(), 6);
     const target = await page.locator('[data-special="planet"]').boundingBox();
     assert(target.width >= 44 && target.height >= 44);
     await page.locator('[data-special="planet"]').tap();
     await page.waitForFunction(() => window.__app.special.id === 'planet' && document.querySelector('.special-world-layer.is-visible'));
+    assert.equal(await page.locator('#mobileOpen').getAttribute('aria-expanded'), 'false', 'the panel closes after scene selection');
     const geometry = await page.evaluate(() => {
       const image = document.querySelector('.special-world img'), r = image.getBoundingClientRect();
       return { left: r.left, right: r.right, width: r.width, scroll: document.documentElement.scrollWidth, viewport: innerWidth };
@@ -108,9 +138,7 @@ try {
     if (width === 390 && height === 844) {
       await page.locator('#specialBack').tap();
       await page.waitForFunction(() => !window.__app.special.id);
-      await page.locator('#moreBtn').tap();
-      await page.locator('#menuSpecial').tap();
-      await page.locator('#specialDialog').waitFor({ state: 'visible' });
+      await openFromControls(page, true);
       await page.locator('[data-special="planet"]').tap();
       await page.waitForFunction(() => window.__app.special.id === 'planet');
     }
