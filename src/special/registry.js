@@ -1,5 +1,15 @@
 // The photographs define the worlds; effects are deliberately secondary.
 export const SPECIAL_BASE = '/scenes/ndk/special/';
+const timeVariants = ['day', 'dusk', 'night'];
+const overcastVariants = [...timeVariants, 'overcast'];
+export const SPECIAL_VARIANTS = {
+  planet: { keys: overcastVariants },
+  abandoned: { keys: overcastVariants, files: { dusk: 'abandoned-up.png' } },
+  sandstorm: { keys: [...timeVariants, 'haze', 'dusk-alt'], files: { dusk: 'sandstorm-dusk.png.png' } },
+  cyberpunk: { keys: overcastVariants, files: { dusk: 'Киберпънк София под неоново небе.png' } },
+  flood: { keys: overcastVariants },
+  'ice-age': { keys: [...overcastVariants, 'night-alt'] },
+};
 export const SPECIAL_SCENES = Object.freeze([
   { id: 'planet', name: 'Планета над София', category: 'Космос', source: 'planet.png', basePhase: 'dusk', animation: 'planet-atmosphere', quality: 'light', effects: ['sky-light'], audio: 'planet', fallback: 'image', conditions: [['clear', 'Ясно'], ['partly', 'Разкъсана облачност'], ['cloudy', 'Облачно']], defaultCondition: 'clear' },
   { id: 'aurora', name: 'Полярно сияние', category: 'Небе', source: 'aurora.png', basePhase: 'night', animation: 'aurora-glow', quality: 'light', effects: ['sky-light'], audio: 'aurora', fallback: 'image', conditions: [['clear', 'Ясно'], ['partly', 'Разкъсана облачност']], defaultCondition: 'clear' },

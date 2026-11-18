@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "scenes": {
     "planet": {
       "source": "planet.png",
@@ -7,7 +7,45 @@
       "avif": "optimized/planet.avif",
       "width": 1672,
       "height": 941,
-      "hash": "0892fc0a7f85908c2e1e012f504ebfd689aa2069443b0795bf5363f29c9e9160"
+      "hash": "0892fc0a7f85908c2e1e012f504ebfd689aa2069443b0795bf5363f29c9e9160",
+      "variants": {
+        "day": {
+          "source": "planet-day.png",
+          "webp": "optimized/planet-day.webp",
+          "avif": "optimized/planet-day.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "1a167e13eb0171d1b62944b16d72c2b574f6723ae17687e93ebb6661aefc5b42"
+        },
+        "dusk": {
+          "source": "planet-dusk.png",
+          "webp": "optimized/planet-dusk.webp",
+          "avif": "optimized/planet-dusk.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "528ca6d9daba1597d1a44e9d02d2e9ebc420c7f8d27aa8a5c2eb7e3f1cad69da"
+        },
+        "night": {
+          "source": "planet-night.png",
+          "webp": "optimized/planet-night.webp",
+          "avif": "optimized/planet-night.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "4d15258a9f14390373c4b988eec82184a420c1d853b63bc0f607a9199057bc6c"
+        },
+        "overcast": {
+          "source": "planet-overcast.png",
+          "webp": "optimized/planet-overcast.webp",
+          "avif": "optimized/planet-overcast.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "1404a07e7bcf1780cd2093fca279626b3aa86f2ae023636f235c33bf900ae357"
+        }
+      }
     },
     "aurora": {
       "source": "aurora.png",
@@ -23,7 +61,52 @@
       "avif": "optimized/ice-age.avif",
       "width": 1672,
       "height": 941,
-      "hash": "d62d55c1fcda491fa6fd2d8e7cdd0ca850fd430fd63775de6b2f2f26653f6ca0"
+      "hash": "d62d55c1fcda491fa6fd2d8e7cdd0ca850fd430fd63775de6b2f2f26653f6ca0",
+      "variants": {
+        "day": {
+          "source": "ice-age-day.png",
+          "webp": "optimized/ice-age-day.webp",
+          "avif": "optimized/ice-age-day.avif",
+          "width": 1672,
+          "height": 941,
+          "hash": "7d3210ff686ba67b7ec58f30f6a190bd3a38526bfbed1575262e04d6f637449f"
+        },
+        "dusk": {
+          "source": "ice-age-dusk.png",
+          "webp": "optimized/ice-age-dusk.webp",
+          "avif": "optimized/ice-age-dusk.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "74a0d682c08cb50671c3ed31ce4a95b347b512c61209de231d7c1e4eba13e796"
+        },
+        "night": {
+          "source": "ice-age-night.png",
+          "webp": "optimized/ice-age-night.webp",
+          "avif": "optimized/ice-age-night.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "d6739d2c69afde7a8ec1e34e8b63a46471c73e08127a8b0a0c8598df8705ec15"
+        },
+        "overcast": {
+          "source": "ice-age-overcast.png",
+          "webp": "optimized/ice-age-overcast.webp",
+          "avif": "optimized/ice-age-overcast.avif",
+          "width": 1672,
+          "height": 941,
+          "hash": "ba28bffb18494fc38768e32976d7140913695451f36b06620d8c321cbff1ab68"
+        },
+        "night-alt": {
+          "source": "ice-age-night-alt.png",
+          "webp": "optimized/ice-age-night-alt.webp",
+          "avif": "optimized/ice-age-night-alt.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "4c4bb33f08a961b41c369579b2560778de774df414b29866a0c2173c9cd22574"
+        }
+      }
     },
     "sandstorm": {
       "source": "sandstorm.png",
@@ -31,7 +114,52 @@
       "avif": "optimized/sandstorm.avif",
       "width": 1672,
       "height": 941,
-      "hash": "9cb05c208e80546e52aef0871e8891b2097517c466035e727c39e652245b3f7c"
+      "hash": "9cb05c208e80546e52aef0871e8891b2097517c466035e727c39e652245b3f7c",
+      "variants": {
+        "day": {
+          "source": "sandstorm-day.png",
+          "webp": "optimized/sandstorm-day.webp",
+          "avif": "optimized/sandstorm-day.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "024fc2a4eb238d5f2a492f8268c528d599729edac4897232b267d58ce7f3d15c"
+        },
+        "dusk": {
+          "source": "sandstorm-dusk.png.png",
+          "webp": "optimized/sandstorm-dusk.webp",
+          "avif": "optimized/sandstorm-dusk.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "0013a18d78ad75a13b7145f72e423923ac1fada3dba6088909a6c94e1cfe49bc"
+        },
+        "night": {
+          "source": "sandstorm-night.png",
+          "webp": "optimized/sandstorm-night.webp",
+          "avif": "optimized/sandstorm-night.avif",
+          "width": 1672,
+          "height": 941,
+          "hash": "35542fa6e06a22eae605838de8f5e6cec7cdcf3e3831d6f1409d0eb242aa64a3"
+        },
+        "haze": {
+          "source": "sandstorm-haze.png",
+          "webp": "optimized/sandstorm-haze.webp",
+          "avif": "optimized/sandstorm-haze.avif",
+          "width": 1672,
+          "height": 941,
+          "hash": "9c201d7458b6bd6552f83ed414942ff2cf016c87aa2e2c1175208e2333adbc62"
+        },
+        "dusk-alt": {
+          "source": "sandstorm-dusk-alt.png",
+          "webp": "optimized/sandstorm-dusk-alt.webp",
+          "avif": "optimized/sandstorm-dusk-alt.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "283c8e61bd52a0213da946d1e1770a6e6650ff4ed9757215e3c74502e738d04b"
+        }
+      }
     },
     "abandoned": {
       "source": "abandoned.png",
@@ -39,7 +167,44 @@
       "avif": "optimized/abandoned.avif",
       "width": 1672,
       "height": 941,
-      "hash": "01eb9018f4054a214d0f7f416c87a082c2d8fa6b9809ce3025b28e2c9e4a48d3"
+      "hash": "01eb9018f4054a214d0f7f416c87a082c2d8fa6b9809ce3025b28e2c9e4a48d3",
+      "variants": {
+        "day": {
+          "source": "abandoned-day.png",
+          "webp": "optimized/abandoned-day.webp",
+          "avif": "optimized/abandoned-day.avif",
+          "width": 1672,
+          "height": 941,
+          "hash": "e136b1f40d306592cfb29ebfd2bd6bea04079d170864b35d97d0f2a7ceea6b27"
+        },
+        "dusk": {
+          "source": "abandoned-up.png",
+          "webp": "optimized/abandoned-dusk.webp",
+          "avif": "optimized/abandoned-dusk.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "6dff99a9f16e707091e1cb42faf76259666128c67786c1c7f9426a7432edf792"
+        },
+        "night": {
+          "source": "abandoned-night.png",
+          "webp": "optimized/abandoned-night.webp",
+          "avif": "optimized/abandoned-night.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "f5f24a5c10ad5923a039cd116bf0877baead025ccc433414853e2938ad7872d7"
+        },
+        "overcast": {
+          "source": "abandoned-overcast.png",
+          "webp": "optimized/abandoned-overcast.webp",
+          "avif": "optimized/abandoned-overcast.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "473e188540162a8d915e4c0992b6b080bf3391fce06173f04f8b86fdb83f79c1"
+        }
+      }
     },
     "cyberpunk": {
       "source": "cyberpunk.png",
@@ -47,7 +212,43 @@
       "avif": "optimized/cyberpunk.avif",
       "width": 1672,
       "height": 941,
-      "hash": "4f3e946de3d289dc0fd5b9a6808d25f57809b4b8ed8497dfc63032e01cce3bc0"
+      "hash": "4f3e946de3d289dc0fd5b9a6808d25f57809b4b8ed8497dfc63032e01cce3bc0",
+      "variants": {
+        "day": {
+          "source": "cyberpunk-day.png",
+          "webp": "optimized/cyberpunk-day.webp",
+          "avif": "optimized/cyberpunk-day.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "dcfe17cea6bf724b793fffe29bf7c33bc55e0621240dc0e2d257c62fc7df2af2"
+        },
+        "dusk": {
+          "source": "Киберпънк София под неоново небе.png",
+          "webp": "optimized/cyberpunk-dusk.webp",
+          "avif": "optimized/cyberpunk-dusk.avif",
+          "width": 1672,
+          "height": 941,
+          "hash": "c9b924b0ddfd44eae4bb924def3b5d601346cfa6a8b622c2be950e1190bd72ec"
+        },
+        "night": {
+          "source": "cyberpunk-night.png",
+          "webp": "optimized/cyberpunk-night.webp",
+          "avif": "optimized/cyberpunk-night.avif",
+          "width": 1672,
+          "height": 941,
+          "hash": "4f3e946de3d289dc0fd5b9a6808d25f57809b4b8ed8497dfc63032e01cce3bc0"
+        },
+        "overcast": {
+          "source": "cyberpunk-overcast.png",
+          "webp": "optimized/cyberpunk-overcast.webp",
+          "avif": "optimized/cyberpunk-overcast.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "fad31e3c243f7d3bcf2f2a6c2d3689cee0f8a80532565f5a47f3a28e74e6db7a"
+        }
+      }
     },
     "supercell": {
       "source": "supercell.png",
@@ -56,6 +257,51 @@
       "width": 1672,
       "height": 941,
       "hash": "9912bda934589656c83a90601d26bec1cdd517d6c3853349727c42ba949718aa"
+    },
+    "flood": {
+      "source": "flood.png",
+      "webp": "optimized/flood.webp",
+      "avif": "optimized/flood.avif",
+      "width": 1672,
+      "height": 941,
+      "hash": "0c1a4ab75725e5ed5ba458b192522c92c9ec7314648966c90f7da3dd5d1af635",
+      "variants": {
+        "day": {
+          "source": "flood-day.png",
+          "webp": "optimized/flood-day.webp",
+          "avif": "optimized/flood-day.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "e0daf41e96675b4c9288b707494b60e23f3c4bf41230c5900114c8c209afd81d"
+        },
+        "dusk": {
+          "source": "flood-dusk.png",
+          "webp": "optimized/flood-dusk.webp",
+          "avif": "optimized/flood-dusk.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "f3976c462907e56e96b3c52f58f09f82c1543d4d23b943723cd374113a0da433"
+        },
+        "night": {
+          "source": "flood-night.png",
+          "webp": "optimized/flood-night.webp",
+          "avif": "optimized/flood-night.avif",
+          "width": 1672,
+          "height": 941,
+          "hash": "faf793dc0951610bfbaadd2606d176fdf4d53c8d8c4ec2325a3c631c2a49cee7"
+        },
+        "overcast": {
+          "source": "flood-overcast.png",
+          "webp": "optimized/flood-overcast.webp",
+          "avif": "optimized/flood-overcast.avif",
+          "width": 1672,
+          "height": 941,
+          "sourceWidth": 1671,
+          "hash": "b113faa106dbc3d6cd3ca8b931b466416d79f5ccf4d9e9c986c5c9e30c2d80fe"
+        }
+      }
     }
   }
 }
