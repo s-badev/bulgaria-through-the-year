@@ -4,7 +4,7 @@ import { chromium } from 'playwright';
 import sharp from 'sharp';
 
 const port = process.argv[2] || 8080;
-const out = 'docs/screenshots/impossible-sofia/phase-d';
+const out = 'tests/qa-out/impossible-sofia/phase-d';
 fs.mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });
 const errors = [];

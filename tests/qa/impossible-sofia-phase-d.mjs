@@ -14,7 +14,7 @@ try {
   assert.equal(await page.locator('#specialWorldName').textContent(), 'София след 100 години без хора');
   assert.equal(await page.evaluate(() => window.__app.sound.ctx), null, 'no audio context before a gesture');
   await page.locator('#specialHour').fill('2');
-  await page.waitForFunction(() => window.__app.special.layers[0].lighting.values.night > .99);
+  await page.waitForFunction(() => window.__app.special.layers[0].plates.visible.get('night') > .99);
   assert.equal(await page.locator('#specialWorldTime').textContent(), '02:00');
   assert.equal(await page.evaluate(() => window.__app.state.S.hour), 2);
   const captureLuma = () => page.evaluate(async () => {
@@ -26,8 +26,8 @@ try {
   });
   const nightLuma = await captureLuma();
   await page.locator('#specialHour').fill('12');
-  await page.waitForFunction(() => window.__app.special.layers[0].lighting.values.day > .99);
-  assert(await captureLuma() > nightLuma + 15, 'saved frame includes time-dependent regional light');
+  await page.waitForFunction(() => window.__app.special.layers[0].plates.visible.get('day') > .99);
+  assert(await captureLuma() > nightLuma + 15, 'saved frame includes time-dependent photography');
   await page.locator('#specialHour').fill('2');
   await page.waitForFunction(() => window.__app.special.layers[0].lighting.values.night > .99);
   assert.equal(await page.evaluate(() => window.__app.special.layers[0].effects.type), 'abandoned');

@@ -21,7 +21,12 @@ async function prepare(input, name, old) {
   let sourceWidth = old?.sourceWidth ?? size[0];
   if (old?.hash !== hash || !fs.existsSync(path.join(dir, webp)) || !fs.existsSync(path.join(dir, avif))) {
     sharp ||= (await import('sharp')).default;
-    const info = await sharp(input).metadata();
+    let info;
+    try { info = await sharp(input).metadata(); }
+    catch (error) {
+      console.warn(`[special] skipped unreadable ${path.basename(input)}: ${error.message}`);
+      return null;
+    }
     if (info.format !== 'png' || info.height !== size[1] || ![size[0], size[0] - 1].includes(info.width)) {
       console.warn(`[special] skipped ${path.basename(input)}: expected PNG ${size.join('x')}, got ${info.format} ${info.width}x${info.height}`);
       return null;

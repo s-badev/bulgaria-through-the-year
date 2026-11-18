@@ -15,7 +15,7 @@ export const SPECIAL_VARIANTS = {
     ],
   },
   cyberpunk: { keys: overcastVariants, files: { dusk: 'Киберпънк София под неоново небе.png' }, weather: [overcast(['cloudy', 'rain'])] },
-  flood: { keys: overcastVariants, weather: [overcast(['cloudy', 'rain', 'heavy-rain', 'storm'])] },
+  flood: { keys: overcastVariants, weather: [overcast(['cloudy', 'heavy-rain', 'storm'])] },
   'ice-age': {
     keys: [...overcastVariants, 'night-alt'],
     weather: [

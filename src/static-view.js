@@ -67,7 +67,7 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
   dialog.setAttribute('aria-label', 'Невъзможна София');
   dialog.innerHTML = `<h2>Невъзможна София</h2><div class="static-special-grid">${VISIBLE_SPECIAL_SCENES.map(scene => `<button type="button" data-special="${scene.id}" disabled>${scene.name}<small>Недостъпно · липсва снимка</small></button>`).join('')}</div><button class="static-special-close" type="button">Затвори</button><p aria-live="polite"></p>`;
   view.append(dialog);
-  let manifestPromise, activeId = null;
+  let manifestPromise, selection = 0;
   const status = dialog.querySelector('[aria-live]');
   const manifest = () => manifestPromise ||= fetch(`${SPECIAL_BASE}manifest.json`).then(r => r.ok ? r.json() : { scenes: {} }).catch(() => ({ scenes: {} }));
   function available(data) {
@@ -78,14 +78,23 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
     }
   }
   async function select(id) {
+    const request = ++selection;
     const data = await manifest(), asset = data.scenes?.[id], definition = specialScene(id);
+    if (request !== selection) return;
     if (!asset || !definition) { status.textContent = 'Сцената все още няма предоставена снимка.'; return; }
     const next = new Image();
     next.src = `${SPECIAL_BASE}${asset.webp}?v=${asset.hash.slice(0, 12)}`;
-    try { await next.decode(); } catch { next.src = `${SPECIAL_BASE}${asset.source}?v=${asset.hash.slice(0, 12)}`; try { await next.decode(); } catch { status.textContent = 'Снимката не можа да се зареди.'; return; } }
+    try { await next.decode(); } catch {
+      if (request !== selection) return;
+      next.src = `${SPECIAL_BASE}${encodeURI(asset.source)}?v=${asset.hash.slice(0, 12)}`;
+      try { await next.decode(); } catch {
+        if (request === selection) status.textContent = 'Снимката не можа да се зареди.';
+        return;
+      }
+    }
+    if (request !== selection) return;
     photo.src = next.src;
     photo.alt = definition.name;
-    activeId = id;
     back.hidden = false;
     message.textContent = `${definition.name} · статичен изглед.`;
     dialog.close();
@@ -93,7 +102,7 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
   }
   choose.addEventListener('click', async () => { dialog.showModal(); available(await manifest()); });
   back.addEventListener('click', () => {
-    activeId = null; photo.src = '/scenes/ndk/photos/master.webp'; photo.alt = 'София · НДК и Витоша'; back.hidden = true;
+    selection++; photo.src = '/scenes/ndk/photos/master.webp'; photo.alt = 'София · НДК и Витоша'; back.hidden = true;
     message.textContent = 'Статична снимка на София · НДК и Витоша.';
     const url = new URL(location.href); url.searchParams.delete('special'); history.replaceState(null, '', url);
   });

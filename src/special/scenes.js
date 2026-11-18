@@ -141,7 +141,10 @@ export class SpecialScenes {
     const imageWidth = width * zoom / cov[2], imageHeight = height * zoom / cov[3];
     const left = -(0.5 + (cov[0] - 0.5) / zoom) * imageWidth;
     const top = -(0.5 + (cov[1] - 0.5) / zoom) * imageHeight;
+    const geometry = `${left} ${top} ${imageWidth} ${imageHeight}`;
     for (const layer of [...this.layers, this.fadingLayer].filter(Boolean)) {
+      if (layer.geometry === geometry) continue;
+      layer.geometry = geometry;
       for (const element of [layer.plates.root, layer.querySelector('.special-atmosphere'), layer.lighting.root, layer.effects.canvas, layer.effects.lightning]) {
         if (!element) continue;
         Object.assign(element.style, { left: `${left}px`, top: `${top}px`, width: `${imageWidth}px`, height: `${imageHeight}px` });
@@ -156,13 +159,13 @@ export class SpecialScenes {
     layer.plates.update(dt, state.sun, setting, state.S.reducedMotion);
     const light = layer.lighting.update(state, setting, layer.plates.photographicWeight);
     light.nightPlate = layer.plates.nightWeight;
-    layer.dataset.condition = setting.condition;
-    layer.style.setProperty('--special-intensity', setting.intensity.toFixed(3));
-    layer.style.setProperty('--special-night', light.night.toFixed(3));
-    layer.style.setProperty('--special-day', light.day.toFixed(3));
-    layer.style.setProperty('--special-haze', light.haze.toFixed(3));
-    layer.style.setProperty('--special-aurora', (setting.condition === 'partly' ? .02 + light.night * .28 : .04 + light.night * .58).toFixed(3));
-    layer.style.setProperty('--special-neon', (.08 + light.night * .52).toFixed(3));
+    if (layer.dataset.condition !== setting.condition) layer.dataset.condition = setting.condition;
+    if (this.id === 'aurora') {
+      const opacity = setting.condition === 'partly' ? .02 + light.night * .28 : .04 + light.night * .58;
+      layer.style.setProperty('--special-aurora', opacity.toFixed(3));
+    } else if (this.id === 'cyberpunk') {
+      layer.style.setProperty('--special-neon', (.08 + light.night * .52).toFixed(3));
+    }
     light.flash = layer.effects.update(dt, detail, state.S.reducedMotion, state.S.flashes, setting, light) === true;
     return light;
   }

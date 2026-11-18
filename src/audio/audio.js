@@ -40,7 +40,11 @@ export class Sound {
     const drone = ac.createOscillator(); drone.type = 'sine'; drone.frequency.value = 82;
     this.droneG = g(); drone.connect(this.droneG); this.droneG.connect(this.master); drone.start();
   }
-  disable() { this.on = false; if (this.ctx) this.master.gain.setTargetAtTime(0, this.ctx.currentTime, 0.025); }
+  disable() {
+    this.on = false;
+    if (this.ctx) this.master.gain.setTargetAtTime(0, this.ctx.currentTime, 0.025);
+    this.stopVoices();
+  }
   setVolume(v) { this.vol = clamp(v); }
   suspend(hidden) { if (this.ctx) hidden ? this.ctx.suspend() : (this.on && this.ctx.resume()); }
   setSpecialScene(id) {
@@ -48,12 +52,19 @@ export class Sound {
     this.specialId = id;
     this.nextSpecialEvent = 12 + Math.random() * 18;
     this.nextChirp = 3 + Math.random() * 7;
+    this.stopVoices();
+  }
+  stopVoices() {
     for (const source of this.voices) { try { source.stop(); } catch { /* Already ended. */ } }
     this.voices.clear();
   }
-  track(source) {
+  track(source, ...nodes) {
     this.voices.add(source);
-    source.addEventListener('ended', () => { this.voices.delete(source); source.disconnect(); }, { once: true });
+    source.addEventListener('ended', () => {
+      this.voices.delete(source);
+      source.disconnect();
+      for (const node of nodes) node.disconnect();
+    }, { once: true });
   }
   chirp(level = .045) {
     const ac = this.ctx, t = ac.currentTime, n = 2 + Math.floor(Math.random() * 4), b = 2600 + Math.random() * 2400;
@@ -61,7 +72,7 @@ export class Sound {
       const o = ac.createOscillator(), g = ac.createGain(), st = t + i * (0.09 + Math.random() * 0.06);
       o.frequency.setValueAtTime(b * (1 + Math.random() * 0.3), st); o.frequency.exponentialRampToValueAtTime(b * (0.7 + Math.random() * 0.7), st + 0.07);
       g.gain.setValueAtTime(0, st); g.gain.linearRampToValueAtTime(level, st + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, st + 0.09);
-      o.connect(g); g.connect(this.master); o.start(st); o.stop(st + 0.1);
+      o.connect(g); g.connect(this.master); this.track(o, g); o.start(st); o.stop(st + 0.1);
     }
   }
   /** Thunder arrives about 2.9 s per kilometre after the flash. */
@@ -71,14 +82,14 @@ export class Sound {
     const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 220 + near * 900;
     const g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime((0.25 + near * 0.9) * level, t + 0.03 + (1 - near) * 0.45);
     const dur = 3 + (1 - near) * 4; g.gain.setTargetAtTime(0.0001, t + 0.4, dur / 4);
-    s.connect(lp); lp.connect(g); g.connect(this.master); this.track(s); s.start(t, Math.random() * 2); s.stop(t + dur + 2);
+    s.connect(lp); lp.connect(g); g.connect(this.master); this.track(s, lp, g); s.start(t, Math.random() * 2); s.stop(t + dur + 2);
   }
   plane(dur) {
     if (!this.ctx || !this.on) return;
     const ac = this.ctx, t = ac.currentTime, s = ac.createBufferSource(); s.buffer = this.brown; s.loop = true;
     const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(160, t); lp.frequency.linearRampToValueAtTime(330, t + dur * 0.5); lp.frequency.linearRampToValueAtTime(170, t + dur);
     const g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.13, t + dur * 0.5); g.gain.linearRampToValueAtTime(0, t + dur);
-    s.connect(lp); lp.connect(g); g.connect(this.master); this.track(s); s.start(t); s.stop(t + dur + 0.1);
+    s.connect(lp); lp.connect(g); g.connect(this.master); this.track(s, lp, g); s.start(t); s.stop(t + dur + 0.1);
   }
   specialAccent(kind, level) {
     if (!this.ctx || !this.on) return;
@@ -89,7 +100,7 @@ export class Sound {
     gain.gain.setValueAtTime(.0001, t);
     gain.gain.linearRampToValueAtTime((kind === 'ice' ? .025 : .012) * level, t + .025);
     gain.gain.exponentialRampToValueAtTime(.0001, t + .58);
-    oscillator.connect(gain); gain.connect(this.master); this.track(oscillator); oscillator.start(t); oscillator.stop(t + .6);
+    oscillator.connect(gain); gain.connect(this.master); this.track(oscillator, gain); oscillator.start(t); oscillator.stop(t + .6);
   }
   updateSpecial(step, special, time, tgt) {
     this.setSpecialScene(special.id);

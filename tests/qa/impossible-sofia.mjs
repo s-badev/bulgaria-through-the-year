@@ -5,7 +5,7 @@ import sharp from 'sharp';
 
 const base = `http://127.0.0.1:${process.argv[2] || process.env.QA_PORT || 8080}/`;
 const out = 'tests/qa-out/impossible-sofia';
-const scenes = ['planet', 'aurora', 'ice-age', 'sandstorm', 'abandoned', 'cyberpunk', 'supercell'];
+const scenes = ['planet', 'abandoned', 'sandstorm', 'cyberpunk', 'flood', 'ice-age'];
 fs.mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });
 const errors = [];
@@ -25,13 +25,13 @@ try {
   await desktop.goto(`${base}?qa=1&still=1&date=2026-07-15&h=18.75&w=clear`);
   await ready(desktop);
   await desktop.locator('#specialEntry').click();
-  assert.equal(await desktop.locator('[data-special]').count(), 7);
-  assert.equal(await desktop.locator('[data-special]:enabled').count(), 7, 'all seven supplied photographs can be selected');
+  assert.deepEqual(await desktop.locator('[data-special]').evaluateAll(buttons => buttons.map(button => button.dataset.special)), scenes);
+  assert.equal(await desktop.locator('[data-special]:enabled').count(), 6, 'all six selected worlds can be opened');
   await desktop.locator('[data-special="planet"]').click();
   await desktop.waitForFunction(() => window.__app.special.id === 'planet' && document.querySelector('.special-world-layer.is-visible'));
   assert(await desktop.locator('#specialBack').isVisible());
   assert.equal(await desktop.locator('.special-world img').count(), 1);
-  assert.match(await desktop.locator('.special-world img').getAttribute('src'), /planet\.(webp|png)/);
+  assert.match(await desktop.locator('.special-world img').getAttribute('src'), /planet-day\.(webp|png)/);
   const before = await desktop.evaluate(() => ({ S: { ...window.__app.state.S }, renders: window.__app.comp.baseRenders }));
   await desktop.waitForTimeout(800);
   const after = await desktop.evaluate(() => ({ S: { ...window.__app.state.S }, renders: window.__app.comp.baseRenders }));
@@ -61,12 +61,12 @@ try {
     if (id === 'planet') continue;
     const opener = await desktop.locator('#specialChange').isVisible() ? '#specialChange' : '#specialEntry';
     await desktop.locator(opener).click();
-    assert.equal(await desktop.locator('[data-special]:enabled').count(), 7);
+    assert.equal(await desktop.locator('[data-special]:enabled').count(), 6);
     await desktop.locator(`[data-special="${id}"]`).click();
     await desktop.waitForFunction(expected => window.__app.special.id === expected, id);
     const loaded = await desktop.locator('.special-world-layer.is-visible img').last().evaluate(image => ({ src: image.currentSrc, ok: image.complete && image.naturalWidth === 1672 }));
-    assert(loaded.ok && loaded.src.includes(`${id}.`), `${id}: correct photographic source loaded`);
-    assert.equal(await desktop.locator('.special-world-layer.is-visible .special-atmosphere').evaluate(node => getComputedStyle(node).animationName), 'none', `${id}: reduced motion disables atmosphere`);
+    assert(loaded.ok && loaded.src.includes(`${id}-`), `${id}: correct photographic source loaded`);
+    assert.equal(await desktop.locator('.special-world-layer.is-visible .special-atmosphere').last().evaluate(node => getComputedStyle(node).animationName), 'none', `${id}: reduced motion disables atmosphere`);
     assert.equal(await desktop.locator(`[data-special="${id}"]`).getAttribute('aria-pressed'), 'true');
     await desktop.waitForTimeout(650);
     assert.equal(await desktop.locator('.special-world-layer').count(), 1, `${id}: old image released after crossfade`);
@@ -88,7 +88,7 @@ try {
     await page.locator('#moreBtn').tap();
     await page.locator('#menuSpecial').tap();
     await page.locator('#specialDialog').waitFor({ state: 'visible' });
-    assert.equal(await page.locator('[data-special]:enabled').count(), 7);
+    assert.equal(await page.locator('[data-special]:enabled').count(), 6);
     const target = await page.locator('[data-special="planet"]').boundingBox();
     assert(target.width >= 44 && target.height >= 44);
     await page.locator('[data-special="planet"]').tap();
@@ -160,14 +160,16 @@ try {
   await motion.goto(`${base}?qa=1&still=1&special=ice-age`);
   await motion.waitForFunction(() => window.__app?.special.id === 'ice-age');
   for (const id of ['ice-age', 'sandstorm', 'abandoned', 'supercell']) {
-    if (id !== 'ice-age') {
+    if (id === 'supercell') {
+      await motion.evaluate(() => window.__app.actions.selectSpecial('supercell'));
+    } else if (id !== 'ice-age') {
       await motion.locator('#specialChange').click();
       await motion.locator(`[data-special="${id}"]`).click();
       await motion.waitForFunction(expected => window.__app.special.id === expected, id);
     }
     await motion.waitForTimeout(220);
     const effect = await motion.evaluate(() => {
-      const item = document.querySelector('.special-world-layer.is-visible').effects;
+      const item = window.__app.special.layers[0].effects;
       const pixels = item.ctx.getImageData(0, 0, item.canvas.width, item.canvas.height).data;
       let active = 0;
       for (let i = 3; i < pixels.length; i += 4) if (pixels[i]) active++;
@@ -177,7 +179,7 @@ try {
     await motion.screenshot({ path: `${out}/${id}-motion.png` });
     if (id === 'supercell') {
       const flash = await motion.evaluate(() => {
-        const app = window.__app, item = document.querySelector('.special-world-layer.is-visible').effects;
+        const app = window.__app, item = app.special.layers[0].effects;
         item.nextFlash = item.elapsed;
         app.clock.step(1 / 60);
         return item.flash;
@@ -205,10 +207,10 @@ try {
   assert.notEqual(await lite.locator('.static-view > img').evaluate(image => image.style.objectPosition), '50% center', 'lite touch pan works');
   await lite.screenshot({ path: `${out}/planet-lite.png` });
   await lite.locator('.static-special-nav button').first().click();
-  assert.equal(await lite.locator('.static-special-dialog [data-special]:enabled').count(), 7);
-  await lite.locator('.static-special-dialog [data-special="aurora"]').click();
-  await lite.waitForFunction(() => document.querySelector('.static-view > img')?.src.includes('aurora.webp'));
-  await lite.screenshot({ path: `${out}/aurora-lite.png` });
+  assert.equal(await lite.locator('.static-special-dialog [data-special]:enabled').count(), 6);
+  await lite.locator('.static-special-dialog [data-special="flood"]').click();
+  await lite.waitForFunction(() => document.querySelector('.static-view > img')?.src.includes('flood.webp'));
+  await lite.screenshot({ path: `${out}/flood-lite.png` });
   await lite.locator('.static-special-nav button').last().click();
   assert.match(await lite.locator('.static-view img').getAttribute('src'), /master\.webp/);
   await lite.close();
