@@ -30,3 +30,15 @@ test('missing or failed plates retain a valid photographic fallback', () => {
   assert.deepEqual([...at(-3, asset, new Set(['dusk']))], [['base', 1]]);
   assert.deepEqual([...at(-25, asset, new Set(['night', 'base']))], [['day', 1]]);
 });
+
+test('weather plates affect only their configured solar phase', () => {
+  const atWeather = (id, elevation, condition, variants) => plateWeights(
+    { id, basePhase: 'day' }, { variants }, { elevation }, { condition, intensity: 1 });
+  assert.deepEqual([...atWeather('planet', 30, 'cloudy', asset.variants)], [['overcast', 1]]);
+  assert.deepEqual([...atWeather('planet', -25, 'cloudy', asset.variants)], [['night', 1]]);
+  const dust = { ...asset.variants, haze: {}, 'dusk-alt': {} };
+  assert.deepEqual([...atWeather('sandstorm', 30, 'extreme', dust)], [['haze', 1]]);
+  assert.deepEqual([...atWeather('sandstorm', -3, 'extreme', dust)], [['dusk-alt', 1]]);
+  assert.deepEqual([...atWeather('sandstorm', -3, 'strong', dust)], [['dusk', 1]]);
+  assert.deepEqual([...atWeather('ice-age', -25, 'storm', { ...asset.variants, 'night-alt': {} })], [['night-alt', 1]]);
+});

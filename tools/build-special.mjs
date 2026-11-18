@@ -35,9 +35,7 @@ async function prepare(input, name, old) {
   }
   return { source: path.basename(input), webp, avif, width: size[0], height: size[1], ...(sourceWidth < size[0] ? { sourceWidth } : {}), hash };
 }
-const definitions = [...SPECIAL_SCENES];
-if (!definitions.some(scene => scene.id === 'flood')) definitions.push({ id: 'flood', source: 'flood.png' });
-for (const scene of definitions) {
+for (const scene of SPECIAL_SCENES) {
   const input = path.join(dir, scene.source);
   if (!fs.existsSync(input)) continue;
   const base = await prepare(input, scene.id, previous[scene.id]);
@@ -58,4 +56,4 @@ for (const scene of definitions) {
 }
 const manifest = JSON.stringify({ version: 3, scenes }, null, 2) + '\n';
 if (!fs.existsSync(manifestPath) || fs.readFileSync(manifestPath, 'utf8') !== manifest) fs.writeFileSync(manifestPath, manifest);
-console.log(`[special] ${Object.keys(scenes).length}/${definitions.length} worlds, ${Object.values(scenes).reduce((count, scene) => count + Object.keys(scene.variants ?? {}).length, 0)} variants available`);
+console.log(`[special] ${Object.keys(scenes).length}/${SPECIAL_SCENES.length} worlds, ${Object.values(scenes).reduce((count, scene) => count + Object.keys(scene.variants ?? {}).length, 0)} variants available`);

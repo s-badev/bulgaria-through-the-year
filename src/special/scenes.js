@@ -155,6 +155,7 @@ export class SpecialScenes {
     const layer = this.layers[0], setting = this.setting();
     layer.plates.update(dt, state.sun, setting, state.S.reducedMotion);
     const light = layer.lighting.update(state, setting, layer.plates.photographicWeight);
+    light.nightPlate = layer.plates.nightWeight;
     layer.dataset.condition = setting.condition;
     layer.style.setProperty('--special-intensity', setting.intensity.toFixed(3));
     layer.style.setProperty('--special-night', light.night.toFixed(3));

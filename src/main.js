@@ -195,7 +195,7 @@ async function boot() {
     } else if (special.active) {
       const setting = special.setting();
       sound.update(dt, { time: t, special: { id: special.id, condition: setting.condition, intensity: setting.intensity, light: specialLight } });
-      if (special.id === 'supercell' && specialLight?.flash) sound.thunder(.35 + (1 - setting.intensity) * .65);
+      if (specialLight?.flash) sound.thunder(.35 + (1 - setting.intensity) * .65, special.id === 'flood' ? .65 : 1);
     }
     quality.update(clock.dtAvg, dt);
     if (wantFrame) { wantFrame = false; if (special.active) void special.capture().then(downloadFrame); else canvas.toBlob(downloadFrame, 'image/png'); }

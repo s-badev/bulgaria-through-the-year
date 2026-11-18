@@ -1,4 +1,4 @@
-import { SPECIAL_SCENES } from './registry.js';
+import { VISIBLE_SPECIAL_SCENES, specialScene } from './registry.js';
 import { formatClock } from '../engine/sun.js';
 import './ui.css';
 
@@ -54,7 +54,7 @@ export function installSpecialUI(root, actions, state, shared) {
   dialog.setAttribute('aria-labelledby', 'specialTitle');
   dialog.innerHTML = `<div class="special-dialog-head"><h2 id="specialTitle">Невъзможна София</h2><button id="specialClose" class="sec" type="button">Затвори</button></div>
     <p class="special-intro">Фантастични светове върху снимката на НДК. Избери сцена:</p>
-    <div class="special-grid" role="group" aria-label="Фантастични сцени">${SPECIAL_SCENES.map(scene => `<button type="button" data-special="${scene.id}" disabled><strong>${scene.name}</strong><small>Проверявам снимката…</small></button>`).join('')}</div>
+    <div class="special-grid" role="group" aria-label="Фантастични сцени">${VISIBLE_SPECIAL_SCENES.map(scene => `<button type="button" data-special="${scene.id}" disabled><strong>${scene.name}</strong><small>Проверявам снимката…</small></button>`).join('')}</div>
     <div class="special-actions"><button id="specialReturn" class="sec" type="button">Обратно към София</button></div>
     <p id="specialStatus" role="status" aria-live="polite"></p>`;
   root.append(dialog);
@@ -62,20 +62,20 @@ export function installSpecialUI(root, actions, state, shared) {
   let available = new Set(), active = null, returnFocus = entry;
 
   function setManifest(manifest) {
-    available = new Set(Object.keys(manifest?.scenes || {}));
+    available = new Set(VISIBLE_SPECIAL_SCENES.filter(scene => manifest?.scenes?.[scene.id]).map(scene => scene.id));
     for (const button of dialog.querySelectorAll('[data-special]')) {
       const ready = available.has(button.dataset.special);
       button.disabled = !ready;
       button.querySelector('small').textContent = ready ? 'Разгледай сцената' : 'Недостъпно · липсва снимка';
       button.setAttribute('aria-label', `${button.querySelector('strong').textContent} — ${ready ? 'разгледай сцената' : 'недостъпно, липсва снимка'}`);
     }
-    status.textContent = `${available.size} от ${SPECIAL_SCENES.length} снимки са налични.`;
+    status.textContent = `${available.size} от ${VISIBLE_SPECIAL_SCENES.length} сцени са налични.`;
   }
 
   function sync(id) {
     active = id;
     nav.classList.toggle('is-visible', !!id);
-    const definition = SPECIAL_SCENES.find(scene => scene.id === id);
+    const definition = specialScene(id);
     if (definition) {
       sameText(worldBadge, definition.name);
       sameText(field('#specialWorldName'), definition.name);

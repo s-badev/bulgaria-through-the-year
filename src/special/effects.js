@@ -1,9 +1,13 @@
 import { rng } from '../engine/clock.js';
+import { FLOOD_RAIN } from './registry.js';
 
 // Weather particles live in the photograph's coordinates. They are deliberately
 // sparse: the supplied image carries the scene, including its main weather.
 const WIDTH = 836, HEIGHT = 471;
-const TYPES = { 'ice-age': 'snow', sandstorm: 'dust', abandoned: 'abandoned', cyberpunk: 'rain', supercell: 'rain' };
+const TYPES = { 'ice-age': 'snow', sandstorm: 'dust', abandoned: 'abandoned', cyberpunk: 'rain', supercell: 'rain', flood: 'rain' };
+// Small exposed water patches shared by the flood plates. Leave the
+// photographed buildings, vegetation and water surface itself untouched.
+const WATER_PATCHES = [[333, 342, 32], [410, 381, 35], [444, 416, 26], [494, 451, 31], [264, 372, 17], [737, 332, 24]];
 
 export class SpecialEffects {
   constructor(id, layer) {
@@ -28,7 +32,7 @@ export class SpecialEffects {
         alpha: 0.22 + this.random() * 0.36, phase: this.random() * Math.PI * 2,
       }));
     }
-    if (id === 'supercell') {
+    if (id === 'supercell' || id === 'flood') {
       this.lightning = document.createElement('div');
       this.lightning.className = 'special-flash';
       layer.append(this.lightning);
@@ -51,12 +55,15 @@ export class SpecialEffects {
       const mobile = matchMedia('(max-width: 820px), (max-height: 500px)').matches;
       const condition = setting.condition;
       const weatherStrength = .35 + .65 * setting.intensity;
-      const snowStrength = this.type === 'snow' ? ({ light: .45, storm: 1, blizzard: 1.55 }[condition] || .45) * weatherStrength : 1;
+      const snowStrength = this.type === 'snow' ? ({ cloudy: 0, light: .45, storm: 1, blizzard: 1.55 }[condition] ?? .45) * weatherStrength : 1;
       const dustStrength = this.type === 'dust' ? ({ light: .35, strong: .85, extreme: 1.35 }[condition] || .85) : 1;
-      const rainStrength = this.id === 'cyberpunk' && condition !== 'rain' ? 0 : this.id === 'supercell' ? ({ approaching: .35, heavy: .85, violent: 1.3 }[condition] || .85) : 1;
+      let rainStrength = 1;
+      if (this.id === 'flood') rainStrength = FLOOD_RAIN[condition];
+      else if (this.id === 'cyberpunk' && condition !== 'rain') rainStrength = 0;
+      else if (this.id === 'supercell') rainStrength = ({ approaching: .35, heavy: .85, violent: 1.3 }[condition] || .85);
       const count = this.type === 'abandoned' && condition !== 'rain'
         ? (light.day > .3 && condition !== 'fog' ? Math.max(1, Math.round(3 * detail)) : 0)
-        : rainStrength === 0 ? 0 : Math.min(this.points.length, Math.max(10, Math.round(this.points.length * detail * (mobile ? 0.48 : 1) * weatherStrength * snowStrength * dustStrength * rainStrength)));
+        : rainStrength === 0 || snowStrength === 0 ? 0 : Math.min(this.points.length, Math.max(10, Math.round(this.points.length * detail * (mobile ? 0.48 : 1) * weatherStrength * snowStrength * dustStrength * rainStrength)));
       for (let index = 0; index < count; index++) {
         const point = this.points[index];
         if (this.type === 'snow') {
@@ -90,9 +97,11 @@ export class SpecialEffects {
           ctx.beginPath(); ctx.moveTo(x - 2.5, y - wing); ctx.lineTo(x, y); ctx.lineTo(x + 2.5, y - wing); ctx.stroke();
         }
       }
+      if (this.id === 'flood') this.drawWater(ctx, mobile, light, rainStrength * weatherStrength);
+      if (this.id === 'abandoned' && flashes && light.nightPlate > .98) this.drawWindow(ctx);
     }
     if (this.lightning) {
-      if (!flashes) {
+      if (!flashes || this.id === 'flood' && setting.condition !== 'storm') {
         this.flash = 0;
         if (this.elapsed >= this.nextFlash) this.nextFlash = this.elapsed + 9 + this.random() * 14;
       }
@@ -106,6 +115,34 @@ export class SpecialEffects {
       this.flash *= Math.exp(-dt / .12);
       this.lightning.style.opacity = String(this.flash);
     }
+  }
+
+  drawWater(ctx, mobile, light, rain) {
+    const sheen = .35 + .65 * light.day;
+    for (let i = 0; i < (mobile ? 4 : WATER_PATCHES.length); i++) {
+      const [x, y, spread] = WATER_PATCHES[i];
+      const phase = (this.elapsed * (.36 + rain * .14) + .37 * i) % 1;
+      const drift = Math.sin(this.elapsed * .3 + i) * spread * .25;
+      ctx.strokeStyle = `rgba(189,210,219,${(1 - phase) * (.09 + rain * .07) * sheen})`;
+      ctx.lineWidth = .75;
+      ctx.beginPath();
+      ctx.ellipse(x + drift, y, 2 + 9 * phase, .5 + 2 * phase, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      if (i < 2) {
+        ctx.fillStyle = `rgba(53,43,32,${.45 * sheen})`;
+        ctx.fillRect(x + drift * 2, y + 6, 2.4, .85);
+      }
+    }
+  }
+
+  drawWindow(ctx) {
+    const pulse = this.elapsed % 53 - 32;
+    if (pulse < 0 || pulse > 2) return;
+    const opacity = .33 * Math.sin(pulse * Math.PI / 2) * (.7 + .3 * Math.cos(pulse * 12));
+    ctx.fillStyle = `rgba(224,181,110,${opacity})`;
+    ctx.beginPath();
+    ctx.ellipse(415, 275, .7, .85, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   destroy() {

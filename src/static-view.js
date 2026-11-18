@@ -1,5 +1,5 @@
 import './static-view.css';
-import { SPECIAL_BASE, SPECIAL_SCENES, specialScene } from './special/registry.js';
+import { SPECIAL_BASE, VISIBLE_SPECIAL_SCENES, specialScene } from './special/registry.js';
 
 export function showStaticView(lite = false, volcano = new URLSearchParams(location.search).get('volcano') === '1', requestedSpecial = new URLSearchParams(location.search).get('special')) {
   const app = document.querySelector('#app');
@@ -65,7 +65,7 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
   const dialog = document.createElement('dialog');
   dialog.className = 'static-special-dialog';
   dialog.setAttribute('aria-label', 'Невъзможна София');
-  dialog.innerHTML = `<h2>Невъзможна София</h2><div class="static-special-grid">${SPECIAL_SCENES.map(scene => `<button type="button" data-special="${scene.id}" disabled>${scene.name}<small>Недостъпно · липсва снимка</small></button>`).join('')}</div><button class="static-special-close" type="button">Затвори</button><p aria-live="polite"></p>`;
+  dialog.innerHTML = `<h2>Невъзможна София</h2><div class="static-special-grid">${VISIBLE_SPECIAL_SCENES.map(scene => `<button type="button" data-special="${scene.id}" disabled>${scene.name}<small>Недостъпно · липсва снимка</small></button>`).join('')}</div><button class="static-special-close" type="button">Затвори</button><p aria-live="polite"></p>`;
   view.append(dialog);
   let manifestPromise, activeId = null;
   const status = dialog.querySelector('[aria-live]');

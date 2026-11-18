@@ -7,4 +7,5 @@ export const SPECIAL_AUDIO = Object.freeze({
   abandoned: { wind: .1, highWind: .007, rain: 0, city: 0, drone: 0, event: 'creak' },
   cyberpunk: { wind: .045, highWind: .004, rain: 0, city: .07, drone: .035, event: null },
   supercell: { wind: .2, highWind: .025, rain: .18, city: .012, drone: 0, event: null },
+  flood: { wind: .13, highWind: .013, rain: .2, city: 0, drone: 0, water: .11, event: null },
 });

@@ -1,5 +1,5 @@
 import { solarMix } from './lighting.js';
-import { SPECIAL_BASE } from './registry.js';
+import { SPECIAL_BASE, SPECIAL_VARIANTS } from './registry.js';
 
 const PHASES = ['day', 'dusk', 'night'];
 const MIN_WEIGHT = .002;
@@ -30,7 +30,9 @@ export function plateWeights(scene, asset, sun, setting, failed = new Set()) {
   for (const phase of PHASES) {
     const key = keys[phase] ?? base ?? keys.day ?? keys.night ?? keys.dusk;
     const weight = weights[phase] ** 1.45;
-    add(key, weight);
+    const rule = SPECIAL_VARIANTS[scene.id]?.weather.find(rule =>
+      rule.phase === phase && rule.conditions.includes(setting.condition) && available(rule.key));
+    add(rule?.key ?? key, weight);
   }
   const sum = [...result.values()].reduce((a, b) => a + b, 0);
   for (const [key, weight] of result) result.set(key, weight / sum);
@@ -150,20 +152,16 @@ export class SpecialPlates {
   }
 
   draw() {
-    for (const picture of this.root.children) {
-      if (!this.visible.has(picture.dataset.plate)) picture.style.display = 'none';
+    for (const picture of Array.from(this.root.children)) {
+      if (!this.visible.has(picture.dataset.plate)) picture.remove();
     }
     let cumulative = 0;
     for (const [key, weight] of this.visible) {
       const { picture } = this.cache.get(key);
       if (picture.parentNode !== this.root) this.root.append(picture);
-      picture.style.display = '';
       cumulative += weight;
-      picture.style.opacity = cumulative ? (weight / cumulative).toFixed(5) : '0';
-    }
-    // The opacity formula assumes the same order in the DOM and in the map.
-    for (const picture of Array.from(this.root.children)) {
-      if (!this.visible.has(picture.dataset.plate)) picture.remove();
+      const opacity = cumulative ? (weight / cumulative).toFixed(5) : '0';
+      if (picture.style.opacity !== opacity) picture.style.opacity = opacity;
     }
   }
 
@@ -175,6 +173,8 @@ export class SpecialPlates {
     }
     return total ? variant / total : 0;
   }
+
+  get nightWeight() { return this.visible.get('night') ?? 0; }
 
   capture(ctx, x, y, width, height) {
     for (const picture of this.root.children) {

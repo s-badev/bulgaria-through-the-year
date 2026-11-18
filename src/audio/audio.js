@@ -1,6 +1,7 @@
 // Sound: everything is synthesised with Web Audio (no audio files). Off until the user presses the sound button.
 import { clamp, lerp } from '../engine/blend.js';
 import { SPECIAL_AUDIO } from '../special/audio-profiles.js';
+import { FLOOD_RAIN } from '../special/registry.js';
 
 export class Sound {
   constructor() { this.ctx = null; this.on = false; this.vol = 0.7; this.tick = 0; this.nextChirp = 1; this.specialId = null; this.nextSpecialEvent = 18; this.voices = new Set(); }
@@ -64,11 +65,11 @@ export class Sound {
     }
   }
   /** Thunder arrives about 2.9 s per kilometre after the flash. */
-  thunder(km) {
+  thunder(km, level = 1) {
     if (!this.ctx || !this.on) return;
     const ac = this.ctx, t = ac.currentTime + km * 2.9, near = clamp(1 - km / 6), s = ac.createBufferSource(); s.buffer = this.brown;
     const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 220 + near * 900;
-    const g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.25 + near * 0.9, t + 0.03 + (1 - near) * 0.45);
+    const g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime((0.25 + near * 0.9) * level, t + 0.03 + (1 - near) * 0.45);
     const dur = 3 + (1 - near) * 4; g.gain.setTargetAtTime(0.0001, t + 0.4, dur / 4);
     s.connect(lp); lp.connect(g); g.connect(this.master); this.track(s); s.start(t, Math.random() * 2); s.stop(t + dur + 2);
   }
@@ -95,14 +96,18 @@ export class Sound {
     const profile = SPECIAL_AUDIO[special.id], level = .35 + .75 * special.intensity;
     const night = special.light?.night || 0, day = special.light?.day || 0;
     const gust = .7 + .3 * Math.sin(time * .51) * Math.sin(time * .17 + 1);
-    const winterStorm = special.id === 'ice-age' ? ({ light: .7, storm: 1.25, blizzard: 1.75 }[special.condition] || .7) : 1;
+    const winterStorm = special.id === 'ice-age' ? ({ cloudy: .55, light: .7, storm: 1.25, blizzard: 1.75 }[special.condition] || .7) : 1;
     const sandStorm = special.id === 'sandstorm' ? ({ light: .45, strong: 1, extreme: 1.55 }[special.condition] || 1) : 1;
     const stormRain = special.id === 'supercell' ? ({ approaching: .4, heavy: 1, violent: 1.5 }[special.condition] || 1) : 1;
-    const quiet = special.id === 'abandoned' ? .32 + .68 * day : 1;
-    const rain = ['abandoned', 'cyberpunk'].includes(special.id) ? (special.condition === 'rain' ? .18 * level : 0) : profile.rain * level * stormRain;
+    const flood = special.id === 'flood';
+    const quiet = special.id === 'abandoned' ? .32 + .68 * day : flood ? .72 + .28 * day : 1;
+    let rain = profile.rain * level * stormRain;
+    if (flood) rain *= FLOOD_RAIN[special.condition];
+    if (['abandoned', 'cyberpunk'].includes(special.id)) rain = special.condition === 'rain' ? .18 * level : 0;
+    const waterFlow = (profile.water ?? 0) * (.65 + .35 * gust) * quiet * level;
     tgt(this.lp.frequency, special.id === 'ice-age' ? 3400 : special.id === 'sandstorm' ? 5000 : 10500, .7);
-    tgt(this.rainG.gain, rain); tgt(this.rainLowG.gain, rain * .5);
-    tgt(this.windG.gain, profile.wind * level * quiet * gust * winterStorm * sandStorm);
+    tgt(this.rainG.gain, rain); tgt(this.rainLowG.gain, rain * .5 + waterFlow);
+    tgt(this.windG.gain, profile.wind * level * quiet * gust * winterStorm * sandStorm * (flood && special.condition === 'storm' ? 1.6 : 1));
     tgt(this.windBp.frequency, special.id === 'ice-age' ? 240 + 190 * gust : 340 + 340 * gust, .5);
     tgt(this.windG2.gain, profile.highWind * level * quiet * gust * winterStorm * sandStorm);
     tgt(this.cityG.gain, profile.city * (special.id === 'cyberpunk' ? .4 + .6 * night : 1), .7);

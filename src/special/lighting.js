@@ -18,6 +18,7 @@ const PROFILES = {
   abandoned: { sky: .94, mountain: .84, city: .75, warm: .47, daylight: 0 },
   cyberpunk: { sky: .08, mountain: .1, city: .08, warm: .03, daylight: .55 },
   supercell: { sky: .88, mountain: .86, city: .93, warm: .18, daylight: 0 },
+  flood: { sky: .88, mountain: .83, city: .79, warm: .2, daylight: 0 },
 };
 
 export class SpecialLighting {
