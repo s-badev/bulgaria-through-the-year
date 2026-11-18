@@ -12,7 +12,7 @@ test('lunar phase changes with the date and wraps after a synodic month', () => 
   assert(later < 0.03 || later > 0.97);
 });
 
-test('moon visibility follows night weight and weather without a second clock', () => {
+test('moon visibility follows sky darkness and weather without moving the Moon', () => {
   const date = { y: 2026, m: 6, d: 15, hour: 23 };
   const clear = { cloud: 0.04, fog: 0, storm: 0 };
   const full = moonParameters(date, 1, clear);
@@ -22,6 +22,13 @@ test('moon visibility follows night weight and weather without a second clock', 
   assert(moonParameters(date, 1, { cloud: 0.85, fog: 0, storm: 0 })[3] < full[3]);
   assert(moonParameters(date, 1, { cloud: 0.22, fog: 1, storm: 0 })[3] < 0.01);
   assert(moonParameters(date, 1, { cloud: 1, fog: 0, storm: 1 })[3] < 0.01);
+  const quarter = { ...date, d: 21, hour: 14 };
+  const day = moonParameters(quarter, 0, clear);
+  const twilight = moonParameters(quarter, .5, clear);
+  const night = moonParameters(quarter, 1, clear);
+  assert(day[3] > .3 && day[3] < twilight[3] && twilight[3] < night[3]);
+  assert.deepEqual(day.slice(0, 3), night.slice(0, 3));
+  assert.equal(moonParameters({ ...quarter, d: 29 }, 0, clear)[3], 0);
 });
 
 test('volcano fades smoothly and survives ordinary weather changes', () => {

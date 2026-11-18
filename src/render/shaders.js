@@ -177,7 +177,7 @@ void main(){
 
 // ---------- composite: parallax, wind, water, wetness, fog, clouds, grade, grain ----------
 export const COMPOSITE_FS = COMMON + `
-uniform sampler2D tBase, tMaskA, tMaskB, tGeo, tDeck, tCumulus;
+uniform sampler2D tBase, tMaskA, tMaskB, tGeo, tDeck, tCumulus, tMoon;
 uniform vec4 uCov;            // uv offset + scale of the visible part of the image
 uniform vec2 uPar, uSize;
 uniform float uZoom, uTime, uInvScale;
@@ -189,7 +189,8 @@ uniform vec3 uFogCol, uHazeCol, uCloudLit, uCloudDark, uSunHor, uFountCol;
 uniform vec4 uSkyP;           // sunX, glow, lightsOn, boltX
 uniform vec4 uCam;            // focal px, cx, cy, z0 (camera heights)
 uniform vec3 uFogP;           // cos(pitch), sin(pitch), fog top height (camera heights)
-uniform vec4 uMoon;           // image x, image y, lunar phase, night visibility
+uniform vec4 uMoon;           // image x, image y, lunar phase, atmospheric visibility
+uniform vec3 uMoonLight;      // sky darkness, half a pixel in lunar radius units, texture LOD
 uniform vec4 uVolcano;        // strength, quality, animation time, reduced motion
 vec3 baseAt(vec2 uv){ vec3 c = texture(tBase, uv).rgb; return c * c * (c * 0.305306011 + 0.682171111) + c * 0.012522878; } // ~pow 2.2
 vec3 volcanoAt(vec2 uv, float sky, float mtn, vec3 c){
@@ -315,25 +316,44 @@ void main(){
     c = mix(c, cc, calpha * cmask);
   }
   // stars (only where the night photo's sky is clear)
+  vec3 starlight = vec3(0.);
   if (uEnvC.y > 0.01 && sky > 0.5) {
     vec2 sp = floor(px / 2.); float sh = hash12(sp);
     float tw = 0.6 + 0.4 * sin(uTime * (1.5 + sh * 3.) + sh * 40.);
-    c += vec3(0.75, 0.82, 1.0) * step(0.9985, sh) * uEnvC.y * tw * (1. - calpha) * sky * 0.55;
+    starlight = vec3(0.75, 0.82, 1.0) * step(0.9985, sh) * uEnvC.y * tw * (1. - calpha) * sky * 0.55;
   }
   // The moon is drawn in source-photo coordinates so panning leaves it in the sky.
   // The photographed cloud layer above has already set calpha, naturally hiding it.
   if (uMoon.w > 0.003 && sky > 0.01) {
     vec2 mp = (uv - uMoon.xy) * vec2(uSize.x / uSize.y, 1.) / 0.024;
     float rr = length(mp);
-    float limb = sqrt(max(0., 1. - mp.y * mp.y));
-    float phaseCos = cos(uMoon.z * 6.2831853);
-    float lit = uMoon.z < 0.5 ? smoothstep(phaseCos * limb - 0.08, phaseCos * limb + 0.08, mp.x) : 1. - smoothstep(-phaseCos * limb - 0.08, -phaseCos * limb + 0.08, mp.x);
-    float disc = (1. - smoothstep(0.92, 1.04, rr)) * lit;
-    float halo = exp(-rr * 2.5) * 0.13;
-    float visible = uMoon.w * (1. - calpha) * sky;
-    c += vec3(0.78, 0.83, 0.88) * disc * visible * (0.86 + 0.14 * vnoise(px / 4.));
-    c += vec3(0.23, 0.29, 0.40) * halo * visible;
+    if (rr < 1.4) {
+      float angle = uMoon.z * 6.2831853;
+      float facing = sqrt(max(0., 1. - rr * rr));
+      // Sunlight on the projected sphere. Positive X is lit when waxing.
+      float lit = mp.x * sin(angle) - facing * cos(angle);
+      float terminator = smoothstep(-0.018, 0.024, lit);
+      float edge = 1. - smoothstep(1. - uMoonLight.y, 1. + uMoonLight.y, rr);
+      float visible = uMoon.w * (1. - calpha) * sky;
+      starlight *= 1. - edge; // the unlit side is still in front of the stars
+      if (edge > 0. && terminator > 0.) {
+        // The mosaic is already an orthographic disk. Pull its limb inward
+        // slightly so transparent source pixels do not tint the silhouette.
+        vec2 texUV = .5 + mp * (.49 / max(1., rr));
+        float albedo = textureLod(tMoon, texUV, uMoonLight.z).r;
+        float grade = min(.8, .025 + albedo * 1.48);
+        grade *= mix(.56, 1., sqrt(max(0., lit)));
+        vec3 lunar = grade * vec3(.99, 1., 1.02);
+        vec3 daylight = c * .82 + lunar * .78 + .10;
+        c = mix(c, mix(daylight, lunar, uMoonLight.x), edge * terminator * visible);
+      }
+      // Thin atmospheric scatter only in a lightly hazy dark sky.
+      float scatter = smoothstep(.06, .25, cloud) * (1. - smoothstep(.36, .66, cloud));
+      float halo = (1. - edge) * exp(-max(rr - 1., 0.) * 13.) * (1. - cos(angle));
+      c += vec3(.73, .82, 1.) * (halo * scatter * visible * uMoonLight.x * .006);
+    }
   }
+  c += starlight;
   // aerial haze (rain, snowfall) and fog by depth; an inversion keeps Vitosha above the fog line
   float far = 1. - clamp(inv, 0., 1.);
   c = mix(c, uHazeCol, clamp(far * far * uEnvA.w, 0., 0.9) * (1. - sky));

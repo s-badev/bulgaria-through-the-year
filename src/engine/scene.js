@@ -13,7 +13,7 @@ function pickFormat(formats) {
   });
   return formatPromise;
 }
-async function loadBitmap(url) {
+export async function loadBitmap(url) {
   const r = await fetch(url);
   if (!r.ok) throw new Error(`Не може да се зареди ${url} (${r.status})`);
   const blob = await r.blob();

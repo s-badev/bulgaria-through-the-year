@@ -1,11 +1,12 @@
 // The compositor: shadow pass (on sun change) -> base pass (on state change) -> composite pass (every frame).
-import { createProgram, drawFullscreen, createTarget, bindTarget } from './gl.js';
+import { createProgram, drawFullscreen, createTarget, bindTarget, createTexture } from './gl.js';
 import { SHADOW_FS, BASE_FS, COMPOSITE_FS } from './shaders.js';
 import { blendState, sunDirection, skyColors, mix3, clamp, sstep, lerp, SEASONS } from '../engine/blend.js';
-import { loadPhoto, disposePhoto, photoReady } from '../engine/scene.js';
+import { loadPhoto, disposePhoto, photoReady, loadBitmap } from '../engine/scene.js';
 import { moonParameters } from './sky-effects.js';
 
 const SEASON_PHOTO = { spring: 'spring', summer: 'master', autumn: 'autumn', winter: 'winter-snow' };
+const moonImage = new URL('./moon-nearside.webp', import.meta.url);
 
 export class Compositor {
   constructor(gl, scene) {
@@ -21,6 +22,18 @@ export class Compositor {
     this.view = { cov: [0, 0, 1, 1], zoom: 1.03, par: [0, 0] };
     this.panEnabled = false; this.panX = null; this.coverWidth = 1; this.focusX = 0.5;
     this.blend = null; this.trafficLayer = null; this.trafficRenders = 0;
+    this.moonTexture = null;
+    this.moonRequested = false;
+  }
+  loadMoon() {
+    this.moonRequested = true;
+    void loadBitmap(moonImage).then(bitmap => {
+      try {
+        if (!this.gl.isContextLost()) this.moonTexture = createTexture(this.gl, bitmap);
+      } finally { bitmap.close(); }
+    }).catch(() => {
+      // A missing optional photograph leaves the rest of the sky usable.
+    });
   }
   /** Which photographs the current state needs; streams them in and reports what is ready. */
   requestPhotos(season, tod) {
@@ -108,7 +121,10 @@ export class Compositor {
     fogCol = fogCol.map((v, i) => v + [0.17, 0.12, 0.078][i] * b.lightsOn * (1 - 0.5 * dayL)); // lamps make night fog glow
     const haze = mix3(b.sky.hor, lit.map((v, i) => v * [0.80, 0.83, 0.90][i]), clamp(b.overcast * 1.1));
     const reduce = !!opts.reducedMotion;
-    const moon = state.date ? moonParameters(state.date, b.wNight, env) : [0, 0, 0, 0];
+    const darkness = 1 - sstep(-12, 5, alt);
+    const moon = state.date ? moonParameters(state.date, darkness, env) : [0, 0, 0, 0];
+    if (moon[3] > .003 && !this.moonRequested) this.loadMoon();
+    if (!this.moonTexture) moon[3] = 0;
     const volcano = env.volcano || 0;
     const detail = opts.effectDetail ?? 1;
     bindTarget(gl, null);
@@ -122,7 +138,12 @@ export class Compositor {
       .set('uFogCol', fogCol).set('uHazeCol', haze).set('uCloudLit', lit).set('uCloudDark', dark).set('uSunHor', b.sky.sun)
       .set('uCam', [cam.focalPx, W / 2, H / 2, cam.z0]).set('uFogP', [Math.cos(cam.pitchRad), Math.sin(cam.pitchRad), fogTop(env.fogLvl)])
       .set('uFountCol', opts.fountainColor || [0.2, 0.5, 1]).set('uSkyP', [glowX, b.sky.glow * (1 - b.overcast), b.lightsOn, opts.boltX ?? 0.5]);
-    this.pComp.set('uMoon', moon).set('uVolcano', [volcano, detail, reduce ? 0 : time, reduce ? 1 : 0]);
+    // Half a render pixel in lunar-radius units, accounting for the view crop and zoom.
+    // Use an explicit mip level for the texture lookup inside the small lunar region.
+    const halfPixel = v.cov[3] / (2 * gl.drawingBufferHeight * v.zoom * .024);
+    const moonLod = Math.max(0, Math.log2(256 * halfPixel));
+    this.pComp.tex('tMoon', this.moonTexture ?? s.grey).set('uMoon', moon).set('uMoonLight', [darkness, halfPixel, moonLod])
+      .set('uVolcano', [volcano, detail, reduce ? 0 : time, reduce ? 1 : 0]);
     drawFullscreen(gl);
     return b;
   }
