@@ -46,7 +46,7 @@ export function buildUI({ state, scene, version, actions }) {
       </div>
       <div class="grp season-group"><span class="lab">Сезон</span>
         <div class="seg" id="seasons" role="group" aria-label="Сезон">${SEASONS.map(([k, n]) => `<button type="button" data-s="${k}" aria-pressed="false">${n}</button>`).join('')}</div>
-        <label class="sr" for="date">Дата</label><input id="date" type="date" min="2000-01-01" max="2099-12-31">
+        <button type="button" class="sec special-entry" id="specialEntry" aria-expanded="false" aria-controls="specialPicker">Другата София</button><input id="date" type="date" min="2000-01-01" max="2099-12-31" hidden aria-hidden="true" tabindex="-1">
       </div>
     </div>
     <div class="row row-weather">
@@ -58,7 +58,7 @@ export function buildUI({ state, scene, version, actions }) {
       <div class="sl"><span class="lab">Мъгла</span><label class="sr" for="fogLvl">Гъстота и височина на мъглата</label><input id="fogLvl" type="range" min="0" max="1" step="0.01" value="0.55"></div>
       <div class="sl" style="max-width:220px"><span class="lab">Звук</span><label class="sr" for="vol">Сила на звука</label><input id="vol" type="range" min="0" max="1" step="0.01" value="0.7"></div>
     </div>
-    <div class="note"><span>Сезоните и времето са върху нейни варианти. Слънцето, изгревът и залезът са изчислени за София. Звукът е синтезиран. Симулация, не прогноза.</span><span class="foot"><button type="button" class="sec special-entry" id="specialEntry" aria-haspopup="dialog" aria-controls="specialDialog">Другата София</button><button type="button" class="linkbtn" id="creditsBtn" aria-haspopup="dialog">Информация и права</button><span class="stamp" id="version" hidden aria-hidden="true">${version}</span></span></div>
+    <div class="note"><span>Сезоните и времето са върху нейни варианти. Слънцето, изгревът и залезът са изчислени за София. Звукът е синтезиран. Симулация, не прогноза.</span><span class="foot"><button type="button" class="linkbtn" id="creditsBtn" aria-haspopup="dialog">Информация и права</button><span class="stamp" id="version" hidden aria-hidden="true">${version}</span></span></div>
   </section>`));
   root.append(h(`<button class="chip photo-exit" id="photoExit" type="button">Покажи управлението (H)</button>`));
   root.append(h(`<div class="intro gone" id="intro" role="dialog" aria-labelledby="introTitle" aria-describedby="introText">
@@ -153,7 +153,7 @@ export function buildUI({ state, scene, version, actions }) {
   ui.syncSpecial = id => { document.body.classList.toggle('special-active', !!id); specialUI.sync(id); };
   ui.syncSpecialSetting = specialUI.syncSetting;
   addEventListener('keydown', e => {
-    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || dlg.open || $('#specialDialog').open) return;   // a modal dialog owns the keyboard
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || dlg.open || document.body.classList.contains('special-picker-open')) return;   // a modal dialog owns the keyboard
     const typing = e.target instanceof HTMLInputElement && e.target.type !== 'range';
     if ((e.key === 'h' || e.key === 'H' || e.key === 'х' || e.key === 'Х') && !typing) { ui.setPhotoMode(!ui.photoMode); e.preventDefault(); }
     else if (e.key === 'Escape') { if (mobileSheet.dismiss()) { e.preventDefault(); return; } if (ui.photoMode) ui.setPhotoMode(false); else if (!$('#intro').classList.contains('gone')) { actions.demo(false); ui.hideIntro(); } else actions.demo(false); }
