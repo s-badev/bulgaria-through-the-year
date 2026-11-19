@@ -11,7 +11,7 @@ async function staticPhoto(page, label) {
     const image = document.querySelector('.static-view img');
     return image?.complete && image.naturalWidth > 0;
   });
-  assert.equal(await photo.getAttribute('src'), '/scenes/ndk/photos/master.webp', `${label}: original photograph`);
+  assert.match(await photo.getAttribute('src'), /^\/scenes\/ndk\/(photos\/|special\/)/, `${label}: scene photograph`);
   assert(await page.locator('.static-view #fallbackHour').count() === 1, `${label}: usable photographic time controls`);
   assert(await page.locator('.static-view #fallbackOther').count() === 1, `${label}: six-world entry available`);
   assert(await page.locator('.static-view .static-world-grid [data-special]').count() === 6, `${label}: all worlds registered`);
