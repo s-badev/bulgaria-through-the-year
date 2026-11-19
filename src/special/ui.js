@@ -18,20 +18,21 @@ export function installSpecialUI(root, actions, state, shared) {
   back.type = 'button';
   back.className = 'sec';
   back.textContent = 'Обратно към София';
-  nav.append(change, back);
+  nav.append(change);
 
   const controls = document.createElement('div');
   controls.id = 'specialControls';
   controls.className = 'special-controls';
-  controls.innerHTML = `<div class="special-controls-heading"><h2 id="specialWorldName"></h2><span id="specialWorldTime"></span><button id="specialPlay" class="sec" type="button"></button></div>
+  controls.innerHTML = `<div class="special-controls-heading"><h2 id="specialWorldName"></h2><span class="special-back-slot"></span><span id="specialWorldTime"></span><button id="specialPlay" class="sec" type="button"></button></div>
     <div class="special-settings">
     <div class="special-time-row"><label for="specialHour">Час</label><input id="specialHour" type="range" min="0" max="24" step="0.01"></div>
     <div class="special-condition-row"><span>Атмосфера</span><div id="specialConditions" class="seg" role="group" aria-label="Атмосфера на специалната сцена"></div></div>
     <div class="special-intensity-row"><label for="specialIntensity">Сила на атмосферата</label><input id="specialIntensity" type="range" min="0" max="1" step="0.01"><output id="specialIntensityValue"></output></div>
     <div class="special-audio-row"><button id="specialSound" class="sec" type="button"></button><label for="specialVolume">Сила на звука</label><input id="specialVolume" type="range" min="0" max="1" step="0.01"></div>
     </div>`;
+  controls.querySelector('.special-back-slot').replaceWith(back);
   root.querySelector('#panel .mobile-sheet-header').after(controls);
-  // Scene navigation belongs inside the settings, immediately after atmosphere choices.
+  // Keep mobile scene switching in settings; the return button stays in the pinned heading.
   controls.querySelector('.special-condition-row').after(nav);
   const field = selector => controls.querySelector(selector);
   const sameText = (node, value) => { if (node.textContent !== value) node.textContent = value; };
