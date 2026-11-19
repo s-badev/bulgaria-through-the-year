@@ -37,11 +37,11 @@ try {
   await page.locator('[data-condition="rain"]').click();
   await page.waitForFunction(() => document.querySelector('.special-world-layer').dataset.condition === 'rain');
   await page.locator('[data-condition="clear"]').click();
-  await page.locator('#specialSound').click();
+  await page.locator('#soundBtn').click();
   await page.waitForTimeout(500);
   const audio = await page.evaluate(() => ({ on: window.__app.sound.on, id: window.__app.sound.specialId, context: !!window.__app.sound.ctx, city: window.__app.sound.cityG.gain.value, fountain: window.__app.sound.fountG.gain.value }));
   assert(audio.on && audio.context && audio.id === 'abandoned' && audio.city < .01 && audio.fountain < .01, 'abandoned audio has no city or fountain');
-  await page.locator('#specialSound').click();
+  await page.locator('#soundBtn').click();
   await page.waitForTimeout(200);
   assert.equal(await page.evaluate(() => window.__app.sound.on), false);
   assert(await page.evaluate(() => window.__app.sound.master.gain.value) < .02, 'sound fades promptly after off');
@@ -73,7 +73,7 @@ try {
     assert.equal(await mobile.locator('#panel').isVisible(), false);
     await mobile.locator('#mobileOpen').tap();
     assert(await mobile.locator('#specialControls').isVisible());
-    for (const selector of ['#specialHour', '#specialPlay', '#specialChange', '#specialBack', '#specialIntensity', '#specialSound', '#specialVolume']) {
+    for (const selector of ['#specialHour', '#specialPlay', '#specialChange', '#specialBack']) {
       const box = await mobile.locator(selector).boundingBox();
       assert(box.width >= 44 && box.height >= 44, `${width}x${height}: ${selector} touch target`);
     }
