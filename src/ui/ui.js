@@ -28,7 +28,8 @@ export function buildUI({ state, scene, version, actions }) {
       <button class="chip" id="demoBtn" type="button"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">${ICON.play}</svg><span>Демо</span></button>
       <button class="chip" id="flashBtn" type="button" aria-pressed="false">${ICON.flash}<span>Без проблясвания</span></button>
       <button class="chip" id="soundBtn" type="button" aria-pressed="false">${ICON.sound}<span id="soundLbl">Включи звука</span></button>
-      <button class="chip mobile-more" id="moreBtn" type="button" aria-expanded="false" aria-controls="mobileMenu">Още</button>
+      <button class="chip desktop-info" id="creditsTop" type="button" aria-haspopup="dialog">Информация и права</button>
+       <button class="chip mobile-more" id="moreBtn" type="button" aria-expanded="false" aria-controls="mobileMenu">Още</button>
     </div></div>`));
   root.append(h(`<button class="title-restore" id="titleRestore" type="button" aria-label="Покажи заглавието" title="Покажи заглавието"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>`));
   root.append(h(`<div class="mobile-menu" id="mobileMenu" aria-label="Още действия"><button class="sec" id="menuCredits" type="button">Информация и права</button></div>`));
@@ -137,6 +138,7 @@ export function buildUI({ state, scene, version, actions }) {
   let creditsReturn = opener;
   const openCredits = button => { creditsReturn = button; dlg.showModal(); };
   opener.addEventListener('click', () => openCredits(opener));
+  $('#creditsTop').addEventListener('click', () => openCredits($('#creditsTop')));
   $('#creditsClose').addEventListener('click', () => dlg.close());
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });   // click on the backdrop
   dlg.addEventListener('close', () => creditsReturn.focus({ preventScroll: true }));
