@@ -88,6 +88,13 @@ export function installSpecialUI(root, actions, state, shared) {
     field('.special-settings').scrollTop = 0;
     nav.classList.toggle('is-visible', !!id);
     closePicker();
+    if (id && !manifestRequested) {
+      manifestRequested = true;
+      void actions.specialManifest().then(setManifest).catch(error => {
+        manifestRequested = false;
+        status.textContent = error.message || 'Снимките са недостъпни.';
+      });
+    }
     const definition = specialScene(id);
     if (definition) {
       sameText(field('#specialWorldName'), definition.name);
