@@ -143,9 +143,11 @@ export function installSpecialUI(root, actions, state, shared) {
     if (picker.classList.contains('is-open')) closePicker();
     else showPicker(change);
   });
-  picker.addEventListener('keydown', event => {
+  root.addEventListener('keydown', event => {
     if (event.key === 'Escape') {
+      if (!picker.classList.contains('is-open')) return;
       event.preventDefault();
+      event.stopPropagation();
       closePicker();
       const focus = returnFocus?.getClientRects().length ? returnFocus : mobileOpen;
       focus.focus({ preventScroll: true });
