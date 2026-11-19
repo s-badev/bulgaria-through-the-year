@@ -5,7 +5,7 @@ import { formatClock } from './engine/sun.js';
 import { solarMix } from './special/lighting.js';
 import { plateWeights } from './special/plates.js';
 
-export function showStaticView(lite = false, volcano = new URLSearchParams(location.search).get('volcano') === '1', requestedSpecial = new URLSearchParams(location.search).get('special')) {
+export function showStaticView(lite = false, volcano = new URLSearchParams(location.search).get('volcano') === '1', requestedSpecial = new URLSearchParams(location.search).get('special'), error = null) {
   const app = document.querySelector('#app');
   if (!app || app.querySelector('.static-view')) return;
   document.body.classList.remove('photo');
@@ -93,13 +93,17 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
   const detail = document.createElement('div');
   detail.className = 'static-detail';
   detail.hidden = true;
-  detail.textContent = 'Интерактивният GPU рендер не стартира. Фотографският режим запазва часа и алтернативните сцени. Проверете WebGL2/хардуерното ускорение и конзолата за точната грешка.';
+  detail.textContent = 'Интерактивният GPU рендер не стартира. Фоторежимът запазва часа и алтернативните сцени. Причина: ' + (error?.message || (lite ? 'избран е ?lite=1' : 'WebGL2 не е наличен')) + '. Проверете WebGL2, хардуерното ускорение и конзолата.';
+  const retry = document.createElement('button');
+  retry.type = 'button'; retry.className = 'static-btn'; retry.textContent = 'Опитай интерактивния режим';
+  retry.addEventListener('click', () => { const next = new URL(location.href); next.searchParams.delete('lite'); location.assign(next.href); });
+  detail.append(document.createElement('hr'), retry);
   const panelToggle = document.createElement('button');
   panelToggle.className = 'static-panel-toggle';
   panelToggle.type = 'button';
   panelToggle.textContent = 'Контроли';
   panelToggle.setAttribute('aria-expanded', 'false');
-  view.append(top, detail, panelToggle, panel);
+  view.append(top, detail, panel, panelToggle);
   const $ = selector => panel.querySelector(selector);
   const btns = selector => [...panel.querySelectorAll(selector)];
   const status = $('#fallbackStatus');
@@ -202,6 +206,7 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
     $('#fallbackWorldClose').hidden = true;
     $('#fallbackBack').hidden = false;
     panel.classList.add('is-open');
+    panelToggle.textContent = 'Готово';
     panelToggle.setAttribute('aria-expanded', 'true');
     status.textContent = '';
     sync();
@@ -212,6 +217,7 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
     $('.static-special-options').hidden = true;
     $('.static-normal-options').hidden = false;
     worlds.hidden = true;
+    panelToggle.textContent = panel.classList.contains('is-open') ? 'Готово' : 'Контроли';
     sync();
   }
   btns('[data-season]').forEach(button => button.addEventListener('click', () => { timeState.setSeason(button.dataset.season); sync(); }));
@@ -234,6 +240,7 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
   });
   panelToggle.addEventListener('click', () => {
     const isOpen = panel.classList.toggle('is-open');
+    panelToggle.textContent = isOpen ? 'Готово' : 'Контроли';
     panelToggle.setAttribute('aria-expanded', String(isOpen));
   });
   top.querySelector('#fallbackHelp').addEventListener('click', () => { detail.hidden = !detail.hidden; });
@@ -252,7 +259,7 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
     if (!view.isConnected) return;
     const dt = Math.min((now - lastFrame) / 1000, .2);
     lastFrame = now;
-    if (playing && !reduced.matches) {
+    if (playing) {
       const previousHour = timeState.S.hour;
       timeState.setHour(previousHour + dt * 24 / 60);
       if (timeState.S.hour < previousHour) timeState.setDate(timeState.S.y, timeState.S.m, timeState.S.d + 1);
