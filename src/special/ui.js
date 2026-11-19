@@ -41,7 +41,7 @@ export function installSpecialUI(root, actions, state, shared) {
   dialog.id = 'specialDialog';
   dialog.className = 'special-dialog';
   dialog.setAttribute('aria-labelledby', 'specialTitle');
-  dialog.innerHTML = `<div class="special-dialog-head"><h2 id="specialTitle">Невъзможна София</h2><button id="specialClose" class="sec" type="button">Затвори</button></div>
+  dialog.innerHTML = `<div class="special-dialog-head"><h2 id="specialTitle">Другата София</h2><button id="specialClose" class="sec" type="button">Затвори</button></div>
     <p class="special-intro">Фантастични светове върху снимката на НДК. Избери сцена:</p>
     <div class="special-grid" role="group" aria-label="Фантастични сцени">${VISIBLE_SPECIAL_SCENES.map(scene => `<button type="button" data-special="${scene.id}" disabled><strong>${scene.name}</strong><small>Проверявам снимката…</small></button>`).join('')}</div>
     <div class="special-actions"><button id="specialReturn" class="sec" type="button">Обратно към София</button></div>
