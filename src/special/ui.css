@@ -72,7 +72,7 @@ body.special-active .demo-bar, body.special-active .caption { visibility: hidden
 .special-picker .special-grid button { min-height: 36px; padding: 5px 9px; }
 .special-picker #specialStatus { margin: 0; min-height: 0; }
 /* Keep the controls below NDK's architecture: compact, bottom-aligned and scrollable. */
-body.special-active .panel { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 10px; width: min(1180px, calc(100vw - 24px)); max-height: min(220px, calc(var(--visible-height) - var(--sheet-top))); }
+body.special-active .panel { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 10px; width: min(1180px, calc(100vw - 24px)); max-height: min(194px, calc(var(--visible-height) - var(--sheet-top))); }
 body.special-active .special-controls { grid-column: 1; min-width: 0; }
 body.special-active .special-picker { grid-column: 2; display: flex; overflow-y: auto; overscroll-behavior: contain; padding-inline: 10px 4px; border-left: 1px solid var(--line); }
 body.special-active .special-picker .special-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -113,3 +113,8 @@ body.special-active .special-controls button:focus-visible { outline: 2px solid 
   body.special-active .special-controls-heading #specialPlay { order: 3; margin-left: auto; }
   body.special-active .special-grid button strong { font-size: 13.5px; }
 }
+
+/* No text-status row; keep the world choices compact and close to the screen bottom. */
+body.special-active .special-picker { padding-block: 4px; }
+body.special-active .special-picker .special-grid { gap: 5px; }
+body.special-active #specialStatus.sr { position: absolute; width: 1px; height: 1px; min-height: 0; padding: 0; margin: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
