@@ -18,7 +18,7 @@ async function openFromControls(page, mobile = false) {
     await page.locator('#mobileOpen').tap();
   }
   assert.equal(await entryButtons(page).count(), 1, 'exactly one visible scene entry');
-  const entry = page.locator('#panel .foot > #specialEntry:first-child');
+  const entry = page.locator('#panel .season-group > #specialEntry');
   assert.equal(await entry.textContent(), 'Другата София');
   if (mobile) {
     const target = await entry.boundingBox();
@@ -27,7 +27,8 @@ async function openFromControls(page, mobile = false) {
   } else {
     await entry.click();
   }
-  assert(await page.getByRole('dialog', { name: 'Другата София', exact: true }).isVisible());
+  assert(await page.locator('#specialPicker').isVisible());
+  assert.equal(await page.getByRole('dialog').count(), 0, 'scene selection does not require a modal dialog');
 }
 
 async function drag(cdp, from, to, y) {
@@ -83,8 +84,7 @@ try {
   assert(await desktop.locator('#specialEntry').isVisible());
   for (const id of scenes) {
     if (id === 'planet') continue;
-    const opener = await desktop.locator('#specialChange').isVisible() ? '#specialChange' : '#specialEntry';
-    await desktop.locator(opener).click();
+    await desktop.locator('#specialEntry').click();
     assert.equal(await desktop.locator('[data-special]:enabled').count(), 6);
     await desktop.locator(`[data-special="${id}"]`).click();
     await desktop.waitForFunction(expected => window.__app.special.id === expected, id);
@@ -114,7 +114,7 @@ try {
       assert.equal(await entryButtons(page).count(), 0, 'no alternate entry in the More menu');
       await page.locator('#moreBtn').tap();
       await openFromControls(page, true);
-      await page.locator('#specialClose').tap();
+      await page.locator('#specialPickerClose').tap();
       await page.waitForFunction(() => document.activeElement?.id === 'specialEntry');
       await page.locator('#mobileClose').tap();
     }
@@ -196,6 +196,7 @@ try {
     if (id === 'supercell') {
       await motion.evaluate(() => window.__app.actions.selectSpecial('supercell'));
     } else if (id !== 'ice-age') {
+      await motion.locator('#mobileOpen').click();
       await motion.locator('#specialChange').click();
       await motion.locator(`[data-special="${id}"]`).click();
       await motion.waitForFunction(expected => window.__app.special.id === expected, id);
