@@ -146,3 +146,16 @@ body.special-active .special-picker-head { align-items: center; }
   body.special-active .special-controls-heading h2,
   body.special-active .special-picker-head h2 { font-size: 17px; }
 }
+
+
+/* Remove unused headroom while the world selector is expanded from normal Sofia. */
+@media (min-width: 821px) and (min-height: 501px) {
+  body.special-picker-open:not(.special-active) .panel {
+    padding-top: 4px;
+    gap: 6px;
+  }
+  body.special-picker-open:not(.special-active) .special-picker.is-open {
+    padding-top: 0;
+    gap: 6px;
+  }
+}
