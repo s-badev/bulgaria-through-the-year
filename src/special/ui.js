@@ -51,6 +51,7 @@ export function installSpecialUI(root, actions, state, shared) {
     const opened = picker.classList.contains('is-open');
     entry.setAttribute('aria-expanded', String(opened));
     change.setAttribute('aria-expanded', String(opened));
+    root.querySelector('#panel').classList.toggle('special-picker-expanded', opened);
   }
   function closePicker() {
     picker.classList.remove('is-open');
@@ -60,6 +61,8 @@ export function installSpecialUI(root, actions, state, shared) {
     returnFocus = opener;
     picker.classList.add('is-open');
     updatePickerState();
+    const mobile = matchMedia('(max-width: 820px), (max-height: 500px)').matches;
+    if (mobile && !root.querySelector('#panel').classList.contains('is-open')) mobileOpen.click();
     if (!manifestRequested) {
       manifestRequested = true;
       status.textContent = 'Проверявам наличните снимки…';
@@ -132,6 +135,14 @@ export function installSpecialUI(root, actions, state, shared) {
   change.addEventListener('click', () => {
     if (picker.classList.contains('is-open')) closePicker();
     else showPicker(change);
+  });
+  picker.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closePicker();
+      const focus = returnFocus?.getClientRects().length ? returnFocus : mobileOpen;
+      focus.focus({ preventScroll: true });
+    }
   });
   picker.querySelector('#specialPickerClose').addEventListener('click', () => {
     closePicker();
