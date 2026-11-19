@@ -73,7 +73,7 @@ try {
     assert.equal(await mobile.locator('#panel').isVisible(), false);
     await mobile.locator('#mobileOpen').tap();
     assert(await mobile.locator('#specialControls').isVisible());
-    for (const selector of ['#specialHour', '#specialPlay', '#specialDate', '#specialIntensity', '#specialSound', '#specialVolume']) {
+    for (const selector of ['#specialHour', '#specialPlay', '#specialChange', '#specialBack', '#specialIntensity', '#specialSound', '#specialVolume']) {
       const box = await mobile.locator(selector).boundingBox();
       assert(box.width >= 44 && box.height >= 44, `${width}x${height}: ${selector} touch target`);
     }
