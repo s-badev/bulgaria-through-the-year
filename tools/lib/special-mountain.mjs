@@ -4,6 +4,11 @@ import { reference } from './special-reference.mjs';
 
 const REVISION = 1;
 export const mountainProfiles = {
+  planet: { saturation: .94 },
+  abandoned: { saturation: .91 },
+  sandstorm: { saturation: .88 },
+  cyberpunk: { saturation: .87, yOffset: -32 },
+  flood: { saturation: .94 },
   'ice-age': { saturation: .72, winterDetail: .86 },
 };
 

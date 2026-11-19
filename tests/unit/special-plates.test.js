@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { plateWeights } from '../../src/special/plates.js';
+import { VISIBLE_SPECIAL_SCENES } from '../../src/special/registry.js';
 
 const asset = { variants: { day: {}, dusk: {}, night: {}, overcast: {} } };
 const scene = { id: 'planet', basePhase: 'dusk' };
@@ -29,6 +30,21 @@ test('missing or failed plates retain a valid photographic fallback', () => {
   assert.deepEqual([...at(-25, { variants: { day: {} } })], [['base', 1]]);
   assert.deepEqual([...at(-3, asset, new Set(['dusk']))], [['base', 1]]);
   assert.deepEqual([...at(-25, asset, new Set(['night', 'base']))], [['day', 1]]);
+});
+
+test('each world keeps the solar midpoint and reduces double exposure on either side', () => {
+  const forScene = (definition, elevation) => plateWeights(definition, asset, { elevation }, { condition: 'clear' });
+  const baseline = { ...scene, id: 'unprofiled' };
+  for (const world of VISIBLE_SPECIAL_SCENES) {
+    for (const [midpoint, key] of [[3, 'day'], [-7, 'night']]) {
+      assert.equal(forScene(world, midpoint).get(key), .5, world.id);
+      for (const offset of [-1, 1]) {
+        const at = midpoint + offset;
+        const distance = definition => Math.abs(forScene(definition, at).get(key) - .5);
+        assert(distance(world) > distance(baseline), `${world.id}: elevation ${at}`);
+      }
+    }
+  }
 });
 
 test('weather plates affect only their configured solar phase', () => {

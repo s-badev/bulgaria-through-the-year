@@ -13,19 +13,17 @@
 .special-snow .special-atmosphere { background: linear-gradient(180deg, rgba(214, 231, 242, .055), transparent 52%); animation: special-sky-breathe 24s ease-in-out infinite alternate; }
 .special-snow[data-condition='blizzard'] .special-atmosphere { background: linear-gradient(115deg, rgba(174,199,216,.18), rgba(229,238,244,.04) 46%, transparent 76%); }
 .special-dust .special-atmosphere { background: linear-gradient(110deg, rgba(190, 149, 101, .035), rgba(239, 200, 144, .065) 37%, transparent 75%); animation: special-dust-breathe 15s ease-in-out infinite alternate; }
-.special-dust[data-condition='extreme'] .special-atmosphere { background: linear-gradient(110deg, rgba(154,112,72,.15), rgba(239,200,144,.12) 37%, transparent 75%); }
+.special-dust[data-condition='extreme'] .special-atmosphere { background: linear-gradient(110deg, rgba(154,112,72,.08), rgba(239,200,144,.07) 37%, transparent 75%); }
 .special-quiet-haze .special-atmosphere { background: linear-gradient(180deg, rgba(216, 223, 210, .05), transparent 55%); animation: special-sky-breathe 26s ease-in-out infinite alternate; }
 .special-quiet-haze[data-condition='fog'] .special-atmosphere { background: radial-gradient(ellipse 90% 24% at 51% 48%, rgba(200,207,203,.24), transparent 96%); }
 .special-quiet-haze[data-condition='rain'] .special-atmosphere { background: linear-gradient(180deg, rgba(113,136,148,.09), transparent 61%); }
-.special-neon .special-atmosphere { background: radial-gradient(ellipse 28% 18% at 50% 59%, rgba(219, 73, 226, .12), transparent 85%), radial-gradient(ellipse 25% 14% at 50% 75%, rgba(55, 173, 236, .09), transparent 90%); animation: special-neon-breathe 8s ease-in-out infinite alternate; }
-.special-neon .special-atmosphere { animation: none; opacity: var(--special-neon, .6); }
+.special-neon .special-atmosphere { background: radial-gradient(ellipse 28% 18% at 50% 59%, rgba(219, 73, 226, .12), transparent 85%), radial-gradient(ellipse 25% 14% at 50% 75%, rgba(55, 173, 236, .09), transparent 90%); opacity: var(--special-neon, .6); }
 .special-neon[data-condition='fog'] .special-atmosphere { filter: blur(3px); }
 .special-storm .special-atmosphere { background: linear-gradient(180deg, rgba(179, 195, 222, .04), transparent 48%); animation: special-sky-breathe 21s ease-in-out infinite alternate; }
 .special-storm[data-condition='violent'] .special-atmosphere { background: linear-gradient(180deg, rgba(74,94,123,.2), rgba(132,153,170,.045) 43%, transparent 70%); }
 .special-flash { opacity: 0; background: radial-gradient(ellipse 50% 33% at 40% 17%, rgba(220, 231, 247, .76), transparent 90%); }
 @keyframes special-sky-breathe { from { opacity: .2; } to { opacity: .75; } }
 @keyframes special-dust-breathe { from { opacity: .28; transform: translateX(-3px); } to { opacity: .72; transform: translateX(4px); } }
-@keyframes special-neon-breathe { from { opacity: .22; } to { opacity: .64; } }
 .special-world.is-reduced .special-atmosphere { animation: none; opacity: .3; }
 .special-world.is-reduced .special-aurora-glow .special-atmosphere { opacity: var(--special-aurora, .6); }
 .special-world.is-reduced .special-neon .special-atmosphere { opacity: var(--special-neon, .6); }

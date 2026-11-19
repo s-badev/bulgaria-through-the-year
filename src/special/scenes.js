@@ -157,14 +157,16 @@ export class SpecialScenes {
     if (!this.active) return;
     const layer = this.layers[0], setting = this.setting();
     layer.plates.update(dt, state.sun, setting, state.S.reducedMotion);
-    const light = layer.lighting.update(state, setting, layer.plates.photographicWeight);
+    const photographicWeight = layer.plates.photographicWeight;
+    const light = layer.lighting.update(state, setting, photographicWeight);
     light.nightPlate = layer.plates.nightWeight;
     if (layer.dataset.condition !== setting.condition) layer.dataset.condition = setting.condition;
     if (this.id === 'aurora') {
       const opacity = setting.condition === 'partly' ? .02 + light.night * .28 : .04 + light.night * .58;
       layer.style.setProperty('--special-aurora', opacity.toFixed(3));
     } else if (this.id === 'cyberpunk') {
-      layer.style.setProperty('--special-neon', (.08 + light.night * .52).toFixed(3));
+      const opacity = (.08 + light.night * .52) * (1 - .84 * photographicWeight);
+      layer.style.setProperty('--special-neon', opacity.toFixed(3));
     }
     light.flash = layer.effects.update(dt, detail, state.S.reducedMotion, state.S.flashes, setting, light) === true;
     return light;

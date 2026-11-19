@@ -4,18 +4,19 @@ const timeVariants = ['day', 'dusk', 'night'];
 const overcastVariants = [...timeVariants, 'overcast'];
 const overcast = conditions => ({ key: 'overcast', phase: 'day', conditions });
 export const SPECIAL_VARIANTS = {
-  planet: { keys: overcastVariants, weather: [overcast(['cloudy'])] },
-  abandoned: { keys: overcastVariants, files: { dusk: 'abandoned-up.png' }, weather: [overcast(['cloudy', 'rain'])] },
+  planet: { keys: overcastVariants, transition: { dayDusk: 2, duskNight: 3, seconds: .085 }, weather: [overcast(['cloudy'])] },
+  abandoned: { keys: overcastVariants, transition: { dayDusk: 2, duskNight: 2, seconds: .09 }, files: { dusk: 'abandoned-up.png' }, weather: [overcast(['cloudy', 'rain'])] },
   sandstorm: {
     keys: [...timeVariants, 'haze', 'dusk-alt'],
+    transition: { dayDusk: 4, duskNight: 4, seconds: .065 },
     files: { dusk: 'sandstorm-dusk.png.png' },
     weather: [
       { key: 'haze', phase: 'day', conditions: ['strong', 'extreme'] },
       { key: 'dusk-alt', phase: 'dusk', conditions: ['extreme'] },
     ],
   },
-  cyberpunk: { keys: overcastVariants, files: { dusk: 'Киберпънк София под неоново небе.png' }, weather: [overcast(['cloudy', 'rain'])] },
-  flood: { keys: overcastVariants, weather: [overcast(['cloudy', 'heavy-rain', 'storm'])] },
+  cyberpunk: { keys: overcastVariants, transition: { dayDusk: 4, duskNight: 3, seconds: .075 }, files: { dusk: 'Киберпънк София под неоново небе.png' }, weather: [overcast(['cloudy', 'rain'])] },
+  flood: { keys: overcastVariants, transition: { dayDusk: 3, duskNight: 4, seconds: .075 }, weather: [overcast(['cloudy', 'heavy-rain', 'storm'])] },
   'ice-age': {
     keys: [...overcastVariants, 'night-alt'],
     transition: { dayDusk: 2, duskNight: 3, seconds: .08 },
