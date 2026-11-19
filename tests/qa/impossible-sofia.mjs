@@ -27,7 +27,7 @@ async function openFromControls(page, mobile = false) {
   } else {
     await entry.click();
   }
-  assert(await page.getByRole('dialog', { name: 'Невъзможна София', exact: true }).isVisible());
+  assert(await page.getByRole('dialog', { name: 'Другата София', exact: true }).isVisible());
 }
 
 async function drag(cdp, from, to, y) {

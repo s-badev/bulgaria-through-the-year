@@ -60,12 +60,12 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
   nav.className = 'static-special-nav';
   const choose = document.createElement('button'), back = document.createElement('button');
   choose.type = back.type = 'button';
-  choose.textContent = 'Невъзможна София'; back.textContent = 'Обратно към София';
+  choose.textContent = 'Другата София'; back.textContent = 'Обратно към София';
   nav.append(choose, back); view.append(nav);
   const dialog = document.createElement('dialog');
   dialog.className = 'static-special-dialog';
-  dialog.setAttribute('aria-label', 'Невъзможна София');
-  dialog.innerHTML = `<h2>Невъзможна София</h2><div class="static-special-grid">${VISIBLE_SPECIAL_SCENES.map(scene => `<button type="button" data-special="${scene.id}" disabled>${scene.name}<small>Недостъпно · липсва снимка</small></button>`).join('')}</div><button class="static-special-close" type="button">Затвори</button><p aria-live="polite"></p>`;
+  dialog.setAttribute('aria-label', 'Другата София');
+  dialog.innerHTML = `<h2>Другата София</h2><div class="static-special-grid">${VISIBLE_SPECIAL_SCENES.map(scene => `<button type="button" data-special="${scene.id}" disabled>${scene.name}<small>Недостъпно · липсва снимка</small></button>`).join('')}</div><button class="static-special-close" type="button">Затвори</button><p aria-live="polite"></p>`;
   view.append(dialog);
   let manifestPromise, selection = 0;
   const status = dialog.querySelector('[aria-live]');

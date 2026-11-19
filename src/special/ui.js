@@ -27,12 +27,14 @@ export function installSpecialUI(root, actions, state, shared) {
   const controls = document.createElement('div');
   controls.id = 'specialControls';
   controls.className = 'special-controls';
-  controls.innerHTML = `<div class="special-controls-heading"><h2 id="specialWorldName"></h2><span id="specialWorldTime"></span></div>
-    <div class="special-time-row"><label for="specialHour">Час</label><input id="specialHour" type="range" min="0" max="24" step="0.01"><button id="specialPlay" type="button"></button></div>
+  controls.innerHTML = `<div class="special-controls-heading"><h2 id="specialWorldName"></h2><span id="specialWorldTime"></span><button id="specialPlay" class="sec" type="button"></button></div>
+    <div class="special-settings">
+    <div class="special-time-row"><label for="specialHour">Час</label><input id="specialHour" type="range" min="0" max="24" step="0.01"></div>
     <div class="special-date-row"><label for="specialDate">Дата</label><input id="specialDate" type="date" min="2000-01-01" max="2099-12-31"><span id="specialSolar"></span></div>
-    <div class="special-condition-row"><span>Атмосфера</span><div id="specialConditions" role="group" aria-label="Атмосфера на специалната сцена"></div></div>
+    <div class="special-condition-row"><span>Атмосфера</span><div id="specialConditions" class="seg" role="group" aria-label="Атмосфера на специалната сцена"></div></div>
     <div class="special-intensity-row"><label for="specialIntensity">Сила на атмосферата</label><input id="specialIntensity" type="range" min="0" max="1" step="0.01"><output id="specialIntensityValue"></output></div>
-    <div class="special-audio-row"><button id="specialSound" type="button"></button><label for="specialVolume">Сила на звука</label><input id="specialVolume" type="range" min="0" max="1" step="0.01"></div>`;
+    <div class="special-audio-row"><button id="specialSound" class="sec" type="button"></button><label for="specialVolume">Сила на звука</label><input id="specialVolume" type="range" min="0" max="1" step="0.01"></div>
+    </div>`;
   root.querySelector('#panel .mobile-sheet-header').after(controls);
   const field = selector => controls.querySelector(selector);
   const sameText = (node, value) => { if (node.textContent !== value) node.textContent = value; };
@@ -63,6 +65,7 @@ export function installSpecialUI(root, actions, state, shared) {
 
   function sync(id) {
     active = id;
+    field('.special-settings').scrollTop = 0;
     nav.classList.toggle('is-visible', !!id);
     const definition = specialScene(id);
     if (definition) {
