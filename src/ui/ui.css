@@ -221,3 +221,7 @@ body.photo .photo-exit:focus-visible, body.photo .photo-exit:hover { opacity: 1;
   .panel { width: min(40%, 360px); max-height: calc(var(--visible-height) - var(--sheet-top)); }
   .mobile-menu { top: calc(var(--visible-top) + 58px); }
 }
+
+/* Compact desktop controls: information remains in the top toolbar, never in the bottom panel. */
+.panel > .note { display: none; }
+@media (max-width: 820px), (max-height: 500px) { .desktop-info { display: none; } }
