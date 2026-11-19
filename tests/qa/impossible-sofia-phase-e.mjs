@@ -170,19 +170,20 @@ try {
     await mobile.screenshot({ path: `${out}/flood-${width}x${height}.jpg`, type: 'jpeg', quality: 75 });
     await mobile.locator('#mobileOpen').tap();
     assert.equal(await mobile.locator('#specialDate').count(), 0, 'calendar removed from special controls');
-    for (const selector of ['#specialHour', '#specialChange', '#specialBack', '#specialPlay', '#specialIntensity', '#specialSound', '#specialVolume']) {
+    for (const selector of ['#specialHour', '#specialChange', '#specialBack', '#specialPlay']) {
       const rect = await mobile.locator(selector).boundingBox();
       assert(rect.width >= 44 && rect.height >= 44, `${width}x${height} ${selector} touch target`);
     }
+    assert.equal(await mobile.locator('#specialIntensity, #specialVolume, #specialSound').count(), 0, 'special panel has no redundant volume or intensity controls');
     assert.equal(await mobile.evaluate(() => window.__app.sound.ctx), null);
-    await mobile.locator('#specialSound').tap();
+    await mobile.locator('#soundBtn').tap();
     await mobile.waitForFunction(() => window.__app.sound.ctx.state === 'running' && window.__app.sound.rainLowG.gain.value > .02 && window.__app.sound.rainG.gain.value < .01);
     await condition(mobile, 'storm');
-    await mobile.locator('#specialIntensity').fill('1');
+    await mobile.evaluate(() => window.__app.special.setIntensity(1));
     await mobile.waitForFunction(() => window.__app.sound.rainG.gain.value > .12);
     await mobile.evaluate(() => { window.__app.special.layers[0].effects.nextFlash = -1; });
     await mobile.waitForFunction(() => window.__app.sound.voices.size > 0);
-    await mobile.locator('#specialSound').tap();
+    await mobile.locator('#soundBtn').tap();
     await mobile.waitForFunction(() => !window.__app.sound.on && window.__app.sound.voices.size === 0 && window.__app.sound.master.gain.value < .02);
     await mobile.locator('#mobileDone').tap();
     await mobile.locator('#mobileOpen').tap();
