@@ -37,7 +37,7 @@ function showFallback(error) {
   for (const timer of timers) clearInterval(timer);
   delete window.__app;
   console.error(error);
-  showStaticView(false, activeState?.S.volcano ?? params.get('volcano') === '1', activeSpecial?.id || params.get('special'));
+  showStaticView(false, activeState?.S.volcano ?? params.get('volcano') === '1', activeSpecial?.id || params.get('special'), error);
 }
 canvas.addEventListener('webglcontextlost', event => {
   event.preventDefault();
@@ -220,4 +220,10 @@ async function boot() {
   if (liveMode) void refreshLiveWeather();
   if (import.meta.env.DEV) import('./ui/debug-overlay.js').then(d => { window.__app.debug = d.install({ scene, comp, life, clock }); }); // key D; stripped from production builds
 }
-boot().catch(showFallback);
+if (params.get('lite') === '1') {
+  loading.remove();
+  canvas.remove();
+  showStaticView(true, params.get('volcano') === '1', params.get('special'));
+} else {
+  boot().catch(showFallback);
+}
