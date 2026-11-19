@@ -2,6 +2,7 @@ import { SPECIAL_BASE, specialScene } from './registry.js';
 import { SpecialEffects } from './effects.js';
 import { SpecialLighting, paintSpecialLighting } from './lighting.js';
 import { SpecialPlates } from './plates.js';
+import { reportSceneError } from '../diagnostics.js';
 import './scenes.css';
 import './lighting.css';
 
@@ -9,11 +10,11 @@ const FADE_MS = 480;
 
 /** A photographic layer in the compositor's image coordinates, without another GPU texture. */
 export class SpecialScenes {
-  constructor(app, comp, state, onChange = () => {}) {
-    this.app = app;
+  constructor(app, comp, state, onChange, signal) {
     this.comp = comp;
     this.state = state;
     this.onChange = onChange;
+    this.signal = signal;
     this.id = null;
     this.exiting = false;
     this.sequence = 0;
@@ -29,11 +30,11 @@ export class SpecialScenes {
 
   async loadManifest() {
     if (this.manifest) return this.manifest;
-    if (!this.manifestPromise) this.manifestPromise = fetch(`${SPECIAL_BASE}manifest.json`).then(response => {
+    if (!this.manifestPromise) this.manifestPromise = fetch(`${SPECIAL_BASE}manifest.json`, { signal: this.signal }).then(response => {
       if (!response.ok) throw new Error(`special manifest ${response.status}`);
       return response.json();
     }).catch(error => {
-      console.error(error);
+      if (!this.signal.aborted) reportSceneError(error, 'special-manifest', true, 'scene-resource');
       return { version: 1, scenes: {} };
     });
     this.manifest = await this.manifestPromise;
@@ -65,6 +66,7 @@ export class SpecialScenes {
   async select(id) {
     const definition = specialScene(id);
     const manifest = await this.loadManifest();
+    if (this.signal.aborted) return false;
     const asset = manifest.scenes[id];
     if (!definition || !asset) throw new Error('Сцената все още няма предоставена снимка.');
     if (this.id === id && !this.exiting) return true;
@@ -134,10 +136,20 @@ export class SpecialScenes {
     layer.remove();
   }
 
+  destroy() {
+    this.sequence++;
+    this.pendingPlates?.destroy();
+    this.pendingPlates = null;
+    for (const layer of [...this.root.children]) this.removeLayer(layer);
+    this.layers = [];
+    this.inactiveWaiters.splice(0).forEach(resolve => resolve());
+    this.root.remove();
+  }
+
   layout() {
     if (!this.layers.length) return;
     const cov = this.comp.view.cov, zoom = this.comp.view.zoom;
-    const width = this.app.clientWidth || innerWidth, height = this.app.clientHeight || innerHeight;
+    const { clientWidth: width, clientHeight: height } = this.comp.gl.canvas;
     const imageWidth = width * zoom / cov[2], imageHeight = height * zoom / cov[3];
     const left = -(0.5 + (cov[0] - 0.5) / zoom) * imageWidth;
     const top = -(0.5 + (cov[1] - 0.5) / zoom) * imageHeight;

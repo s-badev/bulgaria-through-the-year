@@ -71,7 +71,8 @@ try {
       const rect = await target.boundingBox(), scroller = await settings.boundingBox();
       assert(rect.y >= scroller.y - 1 && rect.y + rect.height <= scroller.y + scroller.height + 1, `${name}: ${selector} fully reachable`);
       assert(rect.x >= scroller.x && rect.x + rect.width <= scroller.x + scroller.width + 1, `${name}: ${selector} fits settings`);
-      assert(rect.width >= 44 && rect.height >= 44, `${name}: ${selector} touch target`);
+      const minimum = mobile ? 44 : 36; // Desktop uses the same 36 px buttons as the main toolbar panel.
+      assert(rect.width >= minimum && rect.height >= minimum, `${name}: ${selector} target size`);
     }
     assert.equal(await settings.evaluate(node => node.scrollTop), 0, `${name}: compact atmosphere settings do not require internal scrolling`);
     assert.deepEqual(await pinned.boundingBox(), before, `${name}: title, time and playback stay pinned`);

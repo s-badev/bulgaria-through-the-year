@@ -89,11 +89,18 @@ body.special-active .special-controls-heading #specialBack:hover { background: r
   .special-controls-heading #specialWorldTime { margin-left: auto; }
   body.special-active .special-picker { display: none; border: 0; padding: 4px; overflow: visible; }
   body.special-active .special-picker.is-open { display: flex; }
+  body.special-active .panel.special-picker-expanded { overflow-y: auto; }
   body.special-active .panel.special-picker-expanded .special-controls { display: none; }
   body.special-active .special-picker #specialPickerClose { display: inline-flex; }
   body.special-active .special-nav #specialChange { display: inline-flex; }
   .special-picker .special-grid, body.special-active .special-picker .special-grid { grid-template-columns: minmax(0, 1fr); }
   .special-picker .special-grid button { min-height: 44px; }
+}
+@media (max-height: 500px) and (min-width: 600px) {
+  body.special-active .panel { padding-bottom: calc(16px + env(safe-area-inset-bottom)); gap: 4px; }
+  body.special-active .mobile-sheet-header { padding-block: 6px; }
+  body.special-active .special-controls-heading { padding-bottom: 4px; }
+  body.special-active .special-settings { padding-block: 4px 2px; }
 }
 
 /* Keep the one return action at the far right of the special-world heading. */

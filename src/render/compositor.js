@@ -4,6 +4,7 @@ import { SHADOW_FS, BASE_FS, COMPOSITE_FS } from './shaders.js';
 import { blendState, sunDirection, skyColors, mix3, clamp, sstep, lerp, SEASONS } from '../engine/blend.js';
 import { loadPhoto, disposePhoto, photoReady, loadBitmap } from '../engine/scene.js';
 import { moonLighting, moonParameters } from './sky-effects.js';
+import { reportSceneError } from '../diagnostics.js';
 
 const SEASON_PHOTO = { spring: 'spring', summer: 'master', autumn: 'autumn', winter: 'winter-snow' };
 const moonImage = new URL('./moon-nearside.webp', import.meta.url);
@@ -12,11 +13,11 @@ export class Compositor {
   constructor(gl, scene) {
     this.gl = gl; this.scene = scene;
     const [W, H] = scene.size; this.W = W; this.H = H;
-    this.pShadow = createProgram(gl, SHADOW_FS, { target: true });
-    this.pBase = createProgram(gl, BASE_FS, { target: true });
-    this.pComp = createProgram(gl, COMPOSITE_FS);
-    this.base = createTarget(gl, W, H);
-    this.shadow = createTarget(gl, Math.round(W / 2), Math.round(H / 2));
+    this.pShadow = createProgram(gl, SHADOW_FS, { target: true, name: 'shadow' });
+    this.pBase = createProgram(gl, BASE_FS, { target: true, name: 'base' });
+    this.pComp = createProgram(gl, COMPOSITE_FS, { name: 'composite' });
+    this.base = createTarget(gl, W, H, { name: 'base' });
+    this.shadow = createTarget(gl, Math.round(W / 2), Math.round(H / 2), { name: 'shadow' });
     this.prevKey = ''; this.prevSunKey = ''; this.baseRenders = 0; this.shadowRenders = 0;
     this.shadowSteps = 30; this.maxPhotos = 12;
     this.view = { cov: [0, 0, 1, 1], zoom: 1.03, par: [0, 0] };
@@ -27,13 +28,11 @@ export class Compositor {
   }
   loadMoon() {
     this.moonRequested = true;
-    void loadBitmap(moonImage).then(bitmap => {
+    void loadBitmap(moonImage, this.scene.signal).then(bitmap => {
       try {
-        if (!this.gl.isContextLost()) this.moonTexture = createTexture(this.gl, bitmap);
+        if (!this.scene.signal?.aborted && !this.gl.isContextLost()) this.moonTexture = createTexture(this.gl, bitmap);
       } finally { bitmap.close(); }
-    }).catch(() => {
-      // A missing optional photograph leaves the rest of the sky usable.
-    });
+    }).catch(error => { if (!this.scene.signal?.aborted) reportSceneError(error, 'moon-texture', true); });
   }
   /** Which photographs the current state needs; streams them in and reports what is ready. */
   requestPhotos(season, tod) {

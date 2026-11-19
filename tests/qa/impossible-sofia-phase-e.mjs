@@ -171,9 +171,9 @@ try {
     assert(!await mobile.locator('#panel').isVisible());
     assert(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     assert(await mobile.evaluate(() => {
-      const bounds = selector => document.querySelector(selector).getBoundingClientRect();
       const nav = document.querySelector('.special-nav');
-      return nav.closest('#specialControls .special-settings') !== null && !document.querySelector('#panel').getClientRects().length;
+      const panel = document.querySelector('#panel');
+      return nav.closest('#specialControls .special-settings') !== null && panel.inert && getComputedStyle(panel).visibility === 'hidden';
     }), 'scene navigation clear of the clock and controls');
     await mobile.screenshot({ path: `${out}/flood-${width}x${height}.jpg`, type: 'jpeg', quality: 75 });
     await mobile.locator('#mobileOpen').tap();
@@ -184,16 +184,19 @@ try {
     }
     assert.equal(await mobile.locator('#specialIntensity, #specialVolume, #specialSound').count(), 0, 'special panel has no redundant volume or intensity controls');
     assert.equal(await mobile.evaluate(() => window.__app.sound.ctx), null);
+    // Sound is shared with the main scene and reached through the mobile More menu.
+    await mobile.locator('#moreBtn').tap();
     await mobile.locator('#soundBtn').tap();
     await mobile.waitForFunction(() => window.__app.sound.ctx.state === 'running' && window.__app.sound.rainLowG.gain.value > .02 && window.__app.sound.rainG.gain.value < .01);
+    await mobile.locator('#mobileOpen').tap();
     await condition(mobile, 'storm');
     await mobile.evaluate(() => window.__app.special.setIntensity(1));
     await mobile.waitForFunction(() => window.__app.sound.rainG.gain.value > .12);
     await mobile.evaluate(() => { window.__app.special.layers[0].effects.nextFlash = -1; });
     await mobile.waitForFunction(() => window.__app.sound.voices.size > 0);
+    await mobile.locator('#moreBtn').tap();
     await mobile.locator('#soundBtn').tap();
     await mobile.waitForFunction(() => !window.__app.sound.on && window.__app.sound.voices.size === 0 && window.__app.sound.master.gain.value < .02);
-    await mobile.locator('#mobileDone').tap();
     await mobile.locator('#mobileOpen').tap();
     await mobile.locator('#specialChange').tap();
     assert.equal(await mobile.locator('[data-special]:enabled').count(), 6);

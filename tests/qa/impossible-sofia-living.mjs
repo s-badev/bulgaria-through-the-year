@@ -39,18 +39,19 @@ try {
       await page.waitForFunction(() => document.querySelector('.special-world-layer').dataset.condition === 'rain');
     } else if (id === 'ice-age') {
       await page.locator('[data-condition="blizzard"]').click();
-      await page.locator('#specialIntensity').fill('1');
+      // The intensity remains in the simulation after removal of its UI slider.
+      await page.evaluate(() => window.__app.special.setIntensity(1));
       await page.waitForFunction(() => window.__app.special.setting().condition === 'blizzard' && window.__app.special.setting().intensity === 1);
       assert(await page.locator('.special-particles').isVisible(), 'snow remains present in ice age');
       await page.waitForFunction(() => window.__app.special.layers[0].lighting.values.haze > .15);
     } else if (id === 'sandstorm') {
       await page.locator('[data-condition="extreme"]').click();
-      await page.locator('#specialIntensity').fill('1');
+      await page.evaluate(() => window.__app.special.setIntensity(1));
       await page.waitForFunction(() => window.__app.special.layers[0].lighting.values.haze > .3);
       assert(await page.locator('.special-particles').isVisible(), 'sand particles remain available');
     } else if (id === 'supercell') {
       await page.locator('[data-condition="violent"]').click();
-      await page.locator('#specialIntensity').fill('1');
+      await page.evaluate(() => window.__app.special.setIntensity(1));
       await page.evaluate(() => { const app = window.__app; app.sound.thunder = () => { window.__thunderEvents = (window.__thunderEvents || 0) + 1; }; app.special.layers[0].effects.nextFlash = -1; });
       await page.waitForFunction(() => window.__thunderEvents > 0);
       assert(await page.locator('.special-particles').isVisible(), 'rain remains available');

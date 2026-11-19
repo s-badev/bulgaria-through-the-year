@@ -5,11 +5,12 @@ import { chromium } from 'playwright';
 import sharp from 'sharp';
 
 const base = `http://127.0.0.1:${process.argv[2] || process.env.QA_PORT || 8080}/`;
-const output = 'docs/screenshots/mobile-v2';
+const output = process.env.QA_SCREENSHOT_DIR || 'docs/screenshots/mobile-v2';
 fs.mkdirSync(output, { recursive: true });
 const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });
 const sizes = [[360, 640], [390, 844], [412, 915], [360, 500], [844, 390], [390, 700]];
-const panelSelectors = ['#play', '#hour', '#now', '#wind', '#fogLvl', '#vol', '#creditsBtn', ...['spring', 'summer', 'autumn', 'winter'].map(value => `[data-s="${value}"]`), ...['clear', 'cloudy', 'fog', 'rain', 'storm', 'snow'].map(value => `[data-w="${value}"]`)];
+// Credits are covered below in the More menu. The settings sheet has no redundant copy.
+const panelSelectors = ['#play', '#hour', '#now', '#wind', '#fogLvl', '#vol', '#specialEntry', ...['spring', 'summer', 'autumn', 'winter'].map(value => `[data-s="${value}"]`), ...['clear', 'cloudy', 'fog', 'rain', 'storm', 'snow'].map(value => `[data-w="${value}"]`)];
 const menuSelectors = ['#soundBtn', '#shotBtn', '#demoBtn', '#flashBtn', '#panelBtn', '#menuCredits'];
 const failures = [];
 
@@ -106,11 +107,6 @@ try {
     await page.locator('#panel').evaluate(node => { node.scrollTop = 0; });
     assert(!(await page.locator('#mobileOpen').isVisible()));
     await shot(page, `${name}-open`);
-    await page.locator('#creditsBtn').click();
-    assert(await page.locator('#credits').evaluate(node => node.open));
-    await page.keyboard.press('Escape');
-    await page.waitForFunction(() => document.activeElement?.id === 'creditsBtn');
-    assert(await page.locator('#creditsBtn').evaluate(node => node === document.activeElement));
     for (const selector of ['#hour', '#wind', '#fogLvl', '#vol']) {
       const before = await page.locator(selector).inputValue();
       await page.locator(selector).focus();
@@ -219,7 +215,8 @@ try {
   const desktop = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
   await desktop.goto(base + '?qa=1&still=1&reduce=1&date=2026-04-22&h=12&w=clear');
   await desktop.waitForFunction(() => window.__app);
-  assert(await desktop.locator('#date').isVisible(), 'desktop calendar remains available');
+  // The product removed the desktop calendar in b75f508; the internal date and URL still drive the sun.
+  assert.equal(await desktop.locator('#panel input[type="date"]').count(), 0, 'desktop panel has no calendar');
   await desktop.waitForFunction(() => window.__app && Object.values(window.__app.scene.photos).every(photo => photo.state !== 'loading'));
   await desktop.waitForTimeout(2000);
   await desktop.evaluate(() => { window.__app.clock.stop(); document.querySelector('#version').textContent = 'версия QA'; document.querySelector('.loading')?.remove(); });

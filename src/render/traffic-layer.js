@@ -2,6 +2,8 @@
 // image-space layer. The base pass composites that layer into the day photograph BEFORE relighting, so a live car gets
 // exactly the same sun, ambient, night gain, fog, wetness, parallax, grade and grain as the baked ones.
 // Every fragment is multiplied by the strict asphalt mask: a car can not be drawn on anything that is not road.
+import { createTarget, linkProgram } from './gl.js';
+
 const VS = `#version 300 es
 layout(location=0) in vec4 aDst;   // x, y, w, h in image px (top-left + size)
 layout(location=1) in vec4 aSrc;   // u, v, w, h in atlas px (w < 0 mirrors)
@@ -31,23 +33,22 @@ export class TrafficLayer {
   constructor(gl, scene, max = 600) {
     this.gl = gl; this.scene = scene; this.max = max; this.data = new Float32Array(max * STRIDE); this.n = 0; this.drawn = 0;
     const [W, H] = scene.size; this.W = W; this.H = H;
-    const sh = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error('Traffic shader: ' + gl.getShaderInfoLog(s)); return s; };
-    const p = this.prog = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(p);
-    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error('Traffic program: ' + gl.getProgramInfoLog(p));
+    const p = this.prog = linkProgram(gl, VS, FS, 'traffic');
+    try {
+      const target = createTarget(gl, W, H, { name: 'traffic' });
+      this.tex = target.tex; this.fbo = target.fbo;
+    } catch (error) { gl.deleteProgram(p); throw error; }
     this.u = {}; for (const k of ['uSize', 'uAtlas', 'tAtlas', 'tRoad', 'uAutumn']) this.u[k] = gl.getUniformLocation(p, k);
     this.vao = gl.createVertexArray(); gl.bindVertexArray(this.vao);
     this.buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.buf); gl.bufferData(gl.ARRAY_BUFFER, this.data.byteLength, gl.DYNAMIC_DRAW);
     for (let i = 0; i < 3; i++) { gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, 4, gl.FLOAT, false, STRIDE * 4, i * 16); gl.vertexAttribDivisor(i, 1); }
     gl.bindVertexArray(null);
-    this.tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, this.tex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, W, H, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    this.fbo = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.tex, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     this.rects = scene.traffic.rects; this.dirty = true; this.hadCars = false;
   }
   begin() { this.n = 0; }
+  destroy() { const gl = this.gl; gl.deleteProgram(this.prog); gl.deleteVertexArray(this.vao); gl.deleteBuffer(this.buf); gl.deleteFramebuffer(this.fbo); gl.deleteTexture(this.tex); }
   /** One sprite: destination rect in image px, source rect in atlas px (negative width mirrors), tint and alpha. */
   add(dx, dy, dw, dh, su, sv, sw, sh, r, g, b, a) {
     if (this.n >= this.max) return; const d = this.data, i = this.n++ * STRIDE;

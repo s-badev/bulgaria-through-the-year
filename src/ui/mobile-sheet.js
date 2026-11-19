@@ -1,10 +1,12 @@
-export function installMobileSheet(root, openCredits) {
+export function installMobileSheet(root, openCredits, signal) {
   const panel = root.querySelector('#panel');
   const openButton = root.querySelector('#mobileOpen');
   const menu = root.querySelector('#mobileMenu');
   const moreButton = root.querySelector('#moreBtn');
   const mobile = matchMedia('(max-width: 820px), (max-height: 500px)');
-  const secondary = [...root.querySelector('.tr').querySelectorAll('button:not(#moreBtn)')];
+  let pendingOpen;
+  // Credits has its own mobile entry. Move only the shared toolbar actions.
+  const secondary = [...root.querySelectorAll('.tr button:not(#moreBtn, .desktop-info)')];
   const placeholders = secondary.map(button => {
     const marker = document.createComment('desktop toolbar position');
     button.before(marker);
@@ -12,9 +14,11 @@ export function installMobileSheet(root, openCredits) {
   });
 
   function closePanel() {
+    clearTimeout(pendingOpen);
     if (!mobile.matches || !panel.classList.contains('is-open')) return false;
     panel.classList.remove('is-open');
     panel.inert = true;
+    panel.dispatchEvent(new Event('sheetclose'));
     openButton.classList.remove('is-open');
     openButton.setAttribute('aria-expanded', 'false');
     openButton.focus({ preventScroll: true });
@@ -30,7 +34,10 @@ export function installMobileSheet(root, openCredits) {
     return true;
   }
 
-  openButton.addEventListener('click', () => {
+  function openPanel() {
+    clearTimeout(pendingOpen);
+    if (signal.aborted || !mobile.matches || document.body.classList.contains('photo')) return;
+    if (panel.classList.contains('is-open')) return;
     closeMenu();
     panel.classList.add('is-open');
     panel.inert = false;
@@ -38,6 +45,11 @@ export function installMobileSheet(root, openCredits) {
     panel.scrollTop = 0;
     openButton.setAttribute('aria-expanded', 'true');
     root.querySelector('#mobileClose').focus({ preventScroll: true });
+  }
+  openButton.addEventListener('click', openPanel);
+  // A captured panorama drag can suppress the next synthesized touch click.
+  openButton.addEventListener('pointerup', event => {
+    if (event.pointerType === 'touch' && event.isPrimary) pendingOpen = setTimeout(openPanel, 0);
   });
   root.querySelector('#mobileClose').addEventListener('click', closePanel);
   root.querySelector('#mobileDone').addEventListener('click', closePanel);
@@ -67,8 +79,6 @@ export function installMobileSheet(root, openCredits) {
   titleHide.addEventListener('click', () => setTitleHidden(true));
   titleRestore.addEventListener('click', () => setTitleHidden(false));
   try { document.body.classList.toggle('title-hidden', sessionStorage.getItem(titleKey) === '1'); } catch { /* Use the visible title. */ }
-  for (const button of secondary) button.setAttribute('aria-label', button.querySelector('span').textContent);
-
   function layout() {
     closePanel();
     closeMenu();
@@ -93,11 +103,13 @@ export function installMobileSheet(root, openCredits) {
     style.setProperty('--sheet-top', `${Math.max(16, headerBottom - top + 8)}px`);
     titleToggle.tabIndex = mobile.matches ? 0 : -1;
   }
-  mobile.addEventListener('change', layout);
-  addEventListener('resize', updateViewport);
-  window.visualViewport?.addEventListener('resize', updateViewport);
-  window.visualViewport?.addEventListener('scroll', updateViewport);
-  new ResizeObserver(updateViewport).observe(root.querySelector('.top'));
+  mobile.addEventListener('change', layout, { signal });
+  addEventListener('resize', updateViewport, { signal });
+  window.visualViewport?.addEventListener('resize', updateViewport, { signal });
+  window.visualViewport?.addEventListener('scroll', updateViewport, { signal });
+  const observer = new ResizeObserver(updateViewport);
+  observer.observe(root.querySelector('.top'));
+  signal.addEventListener('abort', () => observer.disconnect(), { once: true });
   layout();
 
   return {

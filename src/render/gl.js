@@ -1,4 +1,6 @@
 // Minimal WebGL2 helpers: programs with cached uniforms, textures, render targets, one fullscreen triangle.
+import { SceneError } from '../diagnostics.js';
+
 export function createGL(canvas) {
   const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });
   if (!gl) return null;
@@ -13,17 +15,39 @@ void main(){ vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)
 // Same triangle for render targets: no flip, so image row 0 lands on texel row 0 and targets sample like photos.
 const VS_TARGET = VS.replace('vUv = vec2(p.x, 1.0 - p.y);', 'vUv = p;');
 
-export function createProgram(gl, fs, { target = false } = {}) {
-  const vs = target ? VS_TARGET : VS;
+export function linkProgram(gl, vs, fs, name) {
   const compile = (type, src) => {
-    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { const log = gl.getShaderInfoLog(s); gl.deleteShader(s); throw new Error('Shader compile failed: ' + log); }
+    const s = gl.createShader(type);
+    if (!s) throw new SceneError('gpu-resource', name, 'Could not allocate shader');
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      const log = gl.getShaderInfoLog(s);
+      gl.deleteShader(s);
+      const shader = type === gl.VERTEX_SHADER ? 'vertex' : 'fragment';
+      throw new SceneError('shader-compile', name, `${shader}: ${log}`);
+    }
     return s;
   };
-  const p = gl.createProgram(), a = compile(gl.VERTEX_SHADER, vs), b = compile(gl.FRAGMENT_SHADER, fs);
-  gl.attachShader(p, a); gl.attachShader(p, b); gl.linkProgram(p);
-  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error('Program link failed: ' + gl.getProgramInfoLog(p));
-  gl.deleteShader(a); gl.deleteShader(b);
+  const p = gl.createProgram();
+  if (!p) throw new SceneError('gpu-resource', name, 'Could not allocate program');
+  let a, b;
+  try {
+    a = compile(gl.VERTEX_SHADER, vs);
+    b = compile(gl.FRAGMENT_SHADER, fs);
+    gl.attachShader(p, a); gl.attachShader(p, b); gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new SceneError('program-link', name, gl.getProgramInfoLog(p));
+    return p;
+  } catch (error) {
+    gl.deleteProgram(p);
+    throw error;
+  } finally {
+    if (a) gl.deleteShader(a);
+    if (b) gl.deleteShader(b);
+  }
+}
+
+export function createProgram(gl, fs, { target = false, name } = {}) {
+  const p = linkProgram(gl, target ? VS_TARGET : VS, fs, name);
   const uniforms = {}, n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
   for (let i = 0; i < n; i++) { const info = gl.getActiveUniform(p, i), name = info.name.replace(/\[0\]$/, ''); uniforms[name] = { loc: gl.getUniformLocation(p, info.name), type: info.type }; }
   let unit = 0; const samplers = {};
@@ -52,7 +76,9 @@ export function drawFullscreen(gl) { gl.drawArrays(gl.TRIANGLES, 0, 3); }
 
 /** Texture from an ImageBitmap/HTMLImageElement. kind: 'photo' (sRGB + mipmaps), 'data' (linear, clamp), 'tile' (linear, repeat, mipmaps). */
 export function createTexture(gl, source, kind = 'photo') {
-  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  const t = gl.createTexture();
+  if (!t) throw new SceneError('gpu-resource', 'texture', `Could not allocate ${kind} texture`);
+  gl.bindTexture(gl.TEXTURE_2D, t);
   const srgb = kind === 'photo' || kind === 'atlas';
   gl.texImage2D(gl.TEXTURE_2D, 0, srgb ? gl.SRGB8_ALPHA8 : gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, source);
   const wrap = kind === 'tile' ? gl.REPEAT : gl.CLAMP_TO_EDGE;
@@ -60,6 +86,11 @@ export function createTexture(gl, source, kind = 'photo') {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   if (kind === 'data' || kind === 'atlas') gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   else { gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); }
+  const error = gl.getError();
+  if (error !== gl.NO_ERROR) {
+    gl.deleteTexture(t);
+    throw new SceneError('gpu-resource', 'texture', `${kind} ${source.width}×${source.height}: WebGL 0x${error.toString(16)}`);
+  }
   return t;
 }
 export function solidTexture(gl, rgba = [0, 0, 0, 255], srgb = false) {
@@ -68,18 +99,24 @@ export function solidTexture(gl, rgba = [0, 0, 0, 255], srgb = false) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   return t;
 }
-export function createTarget(gl, w, h, { filter = gl.LINEAR, mips = false } = {}) {
-  const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+export function createTarget(gl, w, h, { filter = gl.LINEAR, mips = false, name = 'framebuffer' } = {}) {
+  const tex = gl.createTexture(), fbo = gl.createFramebuffer();
+  if (!tex || !fbo) {
+    gl.deleteTexture(tex); gl.deleteFramebuffer(fbo);
+    throw new SceneError('gpu-resource', name, `Could not allocate ${w}×${h} framebuffer`);
+  }
+  gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, mips ? gl.LINEAR_MIPMAP_LINEAR : filter); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  const fbo = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    throw new Error('WebGL framebuffer initialization failed');
-  }
+  const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  if (status !== gl.FRAMEBUFFER_COMPLETE) {
+    gl.deleteFramebuffer(fbo); gl.deleteTexture(tex);
+    throw new SceneError('framebuffer', name, `${w}×${h} framebuffer status 0x${status.toString(16)}`);
+  }
   return { tex, fbo, w, h, mips };
 }
 export function bindTarget(gl, target) {

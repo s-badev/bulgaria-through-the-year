@@ -2,7 +2,7 @@ import { VISIBLE_SPECIAL_SCENES, specialScene } from './registry.js';
 import { formatClock } from '../engine/sun.js';
 import './ui.css';
 
-export function installSpecialUI(root, actions, state, shared) {
+export function installSpecialUI(root, actions, state, shared, signal) {
   const entry = root.querySelector('#specialEntry');
   const mobileOpen = root.querySelector('#mobileOpen');
 
@@ -52,7 +52,7 @@ export function installSpecialUI(root, actions, state, shared) {
     if (mobileLayout.matches) heading.querySelector('#specialWorldName').after(back);
     else pickerHeading.querySelector('h2').after(back);
   }
-  mobileLayout.addEventListener('change', placeReturnControl);
+  mobileLayout.addEventListener('change', placeReturnControl, { signal });
   placeReturnControl();
   let available = new Set(), active = null, returnFocus = entry;
   let manifestRequested = false;
@@ -67,6 +67,7 @@ export function installSpecialUI(root, actions, state, shared) {
     picker.classList.remove('is-open');
     updatePickerState();
   }
+  root.querySelector('#panel').addEventListener('sheetclose', closePicker, { signal });
   function showPicker(opener) {
     returnFocus = opener;
     picker.classList.add('is-open');
@@ -154,13 +155,18 @@ export function installSpecialUI(root, actions, state, shared) {
       const focus = returnFocus?.getClientRects().length ? returnFocus : mobileOpen;
       focus.focus({ preventScroll: true });
     }
-  });
+  }, { signal });
   picker.querySelector('#specialPickerClose').addEventListener('click', () => {
     closePicker();
     const focus = returnFocus?.getClientRects().length ? returnFocus : mobileOpen;
     focus.focus({ preventScroll: true });
   });
-  const exit = () => { closePicker(); actions.exitSpecial(); };
+  const exit = () => {
+    closePicker();
+    if (!actions.exitSpecial()) return;
+    if (mobileLayout.matches) shared.closeMobilePanel();
+    else entry.focus({ preventScroll: true });
+  };
   back.addEventListener('click', exit);
   // Some in-app touch browsers suppress the first synthesized click after a
   // captured panorama drag. Pointer-up still reaches these explicit buttons.

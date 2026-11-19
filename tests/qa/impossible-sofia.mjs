@@ -86,7 +86,8 @@ try {
   assert(await desktop.locator('#specialEntry').isVisible());
   for (const id of scenes) {
     if (id === 'planet') continue;
-    await desktop.locator('#specialEntry').click();
+    // During a special scene the selector stays visible in the desktop panel.
+    if (!await desktop.locator('#specialPicker').isVisible()) await desktop.locator('#specialEntry').click();
     assert.equal(await desktop.locator('[data-special]:enabled').count(), 6);
     await desktop.locator(`[data-special="${id}"]`).click();
     await desktop.waitForFunction(expected => window.__app.special.id === expected, id);
@@ -133,9 +134,9 @@ try {
     });
     assert(geometry.left <= 0 && geometry.right >= width && geometry.scroll <= width, `${width}x${height}: image covers view`);
     const chrome = await page.evaluate(() => {
-      const box = selector => document.querySelector(selector).getBoundingClientRect();
       const nav = document.querySelector('.special-nav');
-      return { embedded: !!nav.closest('#specialControls .special-settings'), panelClosed: !document.querySelector('#panel').getClientRects().length, duplicate: document.querySelectorAll('#specialChange, #specialBack').length };
+      const panel = document.querySelector('#panel');
+      return { embedded: !!nav.closest('#specialControls .special-settings'), panelClosed: panel.inert && getComputedStyle(panel).visibility === 'hidden', duplicate: document.querySelectorAll('#specialChange, #specialBack').length };
     });
     assert(chrome.embedded && chrome.panelClosed && chrome.duplicate === 2, `${width}x${height}: navigation belongs only to the closed panel`);
     if (width === 390 && height === 844) {
@@ -233,30 +234,33 @@ try {
     const getContext = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function (kind, ...args) { if (kind === 'webgl2') { window.webglAttempts++; throw new Error('lite must not start WebGL'); } return getContext.call(this, kind, ...args); };
   });
-  await lite.goto(`${base}?lite=1&special=planet`);
-  await lite.waitForFunction(() => document.querySelector('.static-view img')?.src.includes('planet.webp'));
+  // Lite now has the inline chooser and uses the daytime photographic plates.
+  await lite.goto(`${base}?lite=1&special=planet&date=2026-07-15&h=12`);
+  await lite.waitForFunction(() => document.querySelector('.static-view img')?.src.includes('planet-day.webp'));
   assert.equal(await lite.locator('canvas').count(), 0);
   assert.equal(await lite.evaluate(() => window.webglAttempts), 0, 'lite never requests WebGL');
-  assert(await lite.locator('.static-special-nav button').last().isVisible());
+  assert(await lite.locator('#fallbackBack').isVisible());
+  await lite.locator('.static-panel-toggle').tap();
   const liteCdp = await lite.context().newCDPSession(lite);
   await drag(liteCdp, 300, 80, 400);
   assert.notEqual(await lite.locator('.static-view > img').evaluate(image => image.style.objectPosition), '50% center', 'lite touch pan works');
   await lite.screenshot({ path: `${out}/planet-lite.png` });
-  await lite.locator('.static-special-nav button').first().click();
-  assert.equal(await lite.locator('.static-special-dialog [data-special]:enabled').count(), 6);
-  await lite.locator('.static-special-dialog [data-special="flood"]').click();
-  await lite.waitForFunction(() => document.querySelector('.static-view > img')?.src.includes('flood.webp'));
+  await lite.locator('.static-panel-toggle').tap();
+  await lite.locator('.static-panel').waitFor({ state: 'visible' });
+  assert.equal(await lite.locator('.static-world-grid [data-special]:enabled').count(), 6);
+  await lite.locator('.static-world-grid [data-special="flood"]').click();
+  await lite.waitForFunction(() => document.querySelector('.static-view > img')?.src.includes('flood-overcast.webp'));
   await lite.screenshot({ path: `${out}/flood-lite.png` });
-  await lite.locator('.static-special-nav button').last().click();
-  assert.match(await lite.locator('.static-view img').getAttribute('src'), /master\.webp/);
+  await lite.locator('#fallbackBack').click();
+  await lite.waitForFunction(() => document.querySelector('.static-view > img')?.src.includes('master.webp'));
   await lite.close();
   const fallback = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await fallback.addInitScript(() => {
     const getContext = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function (kind, ...args) { return kind === 'webgl2' ? null : getContext.call(this, kind, ...args); };
   });
-  await fallback.goto(`${base}?special=planet`);
-  await fallback.waitForFunction(() => document.querySelector('.static-view img')?.src.includes('planet.webp'));
+  await fallback.goto(`${base}?special=planet&date=2026-07-15&h=12`);
+  await fallback.waitForFunction(() => document.querySelector('.static-view img')?.src.includes('planet-day.webp'));
   assert.equal(await fallback.locator('canvas').count(), 0, 'WebGL-independent special fallback');
   await fallback.close();
   const direct = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });

@@ -4,13 +4,30 @@ import { State } from './engine/state.js';
 import { formatClock } from './engine/sun.js';
 import { solarMix } from './special/lighting.js';
 import { plateWeights } from './special/plates.js';
+import { reportSceneError } from './diagnostics.js';
 
-export function showStaticView(lite = false, volcano = new URLSearchParams(location.search).get('volcano') === '1', requestedSpecial = new URLSearchParams(location.search).get('special'), error = null) {
+const reasons = {
+  lite: 'Избран е режимът ?lite=1.',
+  'webgl-unavailable': 'Браузърът не предостави WebGL2 контекст.',
+  'context-create': 'Възникна грешка при създаване на WebGL2 контекста.',
+  'context-lost': 'Връзката с графичния процесор беше прекъсната.',
+  'shader-compile': 'Графичният драйвер не успя да компилира шейдър.',
+  'program-link': 'Графичният драйвер не успя да свърже шейдърите.',
+  framebuffer: 'Графичният буфер не можа да се подготви.',
+  'gpu-resource': 'Не можа да се подготви графичен ресурс.',
+  'scene-resource': 'Липсва или не може да се прочете файл от сцената.',
+  'module-load': 'Кодът за интерактивния изглед не можа да се зареди.',
+  'initialization-error': 'Възникна грешка при стартиране на интерактивния изглед.',
+  'runtime-error': 'Възникна грешка по време на интерактивното показване.',
+};
+
+export function showStaticView(lite = false, volcano = new URLSearchParams(location.search).get('volcano') === '1', requestedSpecial = new URLSearchParams(location.search).get('special'), reason = 'initialization-error', snapshot) {
   const app = document.querySelector('#app');
   if (!app || app.querySelector('.static-view')) return;
-  document.body.classList.remove('photo');
+  document.body.classList.remove('photo', 'special-active', 'special-picker-open');
   const view = document.createElement('main');
   view.className = 'static-view';
+  view.dataset.reason = lite ? 'lite' : reason;
   const photo = document.createElement('img');
   photo.src = '/scenes/ndk/photos/master.webp';
   photo.alt = 'София · НДК и Витоша';
@@ -65,6 +82,12 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
     if (parts.length === 3 && parts.every(Number.isFinite)) timeState.setDate(parts[0], parts[1] - 1, parts[2]);
   }
   if (query.has('h') && Number.isFinite(+query.get('h'))) timeState.setHour(+query.get('h'));
+  if (query.has('w')) timeState.setWeather(query.get('w'));
+  if (snapshot) {
+    timeState.setDate(snapshot.y, snapshot.m, snapshot.d);
+    timeState.setHour(snapshot.hour);
+    timeState.setWeather(snapshot.weather);
+  }
   timeState.settle();
   const weatherPresets = [['clear', 'Ясно'], ['cloudy', 'Облачно'], ['fog', 'Мъгла'], ['rain', 'Дъжд'], ['storm', 'Буря'], ['snow', 'Сняг']];
   const seasons = [['spring', 'Пролет'], ['summer', 'Лято'], ['autumn', 'Есен'], ['winter', 'Зима']];
@@ -93,7 +116,7 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
   const detail = document.createElement('div');
   detail.className = 'static-detail';
   detail.hidden = true;
-  detail.textContent = 'Интерактивният GPU рендер не стартира. Фоторежимът запазва часа и алтернативните сцени. Причина: ' + (error?.message || (lite ? 'избран е ?lite=1' : 'WebGL2 не е наличен')) + '. Проверете WebGL2, хардуерното ускорение и конзолата.';
+  detail.textContent = reasons[view.dataset.reason] ?? reasons['initialization-error'];
   const retry = document.createElement('button');
   retry.type = 'button'; retry.className = 'static-btn'; retry.textContent = 'Опитай интерактивния режим';
   retry.addEventListener('click', () => { const next = new URL(location.href); next.searchParams.delete('lite'); location.assign(next.href); });
@@ -108,11 +131,11 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
   const btns = selector => [...panel.querySelectorAll(selector)];
   const status = $('#fallbackStatus');
   const photoName = $('#fallbackSceneName');
-  const controls = $('.static-control-side');
   const worlds = $('.static-world-side');
-  let active = null, condition = null, playing = false, manifestData = null, requestNumber = 0;
-  let currentSrc = photo.src, pendingSrc = null, imageRequest = 0;
-  let manifestPromise = null, lastFrame = performance.now();
+  let active = null, condition = null, playing = false, manifestData = null;
+  let currentSrc = photo.getAttribute('src'), pendingSrc = null, imageRequest = 0;
+  let manifestPromise, lastFrame, raf, pendingPanelOpen;
+  const failedPhotos = new Set();
 
   function srcFor(asset, key) {
     const part = key === 'base' ? asset : asset.variants?.[key];
@@ -129,7 +152,7 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
         btns('[data-special]').forEach(button => { button.disabled = !data.scenes?.[button.dataset.special]; });
         return data;
       }).catch(error => {
-        console.error(error);
+        reportSceneError(error, 'special-manifest', true, 'scene-resource');
         status.textContent = 'Снимките на другите светове не са достъпни.';
         return { scenes: {} };
       });
@@ -153,8 +176,10 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
     return '/scenes/ndk/photos/' + key + '.webp';
   }
   function swapPhotograph(nextSrc) {
-    if (!nextSrc || nextSrc === currentSrc || nextSrc === pendingSrc) return;
+    if (!nextSrc || nextSrc === pendingSrc) return;
     const token = ++imageRequest;
+    pendingSrc = null;
+    if (nextSrc === currentSrc || failedPhotos.has(nextSrc)) return;
     pendingSrc = nextSrc;
     const next = new Image();
     next.onload = () => {
@@ -167,7 +192,8 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
     next.onerror = () => {
       if (token !== imageRequest) return;
       pendingSrc = null;
-      console.warn('Photographic fallback missing image:', nextSrc);
+      failedPhotos.add(nextSrc);
+      reportSceneError(new Error(`Could not load ${new URL(nextSrc, location.href).pathname}`), 'static-photo', true, 'scene-resource');
     };
     next.src = nextSrc;
   }
@@ -205,9 +231,7 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
     worlds.hidden = false;
     $('#fallbackWorldClose').hidden = true;
     $('#fallbackBack').hidden = false;
-    panel.classList.add('is-open');
-    panelToggle.textContent = 'Готово';
-    panelToggle.setAttribute('aria-expanded', 'true');
+    setPanelOpen(true);
     status.textContent = '';
     sync();
   }
@@ -223,7 +247,12 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
   btns('[data-season]').forEach(button => button.addEventListener('click', () => { timeState.setSeason(button.dataset.season); sync(); }));
   btns('[data-weather]').forEach(button => button.addEventListener('click', () => { timeState.setWeather(button.dataset.weather); sync(); }));
   $('#fallbackHour').addEventListener('input', event => { timeState.setHour(+event.target.value); sync(); });
-  $('#fallbackPlay').addEventListener('click', () => { playing = !playing; sync(); });
+  $('#fallbackPlay').addEventListener('click', () => {
+    playing = !playing;
+    if (playing) { lastFrame = performance.now(); raf = requestAnimationFrame(frame); }
+    else cancelAnimationFrame(raf);
+    sync();
+  });
   $('#fallbackOther').addEventListener('click', () => {
     worlds.hidden = !worlds.hidden;
     $('#fallbackWorldClose').hidden = false;
@@ -238,10 +267,17 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
     const atmosphere = event.target.closest('[data-condition]');
     if (atmosphere) { condition = atmosphere.dataset.condition; sync(); }
   });
-  panelToggle.addEventListener('click', () => {
-    const isOpen = panel.classList.toggle('is-open');
+  function setPanelOpen(isOpen) {
+    clearTimeout(pendingPanelOpen);
+    if (!view.isConnected) return;
+    panel.classList.toggle('is-open', isOpen);
     panelToggle.textContent = isOpen ? 'Готово' : 'Контроли';
     panelToggle.setAttribute('aria-expanded', String(isOpen));
+  }
+  panelToggle.addEventListener('click', () => setPanelOpen(!panel.classList.contains('is-open')));
+  // As with the interactive sheet, opening must work immediately after a touch pan.
+  panelToggle.addEventListener('pointerup', event => {
+    if (event.pointerType === 'touch' && event.isPrimary && !panel.classList.contains('is-open')) pendingPanelOpen = setTimeout(() => setPanelOpen(true), 0);
   });
   top.querySelector('#fallbackHelp').addEventListener('click', () => { detail.hidden = !detail.hidden; });
   view.addEventListener('keydown', event => {
@@ -249,23 +285,19 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
   });
   app.replaceChildren(view);
   position();
-  addEventListener('resize', position);
-  void loadManifest().then(() => {
+  new ResizeObserver(position).observe(view);
+  if (requestedSpecial) void loadManifest().then(() => {
     if (requestedSpecial && manifestData?.scenes?.[requestedSpecial]) selectWorld(requestedSpecial);
   });
   sync();
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const frame = now => {
-    if (!view.isConnected) return;
+    if (!view.isConnected || !playing) return;
     const dt = Math.min((now - lastFrame) / 1000, .2);
     lastFrame = now;
-    if (playing) {
-      const previousHour = timeState.S.hour;
-      timeState.setHour(previousHour + dt * 24 / 60);
-      if (timeState.S.hour < previousHour) timeState.setDate(timeState.S.y, timeState.S.m, timeState.S.d + 1);
-      sync();
-    }
-    requestAnimationFrame(frame);
+    const previousHour = timeState.S.hour;
+    timeState.setHour(previousHour + dt * 24 / 60);
+    if (timeState.S.hour < previousHour) timeState.setDate(timeState.S.y, timeState.S.m, timeState.S.d + 1);
+    sync();
+    raf = requestAnimationFrame(frame);
   };
-  requestAnimationFrame(frame);
 }
