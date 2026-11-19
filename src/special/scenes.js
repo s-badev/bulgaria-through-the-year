@@ -2,6 +2,7 @@ import { SPECIAL_BASE, specialScene } from './registry.js';
 import { SpecialEffects } from './effects.js';
 import { SpecialLighting, paintSpecialLighting } from './lighting.js';
 import { SpecialPlates } from './plates.js';
+import { SpecialMoon } from './moon.js';
 import { reportSceneError } from '../diagnostics.js';
 import './scenes.css';
 import './lighting.css';
@@ -22,6 +23,7 @@ export class SpecialScenes {
     this.inactiveWaiters = [];
     this.manifest = null;
     this.settings = new Map();
+    this.moon = new SpecialMoon();
     this.root = document.createElement('div');
     this.root.className = 'special-world';
     this.root.setAttribute('aria-hidden', 'true');
@@ -87,6 +89,7 @@ export class SpecialScenes {
     this.root.append(layer);
     layer.effects = new SpecialEffects(id, layer);
     layer.lighting = new SpecialLighting(id, layer);
+    this.moon.mount(layer, id, layer.effects.canvas ?? layer.lighting.root);
     if (this.fadingLayer) this.removeLayer(this.fadingLayer);
     const old = this.layers;
     this.layers = [layer];
@@ -153,6 +156,7 @@ export class SpecialScenes {
     const imageWidth = width * zoom / cov[2], imageHeight = height * zoom / cov[3];
     const left = -(0.5 + (cov[0] - 0.5) / zoom) * imageWidth;
     const top = -(0.5 + (cov[1] - 0.5) / zoom) * imageHeight;
+    this.moon.layout(left, top, imageWidth, imageHeight);
     const geometry = `${left} ${top} ${imageWidth} ${imageHeight}`;
     for (const layer of [...this.layers, this.fadingLayer].filter(Boolean)) {
       if (layer.geometry === geometry) continue;
@@ -169,6 +173,8 @@ export class SpecialScenes {
     if (!this.active) return;
     const layer = this.layers[0], setting = this.setting();
     layer.plates.update(dt, state.sun, setting, state.S.reducedMotion);
+    const dayPlates = (layer.plates.visible.get('day') ?? 0) + (layer.plates.visible.get('overcast') ?? 0);
+    this.moon.update(state.sun, setting, state.S.hour, state.S.reducedMotion, 1 - dayPlates, dt);
     const photographicWeight = layer.plates.photographicWeight;
     const light = layer.lighting.update(state, setting, photographicWeight);
     light.nightPlate = layer.plates.nightWeight;
@@ -195,6 +201,7 @@ export class SpecialScenes {
     context.save();
     context.translate(rect.left * scaleX, rect.top * scaleY);
     context.scale(rect.width * scaleX / 1672, rect.height * scaleY / 941);
+    this.moon.paint(context, 1672, 941);
     paintSpecialLighting(context, 1672, 941, layer.lighting.values);
     context.restore();
     const overlay = layer.effects?.canvas;

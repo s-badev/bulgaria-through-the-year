@@ -1,0 +1,3 @@
+.special-moon-overlay { position: absolute; pointer-events: none; }
+.special-moon-sprite, .special-moon-light { position: absolute; transform: translate(-50%, -50%); }
+.special-moon-sprite { display: block; height: auto; }

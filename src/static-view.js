@@ -4,6 +4,7 @@ import { State } from './engine/state.js';
 import { formatClock } from './engine/sun.js';
 import { solarMix } from './special/lighting.js';
 import { plateWeights } from './special/plates.js';
+import { SpecialMoon } from './special/moon.js';
 import { reportSceneError } from './diagnostics.js';
 
 const reasons = {
@@ -33,14 +34,15 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
   photo.alt = 'София · НДК и Витоша';
   photo.decoding = 'async';
   view.append(photo);
+  const moon = new SpecialMoon();
   let pan = 0.5, drag = null;
   function position() {
     photo.style.objectPosition = `${pan * 100}% center`;
+    const w = view.clientWidth, h = view.clientHeight, imageW = Math.max(w, h * 1672 / 941), imageH = imageW * 941 / 1672;
+    const left = -(imageW - w) * pan, top = -(imageH - h) / 2;
+    moon.layout(left, top, imageW, imageH);
     const art = view.querySelector('.static-volcano-art svg');
-    if (art) {
-      const w = view.clientWidth, h = view.clientHeight, imageW = Math.max(w, h * 1672 / 941), imageH = imageW * 941 / 1672;
-      Object.assign(art.style, { width: `${imageW}px`, height: `${imageH}px`, left: `${-(imageW - w) * pan}px`, top: `${-(imageH - h) / 2}px` });
-    }
+    if (art) Object.assign(art.style, { width: `${imageW}px`, height: `${imageH}px`, left: `${left}px`, top: `${top}px` });
   }
   view.addEventListener('pointerdown', event => {
     if (event.target !== photo || !event.isPrimary || (event.pointerType !== 'touch' && event.pointerType !== 'pen')) return;
@@ -75,6 +77,7 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
   // The photographic path must be useful even when a WebGL2 context or shader fails.
   // It shares real Sofia solar calculations and the registered world photographs.
   const timeState = new State({ lat: 42.6977, lon: 23.3219 });
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   timeState.setNow();
   const query = new URLSearchParams(location.search);
   if (query.get('date')) {
@@ -133,7 +136,7 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
   const photoName = $('#fallbackSceneName');
   const worlds = $('.static-world-side');
   let active = null, condition = null, playing = false, manifestData = null;
-  let currentSrc = photo.getAttribute('src'), pendingSrc = null, imageRequest = 0;
+  let currentSrc = photo.getAttribute('src'), pendingSrc = null, imageRequest = 0, photoWorld = null;
   let manifestPromise, lastFrame, raf, pendingPanelOpen;
   const failedPhotos = new Set();
 
@@ -181,13 +184,15 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
     pendingSrc = null;
     if (nextSrc === currentSrc || failedPhotos.has(nextSrc)) return;
     pendingSrc = nextSrc;
+    const world = active;
     const next = new Image();
     next.onload = () => {
       if (token !== imageRequest) return;
       photo.src = nextSrc;
       currentSrc = nextSrc;
+      photoWorld = world;
       pendingSrc = null;
-      position();
+      updateMoon();
     };
     next.onerror = () => {
       if (token !== imageRequest) return;
@@ -196,6 +201,13 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
       reportSceneError(new Error(`Could not load ${new URL(nextSrc, location.href).pathname}`), 'static-photo', true, 'scene-resource');
     };
     next.src = nextSrc;
+  }
+  function updateMoon() {
+    const id = photoWorld === active ? active : null;
+    if (moon.mount(view, id, photo.nextSibling)) position();
+    if (!id) return;
+    const isDay = /-(day|overcast)\./.test(currentSrc);
+    moon.update(timeState.sun, { condition, intensity: .65 }, timeState.S.hour, reduced.matches, isDay ? 0 : 1);
   }
   function sync() {
     timeState.settle();
@@ -211,6 +223,7 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
     photoName.textContent = active ? specialScene(active).name : 'София · НДК и Витоша';
     view.classList.toggle('has-world', !!active);
     swapPhotograph(photoForCurrentState());
+    updateMoon();
   }
   function selectWorld(id) {
     const scene = specialScene(id);
