@@ -27,8 +27,6 @@ export function installSpecialUI(root, actions, state, shared) {
     <div class="special-settings">
     <div class="special-time-row"><label for="specialHour">Час</label><input id="specialHour" type="range" min="0" max="24" step="0.01"></div>
     <div class="special-condition-row"><span>Атмосфера</span><div id="specialConditions" class="seg" role="group" aria-label="Атмосфера на специалната сцена"></div></div>
-    <div class="special-intensity-row"><label for="specialIntensity">Сила на атмосферата</label><input id="specialIntensity" type="range" min="0" max="1" step="0.01"><output id="specialIntensityValue"></output></div>
-    <div class="special-audio-row"><button id="specialSound" class="sec" type="button"></button><label for="specialVolume">Сила на звука</label><input id="specialVolume" type="range" min="0" max="1" step="0.01"></div>
     </div>`;
   controls.querySelector('.special-back-slot').replaceWith(back);
   root.querySelector('#panel .mobile-sheet-header').after(controls);
@@ -113,8 +111,6 @@ export function installSpecialUI(root, actions, state, shared) {
   }
   function syncSetting(setting) {
     if (!setting || !active) return;
-    field('#specialIntensity').value = setting.intensity;
-    sameText(field('#specialIntensityValue'), `${Math.round(setting.intensity * 100)}%`);
     for (const button of field('#specialConditions').querySelectorAll('button')) button.setAttribute('aria-pressed', String(button.dataset.condition === setting.condition));
   }
   function syncShared() {
@@ -125,16 +121,10 @@ export function installSpecialUI(root, actions, state, shared) {
     sameText(field('#specialWorldTime'), formatClock(S.hour));
     sameText(field('#specialPlay'), S.playing ? 'Пауза' : 'Пусни');
     field('#specialPlay').setAttribute('aria-label', S.playing ? 'Постави симулацията на пауза' : 'Пусни симулацията');
-    sameText(field('#specialSound'), S.sound ? 'Изключи звука' : 'Включи звука');
-    field('#specialSound').setAttribute('aria-pressed', String(S.sound));
-    field('#specialVolume').value = S.vol;
   }
   field('#specialHour').addEventListener('input', event => shared.setHour(+event.target.value));
   field('#specialPlay').addEventListener('click', shared.togglePlayback);
-  field('#specialSound').addEventListener('click', shared.toggleSound);
-  field('#specialVolume').addEventListener('input', event => shared.setVolume(+event.target.value));
-  field('#specialIntensity').addEventListener('input', event => actions.specialIntensity(+event.target.value));
-  state.on(what => { if (active && ['hour', 'tick', 'date', 'playing', 'sound', 'vol'].includes(what)) syncShared(); });
+  state.on(what => { if (active && ['hour', 'tick', 'date', 'playing'].includes(what)) syncShared(); });
 
   entry.addEventListener('click', () => {
     if (picker.classList.contains('is-open')) closePicker();
