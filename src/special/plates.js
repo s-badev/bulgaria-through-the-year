@@ -14,6 +14,7 @@ export function plateWeights(scene, asset, sun, setting, failed = new Set()) {
   const phaseKey = phase => available(phase) ? phase : scene.basePhase === phase ? base : null;
   const keys = Object.fromEntries(PHASES.map(phase => [phase, phaseKey(phase)]));
   const solar = solarMix(sun);
+  const config = SPECIAL_VARIANTS[scene.id];
   const weights = { day: solar.day, dusk: solar.twilight, night: solar.night };
 
   if (!keys.dusk && keys.day && keys.night) {
@@ -27,10 +28,14 @@ export function plateWeights(scene, asset, sun, setting, failed = new Set()) {
   const add = (key, weight) => {
     if (key && weight > 0) result.set(key, (result.get(key) ?? 0) + weight);
   };
+  // Keep the same solar blend midpoint. Spend less time at nearly equal
+  // opacity where measured plate geometry diverges.
+  const transition = config?.transition;
+  const power = (solar.night > 0 ? transition?.duskNight : transition?.dayDusk) ?? 1.45;
   for (const phase of PHASES) {
     const key = keys[phase] ?? base ?? keys.day ?? keys.night ?? keys.dusk;
-    const weight = weights[phase] ** 1.45;
-    const rule = SPECIAL_VARIANTS[scene.id]?.weather.find(rule =>
+    const weight = weights[phase] ** power;
+    const rule = config?.weather.find(rule =>
       rule.phase === phase && rule.conditions.includes(setting.condition) && available(rule.key));
     add(rule?.key ?? key, weight);
   }
@@ -40,7 +45,8 @@ export function plateWeights(scene, asset, sun, setting, failed = new Set()) {
 }
 
 function photoURL(asset, key) {
-  return `${SPECIAL_BASE}${encodeURI(asset[key])}?v=${asset.hash.slice(0, 12)}`;
+  const hash = key === 'source' ? asset.hash : asset.renderHash ?? asset.hash;
+  return `${SPECIAL_BASE}${encodeURI(asset[key])}?v=${hash.slice(0, 12)}`;
 }
 
 export class SpecialPlates {
@@ -128,7 +134,8 @@ export class SpecialPlates {
       return;
     }
     if (!target.size) return;
-    const factor = reduced ? 1 : 1 - Math.exp(-dt / .1);
+    const seconds = SPECIAL_VARIANTS[this.scene.id]?.transition?.seconds ?? .1;
+    const factor = reduced ? 1 : 1 - Math.exp(-dt / seconds);
     for (const key of target.keys()) if (!this.visible.has(key)) this.visible.set(key, 0);
     for (const [key, current] of this.visible) {
       const next = target.get(key) ?? 0;

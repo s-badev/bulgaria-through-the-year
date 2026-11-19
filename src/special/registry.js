@@ -18,9 +18,10 @@ export const SPECIAL_VARIANTS = {
   flood: { keys: overcastVariants, weather: [overcast(['cloudy', 'heavy-rain', 'storm'])] },
   'ice-age': {
     keys: [...overcastVariants, 'night-alt'],
+    transition: { dayDusk: 2, duskNight: 3, seconds: .08 },
     weather: [
       overcast(['cloudy', 'storm', 'blizzard']),
-      { key: 'night-alt', phase: 'night', conditions: ['storm'] },
+      { key: 'night-alt', phase: 'night', conditions: ['light', 'storm'] },
     ],
   },
 };

@@ -83,7 +83,7 @@ export function showStaticView(lite = false, volcano = new URLSearchParams(locat
     if (request !== selection) return;
     if (!asset || !definition) { status.textContent = 'Сцената все още няма предоставена снимка.'; return; }
     const next = new Image();
-    next.src = `${SPECIAL_BASE}${asset.webp}?v=${asset.hash.slice(0, 12)}`;
+    next.src = `${SPECIAL_BASE}${asset.webp}?v=${(asset.renderHash ?? asset.hash).slice(0, 12)}`;
     try { await next.decode(); } catch {
       if (request !== selection) return;
       next.src = `${SPECIAL_BASE}${encodeURI(asset.source)}?v=${asset.hash.slice(0, 12)}`;

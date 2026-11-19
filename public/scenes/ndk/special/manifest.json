@@ -62,6 +62,7 @@
       "width": 1672,
       "height": 941,
       "hash": "d62d55c1fcda491fa6fd2d8e7cdd0ca850fd430fd63775de6b2f2f26653f6ca0",
+      "renderHash": "2e619bc66801d993941da16994544b52359730cca944ea85cf21b6e5c1c113d8",
       "variants": {
         "day": {
           "source": "ice-age-day.png",
@@ -69,7 +70,8 @@
           "avif": "optimized/ice-age-day.avif",
           "width": 1672,
           "height": 941,
-          "hash": "7d3210ff686ba67b7ec58f30f6a190bd3a38526bfbed1575262e04d6f637449f"
+          "hash": "7d3210ff686ba67b7ec58f30f6a190bd3a38526bfbed1575262e04d6f637449f",
+          "renderHash": "99aa14f3afc829d19b8ab924365b8234fd143b3b56f0473a3eaeeb36e334491b"
         },
         "dusk": {
           "source": "ice-age-dusk.png",
@@ -78,7 +80,8 @@
           "width": 1672,
           "height": 941,
           "sourceWidth": 1671,
-          "hash": "74a0d682c08cb50671c3ed31ce4a95b347b512c61209de231d7c1e4eba13e796"
+          "hash": "74a0d682c08cb50671c3ed31ce4a95b347b512c61209de231d7c1e4eba13e796",
+          "renderHash": "48a4aa65a0f83242ead6d9ec7e5c5d754e8d95498c4cf7835dd047cb223430da"
         },
         "night": {
           "source": "ice-age-night.png",
@@ -87,7 +90,8 @@
           "width": 1672,
           "height": 941,
           "sourceWidth": 1671,
-          "hash": "d6739d2c69afde7a8ec1e34e8b63a46471c73e08127a8b0a0c8598df8705ec15"
+          "hash": "d6739d2c69afde7a8ec1e34e8b63a46471c73e08127a8b0a0c8598df8705ec15",
+          "renderHash": "ce8656c6e0ac27c0e9a39dc0ee7d7d0479729088b452c45361fa1fa00f5ea228"
         },
         "overcast": {
           "source": "ice-age-overcast.png",
@@ -95,7 +99,8 @@
           "avif": "optimized/ice-age-overcast.avif",
           "width": 1672,
           "height": 941,
-          "hash": "ba28bffb18494fc38768e32976d7140913695451f36b06620d8c321cbff1ab68"
+          "hash": "ba28bffb18494fc38768e32976d7140913695451f36b06620d8c321cbff1ab68",
+          "renderHash": "31c1e829d60328f6e52fe3aa75a171073fb64e55c7e31e3eeae94208f666cb59"
         },
         "night-alt": {
           "source": "ice-age-night-alt.png",
@@ -104,7 +109,8 @@
           "width": 1672,
           "height": 941,
           "sourceWidth": 1671,
-          "hash": "4c4bb33f08a961b41c369579b2560778de774df414b29866a0c2173c9cd22574"
+          "hash": "4c4bb33f08a961b41c369579b2560778de774df414b29866a0c2173c9cd22574",
+          "renderHash": "683ccbcd6d012060e0b19f3215b909fd4e62988273ca5a28cc4a1e9e508d0667"
         }
       }
     },

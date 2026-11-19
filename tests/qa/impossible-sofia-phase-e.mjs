@@ -50,7 +50,8 @@ try {
     assert.equal(requests.size, 1, `${id}: only one photograph loads initially`);
     day.off('request', observe);
     if (id === 'sandstorm' || id === 'flood') await condition(day, initial);
-    for (const [hour, expected, ratio] of [[8, 'day'], [12, 'day'], [17, 'day'], [21, 'dusk', .55], [2, 'night']]) {
+    const nightPlate = id === 'ice-age' ? 'night-alt' : 'night';
+    for (const [hour, expected, ratio] of [[8, 'day'], [12, 'day'], [17, 'day'], [21, 'dusk', .55], [2, nightPlate]]) {
       await setHour(day, hour);
       await settled(day, expected, ratio);
       assert.equal(await day.locator('#specialWorldTime').textContent(), `${String(hour).padStart(2, '0')}:00`);
@@ -72,7 +73,7 @@ try {
       }, altitude);
       await setHour(day, hour);
       await settled(day, from, .44);
-      await settled(day, to, .44);
+      await settled(day, to === 'night' ? nightPlate : to, .44);
       await capture(day, `${id}-blend-${from}-${to}`);
     }
     await condition(day, weather);
