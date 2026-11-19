@@ -96,7 +96,7 @@ try {
     assert(await day.evaluate(() => window.__app.special.layers[0].plates.cache.size <= 4), 'bounded decoded plate cache');
     console.log(`PASS ${id}: 08, 12, 17, 21, 02 and ${weatherPlate}`);
   }
-  await day.locator('#specialDate').fill('2026-12-15');
+  await day.evaluate(() => window.__app.state.setDate(2026, 11, 15));
   await condition(day, 'light');
   await setHour(day, 17);
   await settled(day, 'dusk', .35);
@@ -164,12 +164,13 @@ try {
     assert(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     assert(await mobile.evaluate(() => {
       const bounds = selector => document.querySelector(selector).getBoundingClientRect();
-      const nav = bounds('.special-nav');
-      return nav.top > bounds('#mobileClock').bottom && nav.bottom < bounds('#mobileOpen').top;
+      const nav = document.querySelector('.special-nav');
+      return nav.closest('#specialControls .special-settings') !== null && getComputedStyle(nav).display === 'none;';
     }), 'scene navigation clear of the clock and controls');
     await mobile.screenshot({ path: `${out}/flood-${width}x${height}.jpg`, type: 'jpeg', quality: 75 });
     await mobile.locator('#mobileOpen').tap();
-    for (const selector of ['#specialHour', '#specialDate', '#specialPlay', '#specialIntensity', '#specialSound', '#specialVolume']) {
+    assert.equal(await mobile.locator('#specialDate').count(), 0, 'calendar removed from special controls');
+    for (const selector of ['#specialHour', '#specialChange', '#specialBack', '#specialPlay', '#specialIntensity', '#specialSound', '#specialVolume']) {
       const rect = await mobile.locator(selector).boundingBox();
       assert(rect.width >= 44 && rect.height >= 44, `${width}x${height} ${selector} touch target`);
     }
@@ -184,10 +185,12 @@ try {
     await mobile.locator('#specialSound').tap();
     await mobile.waitForFunction(() => !window.__app.sound.on && window.__app.sound.voices.size === 0 && window.__app.sound.master.gain.value < .02);
     await mobile.locator('#mobileDone').tap();
+    await mobile.locator('#mobileOpen').tap();
     await mobile.locator('#specialChange').tap();
     assert.equal(await mobile.locator('[data-special]:enabled').count(), 6);
     await mobile.locator('[data-special="abandoned"]').tap();
     await selected(mobile, 'abandoned');
+    await mobile.locator('#mobileOpen').tap();
     await mobile.locator('#specialBack').tap();
     await mobile.waitForFunction(() => !window.__app.special.id && !window.__app.sound.specialId);
     await mobile.waitForFunction(() => !document.querySelector('.special-world-layer'));
