@@ -127,17 +127,21 @@ body.special-active .special-picker .special-grid { gap: 5px; }
 body.special-active #specialStatus.sr { position: absolute; width: 1px; height: 1px; min-height: 0; padding: 0; margin: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 
-/* Both headings belong to the same visual hierarchy: one font, size, weight, and baseline. */
+/* Shared heading typography with the main Sofia title, at compact panel scale. */
+.title h1,
 body.special-active .special-controls-heading h2,
-body.special-active .special-picker-head h2 {
-  margin: 0;
+.special-picker-head h2 {
   font-family: var(--serif);
-  font-size: 20px;
   font-weight: 400;
   font-style: normal;
-  line-height: 1.25;
+  line-height: 1.1;
   letter-spacing: 0;
   text-transform: none;
+}
+body.special-active .special-controls-heading h2,
+.special-picker-head h2 {
+  margin: 0;
+  font-size: 24px;
   overflow-wrap: normal;
 }
 body.special-active .special-controls-heading,
@@ -153,13 +157,6 @@ body.special-active .special-picker-head { align-items: center; }
 .special-picker-head h2 {
   flex: 1 1 auto;
   min-width: 0;
-  margin: 0;
-  font-family: var(--serif);
-  font-size: 20px;
-  font-weight: 400;
-  font-style: normal;
-  line-height: 1.25;
-  letter-spacing: 0;
 }
 body:not(.special-active) .special-picker-head #specialBack { display: none; }
 @media (max-width: 820px), (max-height: 500px) {
