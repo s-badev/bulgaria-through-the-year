@@ -36,14 +36,14 @@ export class SpecialLighting {
     const mix = solarMix(state.sun), p = this.profile;
     const synthetic = 1 - photographicWeight;
     const weatherHaze = ['fog', 'cloudy', 'partly'].includes(setting.condition) ? setting.intensity : this.id === 'ice-age' && setting.condition !== 'light' ? setting.intensity * (setting.condition === 'blizzard' ? 1.4 : .65) : this.id === 'sandstorm' ? setting.intensity * ({ light: .4, strong: .8, extreme: 1.35 }[setting.condition] || .8) : this.id === 'supercell' ? setting.intensity * ({ approaching: .3, heavy: .7, violent: 1.1 }[setting.condition] || .7) : 0;
-    const cloud = setting.condition === 'cloudy' ? .23 : setting.condition === 'fog' ? .19 : setting.condition === 'rain' ? .27 : this.id === 'supercell' ? ({ approaching: .08, heavy: .2, violent: .35 }[setting.condition] || .2) : 0;
+    const cloud = setting.condition === 'storm' && this.id === 'planet' ? .48 : setting.condition === 'cloudy' ? .23 : setting.condition === 'fog' ? .19 : setting.condition === 'rain' ? .27 : this.id === 'supercell' ? ({ approaching: .08, heavy: .2, violent: .35 }[setting.condition] || .2) : 0;
     const values = {
       sky: (mix.night * p.sky + mix.day * cloud * setting.intensity) * synthetic,
       mountain: mix.night * p.mountain * synthetic,
       city: mix.night * p.city * synthetic,
       warm: mix.warm * p.warm * synthetic,
       daylight: mix.day * p.daylight * synthetic,
-      haze: weatherHaze * (this.id === 'abandoned' && setting.condition === 'fog' ? .34 : this.id === 'ice-age' ? .18 : this.id === 'sandstorm' ? .26 : this.id === 'supercell' ? .13 : .08 + mix.twilight * .08),
+      haze: (this.id === 'planet' && setting.condition === 'storm' ? .13 : 0) + weatherHaze * (this.id === 'abandoned' && setting.condition === 'fog' ? .34 : this.id === 'ice-age' ? .18 : this.id === 'sandstorm' ? .26 : this.id === 'supercell' ? .13 : .08 + mix.twilight * .08),
       moon: mix.night * (this.id === 'abandoned' ? .11 : this.id === 'ice-age' ? .13 : .04) * (setting.condition === 'clear' || setting.condition === 'light' ? 1 : .2) * synthetic,
     };
     this.values = { ...mix, ...values };
