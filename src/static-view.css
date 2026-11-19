@@ -38,7 +38,7 @@
   .static-top { top: max(10px,env(safe-area-inset-top)); left: 10px; right: 10px; max-width: none; justify-content: space-between; padding: 8px 10px; }
   .static-top strong { font-size: 17px; }
   .static-top > span { font-size: 11px; }
-  .static-view .static-panel { display: none; left: 0; right: 0; bottom: 0; transform: none; width: 100%; max-height: min(78dvh,700px); overflow-y: auto; flex-direction: column; padding: 12px 12px calc(16px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; gap: 10px; background: #111824f5; }
+  .static-view .static-panel { display: none; left: 0; right: 0; bottom: 0; transform: none; width: 100%; max-height: min(78dvh,700px); overflow-y: auto; flex-direction: column; padding: 12px 12px calc(82px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; gap: 10px; background: #111824f5; }
   .static-view .static-panel.is-open { display: flex; }
   .static-view.has-world .static-panel { max-height: min(78dvh,700px); }
   .static-view .static-control-side { flex: none; overflow: visible; }
@@ -47,8 +47,8 @@
   .static-world-grid button { min-height: 44px; }
   .static-btn, .static-buttons button { min-height: 44px; }
   .static-panel-toggle { position: absolute; display: block; z-index: 7; bottom: calc(16px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); border: 1px solid var(--fallback-accent); border-radius: 999px; padding: 14px 24px; background: #111824; font: 600 18px system-ui; color: #f1f4f8; }
-  .static-panel.is-open + .static-panel-toggle { display: none; }
-  .static-panel.is-open ~ .static-panel-toggle { bottom: auto; top: 5px; }
+  .static-panel.is-open + .static-panel-toggle { display: block; z-index: 9; }
+  .static-panel.is-open + .static-panel-toggle { bottom: calc(16px + env(safe-area-inset-bottom)); top: auto; }
   .static-view .static-panel.is-open { z-index: 8; }
   .static-detail { top: 76px; left: 10px; right: 10px; max-width: none; }
 }
