@@ -54,7 +54,8 @@ try {
   await desktop.waitForFunction(() => window.__app.special.id === 'planet' && document.querySelector('.special-world-layer.is-visible'));
   assert(await desktop.locator('#specialBack').isVisible());
   assert.equal(await desktop.locator('#specialDate').count(), 0, 'special calendar removed');
-  assert.equal(await desktop.locator('#specialBack').evaluate(node => !!node.closest('.special-controls-heading')), true, 'back action pinned beside scenario heading');
+  assert.equal(await desktop.locator('#specialBack').evaluate(node => !!node.closest('.special-picker-head')), true, 'back action aligned at right of world selector header');
+  assert.equal(await desktop.locator('#specialIntensity, #specialSound, #specialVolume').count(), 0, 'unneeded controls absent');
   assert.equal(await desktop.locator('#specialChange').evaluate(node => !!node.closest('#specialControls .special-settings')), true, 'scene change remains in special settings');
   assert.equal(await desktop.locator('.special-world img').count(), 1);
   assert.match(await desktop.locator('.special-world img').getAttribute('src'), /planet-day\.(webp|png)/);
