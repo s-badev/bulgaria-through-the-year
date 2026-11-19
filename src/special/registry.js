@@ -4,7 +4,7 @@ const timeVariants = ['day', 'dusk', 'night'];
 const overcastVariants = [...timeVariants, 'overcast'];
 const overcast = conditions => ({ key: 'overcast', phase: 'day', conditions });
 export const SPECIAL_VARIANTS = {
-  planet: { keys: overcastVariants, transition: { dayDusk: 2, duskNight: 3, seconds: .085 }, weather: [overcast(['cloudy'])] },
+  planet: { keys: overcastVariants, transition: { dayDusk: 2, duskNight: 3, seconds: .085 }, weather: [overcast(['cloudy', 'storm'])] },
   abandoned: { keys: overcastVariants, transition: { dayDusk: 2, duskNight: 2, seconds: .09 }, files: { dusk: 'abandoned-up.png' }, weather: [overcast(['cloudy', 'rain'])] },
   sandstorm: {
     keys: [...timeVariants, 'haze', 'dusk-alt'],
@@ -27,7 +27,7 @@ export const SPECIAL_VARIANTS = {
   },
 };
 export const SPECIAL_SCENES = Object.freeze([
-  { id: 'planet', name: 'Планета над София', category: 'Космос', source: 'planet.png', basePhase: 'dusk', animation: 'planet-atmosphere', quality: 'light', effects: ['sky-light'], audio: 'planet', fallback: 'image', conditions: [['clear', 'Ясно'], ['partly', 'Разкъсана облачност'], ['cloudy', 'Облачно']], defaultCondition: 'clear' },
+  { id: 'planet', name: 'Планета над София', category: 'Космос', source: 'planet.png', basePhase: 'dusk', animation: 'planet-atmosphere', quality: 'light', effects: ['sky-light'], audio: 'planet', fallback: 'image', conditions: [['clear', 'Ясно'], ['partly', 'Разкъсана облачност'], ['cloudy', 'Облачно'], ['storm', 'Буря']], defaultCondition: 'clear' },
   { id: 'aurora', name: 'Полярно сияние', category: 'Небе', source: 'aurora.png', basePhase: 'night', animation: 'aurora-glow', quality: 'light', effects: ['sky-light'], audio: 'aurora', fallback: 'image', conditions: [['clear', 'Ясно'], ['partly', 'Разкъсана облачност']], defaultCondition: 'clear' },
   { id: 'ice-age', name: 'Ледникова София', category: 'Климат', source: 'ice-age.png', basePhase: 'day', animation: 'snow', quality: 'adaptive', effects: ['snow'], audio: 'ice-age', fallback: 'image', conditions: [['light', 'Лек сняг'], ['cloudy', 'Облачно'], ['storm', 'Снежна буря'], ['blizzard', 'Силна виелица']], defaultCondition: 'light' },
   { id: 'sandstorm', name: 'Пясъчна буря', category: 'Климат', source: 'sandstorm.png', basePhase: 'day', animation: 'dust', quality: 'adaptive', effects: ['dust'], audio: 'sandstorm', fallback: 'image', conditions: [['light', 'Лек прах'], ['strong', 'Силна буря'], ['extreme', 'Пясъчна стихия']], defaultCondition: 'strong' },
