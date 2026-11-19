@@ -1,0 +1,1354 @@
+{
+  "landmarks": {
+    "summit": [
+      1017,
+      191
+    ],
+    "tower": [
+      1247,
+      258
+    ],
+    "emblem": [
+      800,
+      502
+    ],
+    "ndkCorner": [
+      562,
+      474
+    ],
+    "fountain": [
+      840,
+      653
+    ],
+    "boulevard": [
+      246,
+      414
+    ]
+  },
+  "worlds": {
+    "planet": {
+      "base": {
+        "source": "planet.png",
+        "matches": {
+          "summit": {
+            "dx": 0,
+            "dy": 1,
+            "score": 0.41,
+            "confidence": false
+          },
+          "tower": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.84,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": 1,
+            "dy": 0,
+            "score": 0.67,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.9,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": 0,
+            "dy": -1,
+            "score": 0.81,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.53,
+            "confidence": true
+          }
+        }
+      },
+      "day": {
+        "source": "planet-day.png",
+        "matches": {
+          "summit": {
+            "dx": -1,
+            "dy": 2,
+            "score": 0.79,
+            "confidence": true
+          },
+          "tower": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.87,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": 0,
+            "dy": -1,
+            "score": 0.76,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.93,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.91,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.8,
+            "confidence": true
+          }
+        }
+      },
+      "dusk": {
+        "source": "planet-dusk.png",
+        "matches": {
+          "summit": {
+            "dx": -1,
+            "dy": 2,
+            "score": 0.76,
+            "confidence": true
+          },
+          "tower": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.85,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.73,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.87,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -1,
+            "dy": -1,
+            "score": 0.86,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": -1,
+            "dy": -1,
+            "score": 0.64,
+            "confidence": true
+          }
+        }
+      },
+      "night": {
+        "source": "planet-night.png",
+        "matches": {
+          "summit": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.47,
+            "confidence": true
+          },
+          "tower": {
+            "dx": -2,
+            "dy": 7,
+            "score": 0.46,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.74,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.89,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -34,
+            "dy": 0,
+            "score": 0.84,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.5,
+            "confidence": true
+          }
+        }
+      },
+      "overcast": {
+        "source": "planet-overcast.png",
+        "matches": {
+          "summit": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.55,
+            "confidence": true
+          },
+          "tower": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.88,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -1,
+            "dy": 1,
+            "score": 0.72,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.9,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -34,
+            "dy": 0,
+            "score": 0.84,
+            "confidence": false
+          },
+          "boulevard": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.7,
+            "confidence": true
+          }
+        }
+      }
+    },
+    "abandoned": {
+      "base": {
+        "source": "abandoned.png",
+        "matches": {
+          "summit": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.71,
+            "confidence": true
+          },
+          "tower": {
+            "dx": 0,
+            "dy": 1,
+            "score": 0.5,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": 0,
+            "dy": 2,
+            "score": 0.67,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": 0,
+            "dy": 2,
+            "score": 0.64,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -33,
+            "dy": 2,
+            "score": 0.72,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": 4,
+            "dy": 2,
+            "score": 0.32,
+            "confidence": false
+          }
+        }
+      },
+      "day": {
+        "source": "abandoned-day.png",
+        "matches": {
+          "summit": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.64,
+            "confidence": true
+          },
+          "tower": {
+            "dx": -1,
+            "dy": 1,
+            "score": 0.49,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": 0,
+            "dy": 2,
+            "score": 0.65,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -1,
+            "dy": 2,
+            "score": 0.67,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -33,
+            "dy": 2,
+            "score": 0.78,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": 4,
+            "dy": 1,
+            "score": 0.34,
+            "confidence": false
+          }
+        }
+      },
+      "dusk": {
+        "source": "abandoned-up.png",
+        "matches": {
+          "summit": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.72,
+            "confidence": true
+          },
+          "tower": {
+            "dx": -1,
+            "dy": 1,
+            "score": 0.53,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -2,
+            "dy": 1,
+            "score": 0.68,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -1,
+            "dy": 2,
+            "score": 0.61,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -34,
+            "dy": 2,
+            "score": 0.75,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": 4,
+            "dy": 1,
+            "score": 0.35,
+            "confidence": false
+          }
+        }
+      },
+      "night": {
+        "source": "abandoned-night.png",
+        "matches": {
+          "summit": {
+            "dx": 1,
+            "dy": 0,
+            "score": 0.43,
+            "confidence": true
+          },
+          "tower": {
+            "dx": -1,
+            "dy": 1,
+            "score": 0.48,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -1,
+            "dy": 1,
+            "score": 0.68,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -1,
+            "dy": 1,
+            "score": 0.59,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -34,
+            "dy": 2,
+            "score": 0.72,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": 8,
+            "dy": -10,
+            "score": 0.26,
+            "confidence": false
+          }
+        }
+      },
+      "overcast": {
+        "source": "abandoned-overcast.png",
+        "matches": {
+          "summit": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.72,
+            "confidence": true
+          },
+          "tower": {
+            "dx": -1,
+            "dy": 1,
+            "score": 0.53,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -2,
+            "dy": 1,
+            "score": 0.68,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -1,
+            "dy": 2,
+            "score": 0.61,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -34,
+            "dy": 2,
+            "score": 0.75,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": 4,
+            "dy": 1,
+            "score": 0.35,
+            "confidence": false
+          }
+        }
+      }
+    },
+    "sandstorm": {
+      "base": {
+        "source": "sandstorm.png",
+        "matches": {
+          "summit": {
+            "dx": 15,
+            "dy": 6,
+            "score": 0.43,
+            "confidence": true
+          },
+          "tower": {
+            "dx": 0,
+            "dy": 1,
+            "score": 0.83,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.76,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -12,
+            "dy": 0,
+            "score": 0.6,
+            "confidence": false
+          },
+          "fountain": {
+            "dx": 0,
+            "dy": 1,
+            "score": 0.78,
+            "confidence": false
+          },
+          "boulevard": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.58,
+            "confidence": true
+          }
+        }
+      },
+      "day": {
+        "source": "sandstorm-day.png",
+        "matches": {
+          "summit": {
+            "dx": 40,
+            "dy": 10,
+            "score": 0.34,
+            "confidence": false
+          },
+          "tower": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.74,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.67,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -2,
+            "dy": 0,
+            "score": 0.7,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.73,
+            "confidence": false
+          },
+          "boulevard": {
+            "dx": 12,
+            "dy": -12,
+            "score": 0.3,
+            "confidence": false
+          }
+        }
+      },
+      "dusk": {
+        "source": "sandstorm-dusk.png.png",
+        "matches": {
+          "summit": {
+            "dx": 40,
+            "dy": 10,
+            "score": 0.35,
+            "confidence": false
+          },
+          "tower": {
+            "dx": -1,
+            "dy": -1,
+            "score": 0.66,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -3,
+            "dy": 0,
+            "score": 0.68,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -2,
+            "dy": 0,
+            "score": 0.75,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -34,
+            "dy": 1,
+            "score": 0.8,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": 35,
+            "dy": -22,
+            "score": 0.29,
+            "confidence": false
+          }
+        }
+      },
+      "night": {
+        "source": "sandstorm-night.png",
+        "matches": {
+          "summit": {
+            "dx": -26,
+            "dy": 12,
+            "score": 0.32,
+            "confidence": false
+          },
+          "tower": {
+            "dx": -4,
+            "dy": -4,
+            "score": 0.29,
+            "confidence": false
+          },
+          "emblem": {
+            "dx": -3,
+            "dy": 0,
+            "score": 0.65,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -2,
+            "dy": 0,
+            "score": 0.68,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -1,
+            "dy": 1,
+            "score": 0.79,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": -41,
+            "dy": -8,
+            "score": 0.41,
+            "confidence": false
+          }
+        }
+      },
+      "haze": {
+        "source": "sandstorm-haze.png",
+        "matches": {
+          "summit": {
+            "dx": 13,
+            "dy": 6,
+            "score": 0.41,
+            "confidence": false
+          },
+          "tower": {
+            "dx": 0,
+            "dy": 1,
+            "score": 0.69,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -2,
+            "dy": 0,
+            "score": 0.64,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -2,
+            "dy": 0,
+            "score": 0.8,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.85,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": -2,
+            "dy": 0,
+            "score": 0.36,
+            "confidence": false
+          }
+        }
+      },
+      "dusk-alt": {
+        "source": "sandstorm-dusk-alt.png",
+        "matches": {
+          "summit": {
+            "dx": 44,
+            "dy": 12,
+            "score": 0.36,
+            "confidence": false
+          },
+          "tower": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.66,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.7,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -2,
+            "dy": -1,
+            "score": 0.74,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -34,
+            "dy": 1,
+            "score": 0.77,
+            "confidence": false
+          },
+          "boulevard": {
+            "dx": -2,
+            "dy": -1,
+            "score": 0.49,
+            "confidence": true
+          }
+        }
+      }
+    },
+    "cyberpunk": {
+      "base": {
+        "source": "cyberpunk.png",
+        "matches": {
+          "summit": {
+            "dx": 44,
+            "dy": -22,
+            "score": 0.37,
+            "confidence": false
+          },
+          "tower": {
+            "dx": 0,
+            "dy": -32,
+            "score": 0.65,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": 0,
+            "dy": -30,
+            "score": 0.71,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": 10,
+            "dy": -30,
+            "score": 0.57,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": 0,
+            "dy": -32,
+            "score": 0.74,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": 0,
+            "dy": -32,
+            "score": 0.34,
+            "confidence": false
+          }
+        }
+      },
+      "day": {
+        "source": "cyberpunk-day.png",
+        "matches": {
+          "summit": {
+            "dx": -2,
+            "dy": -31,
+            "score": 0.61,
+            "confidence": true
+          },
+          "tower": {
+            "dx": 0,
+            "dy": -33,
+            "score": 0.67,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": 0,
+            "dy": -32,
+            "score": 0.7,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -1,
+            "dy": -32,
+            "score": 0.82,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -1,
+            "dy": -32,
+            "score": 0.82,
+            "confidence": false
+          },
+          "boulevard": {
+            "dx": -1,
+            "dy": -32,
+            "score": 0.65,
+            "confidence": true
+          }
+        }
+      },
+      "dusk": {
+        "source": "Киберпънк София под неоново небе.png",
+        "matches": {
+          "summit": {
+            "dx": 44,
+            "dy": -22,
+            "score": 0.38,
+            "confidence": false
+          },
+          "tower": {
+            "dx": 2,
+            "dy": -31,
+            "score": 0.45,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -1,
+            "dy": -32,
+            "score": 0.77,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": 10,
+            "dy": -29,
+            "score": 0.6,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -34,
+            "dy": -31,
+            "score": 0.79,
+            "confidence": false
+          },
+          "boulevard": {
+            "dx": -10,
+            "dy": -24,
+            "score": 0.33,
+            "confidence": false
+          }
+        }
+      },
+      "night": {
+        "source": "cyberpunk-night.png",
+        "matches": {
+          "summit": {
+            "dx": 44,
+            "dy": -22,
+            "score": 0.37,
+            "confidence": false
+          },
+          "tower": {
+            "dx": 0,
+            "dy": -32,
+            "score": 0.65,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": 0,
+            "dy": -30,
+            "score": 0.71,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": 10,
+            "dy": -30,
+            "score": 0.57,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": 0,
+            "dy": -32,
+            "score": 0.74,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": 0,
+            "dy": -32,
+            "score": 0.34,
+            "confidence": false
+          }
+        }
+      },
+      "overcast": {
+        "source": "cyberpunk-overcast.png",
+        "matches": {
+          "summit": {
+            "dx": -2,
+            "dy": -31,
+            "score": 0.47,
+            "confidence": true
+          },
+          "tower": {
+            "dx": -1,
+            "dy": -33,
+            "score": 0.67,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": 0,
+            "dy": -33,
+            "score": 0.72,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -2,
+            "dy": -32,
+            "score": 0.75,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -35,
+            "dy": -31,
+            "score": 0.78,
+            "confidence": false
+          },
+          "boulevard": {
+            "dx": -2,
+            "dy": -33,
+            "score": 0.46,
+            "confidence": true
+          }
+        }
+      }
+    },
+    "flood": {
+      "base": {
+        "source": "flood.png",
+        "matches": {
+          "summit": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.67,
+            "confidence": true
+          },
+          "tower": {
+            "dx": 0,
+            "dy": 1,
+            "score": 0.61,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.72,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": 0,
+            "dy": 1,
+            "score": 0.74,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": 1,
+            "dy": 9,
+            "score": 0.46,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": 1,
+            "dy": 0,
+            "score": 0.39,
+            "confidence": false
+          }
+        }
+      },
+      "day": {
+        "source": "flood-day.png",
+        "matches": {
+          "summit": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.62,
+            "confidence": true
+          },
+          "tower": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.53,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.76,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.78,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": 16,
+            "dy": 8,
+            "score": 0.37,
+            "confidence": false
+          },
+          "boulevard": {
+            "dx": 1,
+            "dy": 0,
+            "score": 0.41,
+            "confidence": false
+          }
+        }
+      },
+      "dusk": {
+        "source": "flood-dusk.png",
+        "matches": {
+          "summit": {
+            "dx": -1,
+            "dy": -1,
+            "score": 0.68,
+            "confidence": true
+          },
+          "tower": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.64,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.76,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.85,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": 16,
+            "dy": 6,
+            "score": 0.48,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": 0,
+            "dy": -1,
+            "score": 0.43,
+            "confidence": true
+          }
+        }
+      },
+      "night": {
+        "source": "flood-night.png",
+        "matches": {
+          "summit": {
+            "dx": -1,
+            "dy": 1,
+            "score": 0.55,
+            "confidence": true
+          },
+          "tower": {
+            "dx": 1,
+            "dy": 0,
+            "score": 0.69,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.82,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.81,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": -10,
+            "dy": -27,
+            "score": 0.35,
+            "confidence": false
+          },
+          "boulevard": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.49,
+            "confidence": true
+          }
+        }
+      },
+      "overcast": {
+        "source": "flood-overcast.png",
+        "matches": {
+          "summit": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.74,
+            "confidence": true
+          },
+          "tower": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.78,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -1,
+            "dy": -1,
+            "score": 0.79,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.86,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": 1,
+            "dy": 9,
+            "score": 0.51,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.45,
+            "confidence": true
+          }
+        }
+      }
+    },
+    "ice-age": {
+      "base": {
+        "source": "ice-age.png",
+        "matches": {
+          "summit": {
+            "dx": 17,
+            "dy": 40,
+            "score": 0.31,
+            "confidence": false
+          },
+          "tower": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.72,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -1,
+            "dy": 1,
+            "score": 0.68,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": 24,
+            "dy": 21,
+            "score": 0.43,
+            "confidence": true
+          },
+          "fountain": {
+            "dx": 0,
+            "dy": 1,
+            "score": 0.59,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.33,
+            "confidence": false
+          }
+        }
+      },
+      "day": {
+        "source": "ice-age-day.png",
+        "matches": {
+          "summit": {
+            "dx": 18,
+            "dy": 40,
+            "score": 0.28,
+            "confidence": false
+          },
+          "tower": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.63,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -1,
+            "dy": 1,
+            "score": 0.7,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": 12,
+            "dy": 10,
+            "score": 0.41,
+            "confidence": false
+          },
+          "fountain": {
+            "dx": 0,
+            "dy": 2,
+            "score": 0.68,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.31,
+            "confidence": false
+          }
+        }
+      },
+      "dusk": {
+        "source": "ice-age-dusk.png",
+        "matches": {
+          "summit": {
+            "dx": 16,
+            "dy": 38,
+            "score": 0.31,
+            "confidence": false
+          },
+          "tower": {
+            "dx": -1,
+            "dy": -1,
+            "score": 0.69,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -2,
+            "dy": 1,
+            "score": 0.68,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": -2,
+            "dy": 18,
+            "score": 0.32,
+            "confidence": false
+          },
+          "fountain": {
+            "dx": -1,
+            "dy": 2,
+            "score": 0.6,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": -42,
+            "dy": -30,
+            "score": 0.21,
+            "confidence": false
+          }
+        }
+      },
+      "night": {
+        "source": "ice-age-night.png",
+        "matches": {
+          "summit": {
+            "dx": -8,
+            "dy": -14,
+            "score": 0.28,
+            "confidence": false
+          },
+          "tower": {
+            "dx": -1,
+            "dy": -1,
+            "score": 0.67,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -2,
+            "dy": 1,
+            "score": 0.71,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": 26,
+            "dy": -4,
+            "score": 0.32,
+            "confidence": false
+          },
+          "fountain": {
+            "dx": -1,
+            "dy": 2,
+            "score": 0.63,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": -1,
+            "dy": -1,
+            "score": 0.32,
+            "confidence": false
+          }
+        }
+      },
+      "overcast": {
+        "source": "ice-age-overcast.png",
+        "matches": {
+          "summit": {
+            "dx": 41,
+            "dy": -33,
+            "score": 0.38,
+            "confidence": false
+          },
+          "tower": {
+            "dx": 0,
+            "dy": 0,
+            "score": 0.69,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -1,
+            "dy": 1,
+            "score": 0.67,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": 12,
+            "dy": 21,
+            "score": 0.41,
+            "confidence": false
+          },
+          "fountain": {
+            "dx": 0,
+            "dy": 2,
+            "score": 0.64,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": -1,
+            "dy": 0,
+            "score": 0.32,
+            "confidence": false
+          }
+        }
+      },
+      "night-alt": {
+        "source": "ice-age-night-alt.png",
+        "matches": {
+          "summit": {
+            "dx": 16,
+            "dy": 39,
+            "score": 0.31,
+            "confidence": false
+          },
+          "tower": {
+            "dx": -1,
+            "dy": -1,
+            "score": 0.79,
+            "confidence": true
+          },
+          "emblem": {
+            "dx": -1,
+            "dy": -1,
+            "score": 0.7,
+            "confidence": true
+          },
+          "ndkCorner": {
+            "dx": 10,
+            "dy": 12,
+            "score": 0.38,
+            "confidence": false
+          },
+          "fountain": {
+            "dx": -34,
+            "dy": 2,
+            "score": 0.57,
+            "confidence": true
+          },
+          "boulevard": {
+            "dx": -1,
+            "dy": -1,
+            "score": 0.35,
+            "confidence": false
+          }
+        }
+      }
+    }
+  }
+}
