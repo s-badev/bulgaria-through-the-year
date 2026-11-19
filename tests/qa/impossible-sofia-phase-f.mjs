@@ -34,6 +34,9 @@ try {
     const pinned = panel.locator('.special-controls-heading');
     const settings = panel.locator('.special-settings');
     const play = pinned.locator('#specialPlay');
+    assert.equal(await settings.locator('#specialDate').count(), 0, `${name}: no special calendar`);
+    assert.equal(await settings.locator('#specialChange').count(), 1, `${name}: scene navigation inside settings`);
+    assert.equal(await settings.locator('#specialBack').count(), 1, `${name}: return navigation inside settings`);
     const save = suffix => page.screenshot({ path: `${output}/${name}-${suffix}.jpg`, type: 'jpeg', quality: 77 });
     if (mobile) {
       assert(!await panel.isVisible(), `${name}: closed initially`);
@@ -57,7 +60,7 @@ try {
       await save('open');
     }
 
-    const targets = ['#specialHour', '#specialDate', '#specialConditions button', '#specialIntensity', '#specialSound', '#specialVolume'];
+    const targets = ['#specialHour', '#specialConditions button', '#specialChange', '#specialBack', '#specialIntensity', '#specialSound', '#specialVolume'];
     for (const selector of targets) for (const target of await settings.locator(selector).all()) {
       await target.scrollIntoViewIfNeeded();
       const rect = await target.boundingBox(), scroller = await settings.boundingBox();
