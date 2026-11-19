@@ -82,6 +82,14 @@ try {
     await setHour(day, 12);
     await settled(day, weatherPlate);
     await capture(day, `${id}-${weatherPlate}`);
+    if (id === 'planet') {
+      await condition(day, 'storm');
+      await settled(day, 'overcast');
+      assert.equal(await day.evaluate(() => window.__app.special.layers[0].effects.type), 'rain', 'planet storm creates rain system');
+      assert.equal(await day.locator('.special-world-layer .special-flash').count(), 1, 'planet storm includes lightning layer');
+      await capture(day, 'planet-storm');
+      await condition(day, 'clear');
+    }
     if (id === 'sandstorm') {
       await condition(day, 'extreme');
       await setHour(day, 21);
