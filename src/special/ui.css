@@ -8,18 +8,17 @@ body.special-active .demo-bar, body.special-active .caption { visibility: hidden
 #specialWorldTime { font: 700 17px/1 var(--font); font-variant-numeric: tabular-nums; }
 #specialPlay { border-color: var(--acc); }
 .special-settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 8px 16px; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 7px 5px 5px; scrollbar-width: thin; scroll-padding-block: 5px; }
-.special-time-row, .special-date-row, .special-intensity-row, .special-audio-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0 8px; min-width: 0; }
+.special-time-row, .special-intensity-row, .special-audio-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0 8px; min-width: 0; }
 .special-controls label, .special-condition-row > span { flex: none; color: var(--mut); }
 .special-controls input[type='range'] { flex: 1 1 100px; min-width: 60px; min-height: 44px; margin: 0; accent-color: var(--acc); }
-.special-controls input[type='date'] { flex: 0 1 154px; min-width: 146px; min-height: 44px; padding: 0 8px; color: var(--txt); color-scheme: dark; background: rgba(255, 255, 255, .06); border: 1px solid var(--line); border-radius: 10px; font: 600 13px var(--font); }
 .special-controls button { min-width: 44px; min-height: 44px; padding-inline: 9px; font-size: 12px; }
 #specialSound[aria-pressed='true'] { border-color: var(--acc); background: rgba(255, 179, 90, .24); }
 .special-controls button:focus-visible, .special-controls input:focus-visible { outline: 2px solid var(--acc); outline-offset: -2px; }
-#specialSolar { color: var(--mut); font-weight: 500; }
 .special-condition-row { grid-column: 1 / -1; display: grid; gap: 5px; }
 #specialIntensityValue { min-width: 32px; text-align: right; }
 .special-world-badge { display: none; }
-.special-nav { display: none; position: fixed; right: 16px; top: 68px; z-index: 8; gap: 7px; }
+/* Scene actions share the same settings grid and never float over the photograph. */
+.special-nav { display: none; grid-column: 1 / -1; position: static; flex-wrap: wrap; gap: 7px; min-width: 0; }
 .special-nav.is-visible { display: flex; }
 .special-nav .sec { display: inline-flex; align-items: center; min-height: 44px; border-color: rgba(255,179,90,.7); background: rgba(12,16,26,.94); }
 .special-dialog { width: min(580px, calc(100vw - 24px)); max-height: calc(var(--visible-height) - 24px); overflow-y: auto; overscroll-behavior: contain; padding: 18px; color: var(--txt); background: #111824; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 16px 54px #0009; }
@@ -42,11 +41,9 @@ body.special-active .demo-bar, body.special-active .caption { visibility: hidden
   body.special-active .panel { width: auto; gap: 6px; max-height: min(calc(var(--visible-height) * .64), calc(var(--visible-height) - var(--sheet-top))); }
   body.special-active .panel:not(.is-open) { visibility: hidden; pointer-events: none; }
   body.special-active .panel.is-open { visibility: visible; pointer-events: auto; }
-  body.special-active .panel.is-open ~ .special-nav { visibility: hidden; pointer-events: none; }
   .special-settings { grid-template-columns: minmax(0, 1fr); }
-  .special-world-badge { display: block; position: absolute; left: 0; bottom: calc(100% + 6px); max-width: min(320px, calc(100vw - 20px)); padding: 6px 9px; border: 1px solid var(--line); border-radius: 9px; background: rgba(12,16,26,.9); color: var(--txt); font: 600 11px/1.2 var(--font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .special-nav { left: max(10px, env(safe-area-inset-left)); right: auto; top: auto; bottom: calc(var(--visible-bottom) + env(safe-area-inset-bottom) + 76px); max-width: calc(100vw - 20px); }
-  .special-nav .sec { padding-inline: 9px; font-size: 12px; white-space: nowrap; }
+  .special-nav { width: 100%; }
+  .special-nav .sec { flex: 1 1 135px; padding-inline: 9px; font-size: 12px; white-space: normal; }
   .special-dialog { padding: 14px; max-height: calc(var(--visible-height) - 20px); }
   .special-dialog h2 { font-size: 21px; }
   .special-grid { grid-template-columns: 1fr; }
