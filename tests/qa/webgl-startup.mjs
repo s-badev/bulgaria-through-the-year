@@ -114,10 +114,11 @@ try {
       HTMLCanvasElement.prototype.getContext = function (kind, ...args) { return kind === 'webgl2' ? null : get.call(this, kind, ...args); };
     });
     await unsupported.goto(sceneURL);
-    await unsupported.waitForFunction(() => document.querySelector('.static-view img')?.naturalWidth > 0);
+    const staticPhoto = unsupported.locator('.static-view > img');
+    await staticPhoto.evaluate(img => img.decode());
     assert.equal(await unsupported.locator('.static-view').getAttribute('data-reason'), 'webgl-unavailable');
     assert.equal(await unsupported.locator('#gl, #panel').count(), 0);
-    assert.equal(await unsupported.locator('.static-view > img').evaluate(img => getComputedStyle(img).objectFit), 'cover');
+    assert.equal(await staticPhoto.evaluate(img => getComputedStyle(img).objectFit), 'cover');
     await coverage(unsupported, '.static-view > img', `fallback-${label}`);
     assert(fallback.console.some(line => line.includes('webgl-unavailable')));
     assert.deepEqual([fallback.errors, fallback.requests], [[], []]);
