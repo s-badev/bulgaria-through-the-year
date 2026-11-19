@@ -36,7 +36,10 @@ try {
     const play = pinned.locator('#specialPlay');
     assert.equal(await settings.locator('#specialDate').count(), 0, `${name}: no special calendar`);
     assert.equal(await settings.locator('#specialChange').count(), 1, `${name}: scene navigation inside settings`);
-    assert.equal(await pinned.locator('#specialBack').count(), 1, `${name}: return navigation stays in the header`);
+    assert.equal(await page.locator('#specialBack').count(), 1, `${name}: only one return action`);
+    const location = await page.locator('#specialBack').evaluate(node => node.closest('.special-picker-head') ? 'picker' : node.closest('.special-controls-heading') ? 'controls' : 'other');
+    assert.equal(location, mobile ? 'controls' : 'picker', `${name}: return action is aligned with the right-hand world title on desktop`);
+    assert.equal(await settings.locator('#specialIntensity, #specialVolume, #specialSound').count(), 0, `${name}: redundant sliders and sound toggle removed`);
     const save = suffix => page.screenshot({ path: `${output}/${name}-${suffix}.jpg`, type: 'jpeg', quality: 77 });
     if (mobile) {
       assert(!await panel.isVisible(), `${name}: closed initially`);
@@ -62,7 +65,7 @@ try {
 
     assert.equal(await page.locator('#specialPicker .special-grid [data-special]').count(), 6, `${name}: six embedded worlds`);
     assert.equal(await page.locator('#specialPicker').isVisible(), !mobile, `${name}: desktop selector visible, mobile selector collapsible`);
-    const targets = ['#specialHour', '#specialConditions button', '#specialIntensity', '#specialSound', '#specialVolume', ...(mobile ? ['#specialChange'] : [])];
+    const targets = ['#specialHour', '#specialConditions button', ...(mobile ? ['#specialChange'] : [])];
     for (const selector of targets) for (const target of await settings.locator(selector).all()) {
       await target.scrollIntoViewIfNeeded();
       const rect = await target.boundingBox(), scroller = await settings.boundingBox();
@@ -70,7 +73,7 @@ try {
       assert(rect.x >= scroller.x && rect.x + rect.width <= scroller.x + scroller.width + 1, `${name}: ${selector} fits settings`);
       assert(rect.width >= 44 && rect.height >= 44, `${name}: ${selector} touch target`);
     }
-    if (mobile && width !== 412) assert(await settings.evaluate(node => node.scrollTop > 0), `${name}: settings scroll separately`);
+    assert.equal(await settings.evaluate(node => node.scrollTop), 0, `${name}: compact atmosphere settings do not require internal scrolling`);
     assert.deepEqual(await pinned.boundingBox(), before, `${name}: title, time and playback stay pinned`);
     assert.equal(await panel.evaluate(node => node.scrollTop), 0, `${name}: panel did not scroll`);
     await play.press('Enter');
