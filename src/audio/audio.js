@@ -114,6 +114,7 @@ export class Sound {
     const quiet = special.id === 'abandoned' ? .32 + .68 * day : flood ? .72 + .28 * day : 1;
     let rain = profile.rain * level * stormRain;
     if (flood) rain *= FLOOD_RAIN[special.condition];
+    if (special.id === 'planet') rain = special.condition === 'storm' ? .16 * level : 0;
     if (['abandoned', 'cyberpunk'].includes(special.id)) rain = special.condition === 'rain' ? .18 * level : 0;
     const waterFlow = (profile.water ?? 0) * (.65 + .35 * gust) * quiet * level;
     tgt(this.lp.frequency, special.id === 'ice-age' ? 3400 : special.id === 'sandstorm' ? 5000 : 10500, .7);
