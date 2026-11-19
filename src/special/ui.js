@@ -39,11 +39,21 @@ export function installSpecialUI(root, actions, state, shared) {
   picker.id = 'specialPicker';
   picker.className = 'special-picker';
   picker.setAttribute('aria-label', 'Другата София — избор на свят');
-  picker.innerHTML = `<div class="special-picker-head"><h2>Другата София</h2><button id="specialPickerClose" class="sec" type="button">Затвори</button></div>
+  picker.innerHTML = `<div class="special-picker-head"><h2>Другата София</h2><span class="special-picker-back-slot"></span><button id="specialPickerClose" class="sec" type="button">Затвори</button></div>
     <div class="special-grid" role="group" aria-label="Шест свята">${VISIBLE_SPECIAL_SCENES.map(scene => `<button type="button" data-special="${scene.id}" disabled><strong>${scene.name}</strong></button>`).join('')}</div>
     <p id="specialStatus" role="status" aria-live="polite"></p>`;
   controls.after(picker);
   const status = picker.querySelector('#specialStatus');
+  const heading = controls.querySelector('.special-controls-heading');
+  const pickerHeading = picker.querySelector('.special-picker-head');
+  picker.querySelector('.special-picker-back-slot').replaceWith(back);
+  const mobileLayout = matchMedia('(max-width: 820px), (max-height: 500px)');
+  function placeReturnControl() {
+    if (mobileLayout.matches) heading.querySelector('#specialWorldName').after(back);
+    else pickerHeading.querySelector('h2').after(back);
+  }
+  mobileLayout.addEventListener('change', placeReturnControl);
+  placeReturnControl();
   let available = new Set(), active = null, returnFocus = entry;
   let manifestRequested = false;
   function updatePickerState() {
