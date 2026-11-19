@@ -52,6 +52,8 @@ try {
   await desktop.locator('[data-special="planet"]').click();
   await desktop.waitForFunction(() => window.__app.special.id === 'planet' && document.querySelector('.special-world-layer.is-visible'));
   assert(await desktop.locator('#specialBack').isVisible());
+  assert.equal(await desktop.locator('#specialDate').count(), 0, 'special calendar removed');
+  assert.equal(await desktop.locator('#specialChange').evaluate(node => !!node.closest('#specialControls .special-settings')), true, 'actions embedded in special settings');
   assert.equal(await desktop.locator('.special-world img').count(), 1);
   assert.match(await desktop.locator('.special-world img').getAttribute('src'), /planet-day\.(webp|png)/);
   const before = await desktop.evaluate(() => ({ S: { ...window.__app.state.S }, renders: window.__app.comp.baseRenders }));
@@ -130,12 +132,12 @@ try {
     assert(geometry.left <= 0 && geometry.right >= width && geometry.scroll <= width, `${width}x${height}: image covers view`);
     const chrome = await page.evaluate(() => {
       const box = selector => document.querySelector(selector).getBoundingClientRect();
-      const nav = box('.special-nav'), title = box('.title'), more = box('#moreBtn');
-      const intersects = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-      return { nav: { left: nav.left, right: nav.right, top: nav.top, bottom: nav.bottom }, overlap: intersects(nav, title) || intersects(nav, more), back: box('#specialBack').height };
+      const nav = document.querySelector('.special-nav');
+      return { embedded: !!nav.closest('#specialControls .special-settings'), panelClosed: !document.querySelector('#panel').getClientRects().length, duplicate: document.querySelectorAll('#specialChange, #specialBack').length };
     });
-    assert(chrome.nav.left >= 0 && chrome.nav.right <= width && chrome.nav.top >= 0 && chrome.nav.bottom <= height && !chrome.overlap && chrome.back >= 44, `${width}x${height}: special navigation fits viewport`);
+    assert(chrome.embedded && chrome.panelClosed && chrome.duplicate === 2, `${width}x${height}: navigation belongs only to the closed panel`);
     if (width === 390 && height === 844) {
+      await page.locator('#mobileOpen').tap();
       await page.locator('#specialBack').tap();
       await page.waitForFunction(() => !window.__app.special.id);
       await openFromControls(page, true);
@@ -161,7 +163,9 @@ try {
     if (width === 390 && height === 844) {
       const savedPan = await page.evaluate(() => window.__app.comp.panX);
       for (const id of scenes.slice(1)) {
+        await page.locator('#mobileOpen').tap();
         const change = page.locator('#specialChange');
+        await change.scrollIntoViewIfNeeded();
         const bounds = await change.boundingBox();
         assert(bounds.width >= 44 && bounds.height >= 44, 'change scene is touch accessible');
         await change.tap();
@@ -176,6 +180,7 @@ try {
         if (id !== scenes.at(-1)) await page.evaluate(pan => { window.__app.comp.panX = pan; window.__app.comp.applyPan(); }, savedPan);
       }
     }
+    await page.locator('#mobileOpen').tap();
     await page.locator('#specialBack').click();
     await page.waitForFunction(() => !window.__app.special.id);
     assert(await page.locator('#mobileOpen').isVisible());
