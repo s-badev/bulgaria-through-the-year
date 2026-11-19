@@ -54,3 +54,32 @@ body.special-active .demo-bar, body.special-active .caption { visibility: hidden
 }
 @media (max-width: 350px) { .special-nav { gap: 4px; } .special-nav .sec { padding-inline: 6px; font-size: 11px; } }
 @media (prefers-reduced-motion: reduce) { .special-nav, .special-dialog { transition: none; } }
+
+
+/* Inline selector: never a separate overlay. The normal controls remain underneath it. */
+.special-picker { display: none; min-width: 0; padding: 10px 4px; flex-direction: column; gap: 8px; }
+.special-picker.is-open { display: flex; }
+.special-picker-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.special-picker-head h2 { margin: 0; font: 500 18px/1.2 var(--serif); }
+.special-picker-head .sec { min-height: 36px; }
+.special-picker .special-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.special-picker .special-grid button { min-height: 44px; padding: 7px 9px; }
+.special-picker #specialStatus { margin: 0; min-height: 0; }
+body.special-active .panel { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 12px; width: min(1160px, calc(100vw - 24px)); max-height: min(305px, calc(var(--visible-height) - var(--sheet-top))); }
+body.special-active .special-controls { grid-column: 1; min-width: 0; }
+body.special-active .special-picker { grid-column: 2; display: flex; overflow-y: auto; overscroll-behavior: contain; padding-inline: 10px 4px; border-left: 1px solid var(--line); }
+body.special-active .special-picker .special-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+body.special-active .special-picker #specialPickerClose { display: none; }
+body.special-active .special-nav #specialChange { display: none; }
+body.special-active .special-settings { grid-template-columns: minmax(0, 1fr); gap: 7px; }
+body.special-active .special-nav { grid-column: 1; }
+@media (max-width: 820px), (max-height: 500px) {
+  body.special-active .panel { display: flex; width: auto; max-height: min(calc(var(--visible-height) * .77), calc(var(--visible-height) - var(--sheet-top))); gap: 6px; }
+  body.special-active .special-picker { display: none; border: 0; padding: 4px; overflow: visible; }
+  body.special-active .special-picker.is-open { display: flex; }
+  body.special-active .panel.special-picker-expanded .special-controls { display: none; }
+  body.special-active .special-picker #specialPickerClose { display: inline-flex; }
+  body.special-active .special-nav #specialChange { display: inline-flex; }
+  .special-picker .special-grid, body.special-active .special-picker .special-grid { grid-template-columns: minmax(0, 1fr); }
+  .special-picker .special-grid button { min-height: 44px; }
+}
