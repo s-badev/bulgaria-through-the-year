@@ -165,7 +165,7 @@ try {
     assert(await mobile.evaluate(() => {
       const bounds = selector => document.querySelector(selector).getBoundingClientRect();
       const nav = document.querySelector('.special-nav');
-      return nav.closest('#specialControls .special-settings') !== null && getComputedStyle(nav).display === 'none;';
+      return nav.closest('#specialControls .special-settings') !== null && !document.querySelector('#panel').getClientRects().length;
     }), 'scene navigation clear of the clock and controls');
     await mobile.screenshot({ path: `${out}/flood-${width}x${height}.jpg`, type: 'jpeg', quality: 75 });
     await mobile.locator('#mobileOpen').tap();
