@@ -1,16 +1,17 @@
 import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 import { reference } from './special-reference.mjs';
+import { registeredTerrain, terrainProfile } from './registered-terrain.mjs';
 
 const REVISION = 1;
-export const mountainProfiles = {
+const mountainProfiles = {
   planet: { saturation: .94 },
-  abandoned: { saturation: .91 },
   sandstorm: { saturation: .88 },
   cyberpunk: { saturation: .87, yOffset: -32 },
   flood: { saturation: .94 },
-  'ice-age': { saturation: .72, winterDetail: .86 },
 };
+
+export const mountainProfile = (id, phase) => terrainProfile(id, phase) ?? mountainProfiles[id];
 
 // Quantize only the final band. The original sky, skyline, and city outside
 // the feathered mask pass through the normal WebP/AVIF encoder unchanged.
@@ -22,10 +23,8 @@ export function mountainPreparation(sharp, root) {
     return t * t * (3 - 2 * t);
   };
   const luma = (r, g, b) => .2126 * r + .7152 * g + .0722 * b;
-  let maskPromise, winterPromise;
-  const luminance = async image => image.clone().extract(band).greyscale().raw().toBuffer();
-  const lowPass = data => sharp(data, { raw: { width, height: band.height, channels: 1 } })
-    .blur(15).greyscale().raw().toBuffer();
+  let maskPromise;
+  const terrain = registeredTerrain(sharp, root, band);
 
   function mask() {
     return maskPromise ??= (async () => {
@@ -43,29 +42,23 @@ export function mountainPreparation(sharp, root) {
     })();
   }
 
-  function winter() {
-    return winterPromise ??= (async () => {
-      const bytes = await fs.readFile(root + reference.winter);
-      const detail = await luminance(sharp(bytes));
-      return { detail, low: await lowPass(detail), hash: crypto.createHash('sha256').update(bytes).digest('hex') };
-    })();
-  }
-
   return {
     async hash(sourceHash, profile) {
       const data = await mask();
-      const winterHash = profile.winterDetail ? (await winter()).hash : null;
-      return crypto.createHash('sha256').update(JSON.stringify([REVISION, sourceHash, profile, data.hash, winterHash])).digest('hex');
+      const terrainHash = profile.terrain ? await terrain.hash(profile.terrain) : null;
+      return crypto.createHash('sha256').update(JSON.stringify([REVISION, sourceHash, profile, data.hash, terrainHash])).digest('hex');
     },
     async apply(image, profile) {
       const { data, ridge } = await mask();
-      const winterData = profile.winterDetail ? await winter() : null;
       // Resolve padding for 1671 px masters before extraction. Sharp performs
       // extract before extend in a single pipeline.
+      if (profile.terrain) {
+        const { data: pixels, info } = await image.clone().toColourspace('srgb').raw().toBuffer({ resolveWithObject: true });
+        await terrain.apply(pixels, info.channels, data, ridge, profile.terrain);
+        return sharp(pixels, { raw: { width, height, channels: info.channels } });
+      }
       const rgb = await image.clone().removeAlpha().toColourspace('srgb').raw().toBuffer();
       const padded = () => sharp(rgb, { raw: { width, height, channels: 3 } });
-      const target = winterData ? await luminance(padded()) : null;
-      const targetLow = target ? await lowPass(target) : null;
       const yOffset = profile.yOffset ?? 0;
       for (let y = 0; y < band.height; y++) for (let x = 0; x < width; x++) {
         const refY = y - yOffset;
@@ -75,18 +68,9 @@ export function mountainPreparation(sharp, root) {
         if (opacity <= 0) continue;
         const pixel = (at + band.top * width) * 3;
         const light = luma(rgb[pixel], rgb[pixel + 1], rgb[pixel + 2]);
-        let tone = light;
-        if (winterData) {
-          // Preserve the plate's broad lighting and haze. Replace only local
-          // luminance variation with terrain detail from the aligned winter
-          // reference, scaled to the plate's own exposure.
-          const gain = Math.max(.18, Math.min(.9, targetLow[at] / Math.max(10, winterData.low[ref])));
-          const registered = targetLow[at] + (winterData.detail[ref] - winterData.low[ref]) * gain;
-          tone += (registered - target[at]) * profile.winterDetail;
-        }
         for (let c = 0; c < 3; c++) {
           const original = rgb[pixel + c];
-          const graded = tone + (original - light) * profile.saturation;
+          const graded = light + (original - light) * profile.saturation;
           rgb[pixel + c] = Math.max(0, Math.min(255, Math.round(original + (graded - original) * opacity)));
         }
       }

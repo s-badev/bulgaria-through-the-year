@@ -4,7 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { SPECIAL_SCENES, SPECIAL_VARIANTS } from '../src/special/registry.js';
-import { mountainPreparation, mountainProfiles } from './lib/special-mountain.mjs';
+import { mountainPreparation, mountainProfile } from './lib/special-mountain.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dir = path.join(root, 'public', 'scenes', 'ndk', 'special');
@@ -51,8 +51,7 @@ async function prepare(input, name, old, profile) {
 for (const scene of SPECIAL_SCENES) {
   const input = path.join(dir, scene.source);
   if (!fs.existsSync(input)) continue;
-  const profile = mountainProfiles[scene.id];
-  const base = await prepare(input, scene.id, previous[scene.id], profile);
+  const base = await prepare(input, scene.id, previous[scene.id], mountainProfile(scene.id, 'base'));
   if (!base) continue;
   const variants = {};
   const config = SPECIAL_VARIANTS[scene.id];
@@ -63,7 +62,7 @@ for (const scene of SPECIAL_SCENES) {
       console.warn(`[special] missing ${name}`);
       continue;
     }
-    const plate = await prepare(variant, `${scene.id}-${phase}`, previous[scene.id]?.variants?.[phase], profile);
+    const plate = await prepare(variant, `${scene.id}-${phase}`, previous[scene.id]?.variants?.[phase], mountainProfile(scene.id, phase));
     if (plate) variants[phase] = plate;
   }
   scenes[scene.id] = Object.keys(variants).length ? { ...base, variants } : base;

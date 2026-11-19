@@ -67,7 +67,7 @@
       "width": 1672,
       "height": 941,
       "hash": "d62d55c1fcda491fa6fd2d8e7cdd0ca850fd430fd63775de6b2f2f26653f6ca0",
-      "renderHash": "2e619bc66801d993941da16994544b52359730cca944ea85cf21b6e5c1c113d8",
+      "renderHash": "f06a120e9c7ad16b47a6e17de4fbd8d5d46dddd247f19a8df61b2afbff18d5a7",
       "variants": {
         "day": {
           "source": "ice-age-day.png",
@@ -76,7 +76,7 @@
           "width": 1672,
           "height": 941,
           "hash": "7d3210ff686ba67b7ec58f30f6a190bd3a38526bfbed1575262e04d6f637449f",
-          "renderHash": "99aa14f3afc829d19b8ab924365b8234fd143b3b56f0473a3eaeeb36e334491b"
+          "renderHash": "e15c0c3fc6b0a7cdecfb9dc1c431382fe1a789b41cc6950298a4949df39b144d"
         },
         "dusk": {
           "source": "ice-age-dusk.png",
@@ -86,7 +86,7 @@
           "height": 941,
           "sourceWidth": 1671,
           "hash": "74a0d682c08cb50671c3ed31ce4a95b347b512c61209de231d7c1e4eba13e796",
-          "renderHash": "48a4aa65a0f83242ead6d9ec7e5c5d754e8d95498c4cf7835dd047cb223430da"
+          "renderHash": "022ce5a514b0a03d7aab530b1267ebbf4da551a5b4323232b6d27900546d4add"
         },
         "night": {
           "source": "ice-age-night.png",
@@ -96,7 +96,7 @@
           "height": 941,
           "sourceWidth": 1671,
           "hash": "d6739d2c69afde7a8ec1e34e8b63a46471c73e08127a8b0a0c8598df8705ec15",
-          "renderHash": "ce8656c6e0ac27c0e9a39dc0ee7d7d0479729088b452c45361fa1fa00f5ea228"
+          "renderHash": "d063d5d8b628e55cbc2122e7728440322d7b568b6cf975fc745e531758456fa4"
         },
         "overcast": {
           "source": "ice-age-overcast.png",
@@ -105,7 +105,7 @@
           "width": 1672,
           "height": 941,
           "hash": "ba28bffb18494fc38768e32976d7140913695451f36b06620d8c321cbff1ab68",
-          "renderHash": "31c1e829d60328f6e52fe3aa75a171073fb64e55c7e31e3eeae94208f666cb59"
+          "renderHash": "6cf4f85e8b5b661f745f88dc92ec545877f1e06b55459931ce241b132828518c"
         },
         "night-alt": {
           "source": "ice-age-night-alt.png",
@@ -115,7 +115,7 @@
           "height": 941,
           "sourceWidth": 1671,
           "hash": "4c4bb33f08a961b41c369579b2560778de774df414b29866a0c2173c9cd22574",
-          "renderHash": "683ccbcd6d012060e0b19f3215b909fd4e62988273ca5a28cc4a1e9e508d0667"
+          "renderHash": "b07f7683d165aef84b82ae01165e03fdc39e77568ed34188f6cfc7f977d3abad"
         }
       }
     },
@@ -185,7 +185,7 @@
       "width": 1672,
       "height": 941,
       "hash": "01eb9018f4054a214d0f7f416c87a082c2d8fa6b9809ce3025b28e2c9e4a48d3",
-      "renderHash": "003b6219a491b1060edee3c709142326c1d4d328720ec32f807396ab0a7f8e0a",
+      "renderHash": "6cbb8abf3606c4c48127032be4c9247fd67ac008e9fc32835cc121bc01ab46fe",
       "variants": {
         "day": {
           "source": "abandoned-day.png",
@@ -194,7 +194,7 @@
           "width": 1672,
           "height": 941,
           "hash": "e136b1f40d306592cfb29ebfd2bd6bea04079d170864b35d97d0f2a7ceea6b27",
-          "renderHash": "cab11c509aeeec52520df88e1e1ba96065672865defc7bcb0e12fc9542467d66"
+          "renderHash": "4f5bea71084121f0fa5e4a4627cc478d8f9cc4f7b6965af5d17072a1266c88ac"
         },
         "dusk": {
           "source": "abandoned-up.png",
@@ -204,7 +204,7 @@
           "height": 941,
           "sourceWidth": 1671,
           "hash": "6dff99a9f16e707091e1cb42faf76259666128c67786c1c7f9426a7432edf792",
-          "renderHash": "37a8d79930371109400234c54911eb0d19b95bcaeaf41f6f136b3d2ad82fe1e1"
+          "renderHash": "1a493618b46553401a7dcd46620d121aff9a97aed393336d1b70391f33684afa"
         },
         "night": {
           "source": "abandoned-night.png",
@@ -214,7 +214,7 @@
           "height": 941,
           "sourceWidth": 1671,
           "hash": "f5f24a5c10ad5923a039cd116bf0877baead025ccc433414853e2938ad7872d7",
-          "renderHash": "c969aacdc713fdaa6ebade3c14c9b0da5e561eb5b2bb3102fee3d782ab5a6e80"
+          "renderHash": "62c548991efba9cf1cbf0be3dd67212f64945a1e54a48a065afc33ace49614a3"
         },
         "overcast": {
           "source": "abandoned-overcast.png",
@@ -224,7 +224,7 @@
           "height": 941,
           "sourceWidth": 1671,
           "hash": "473e188540162a8d915e4c0992b6b080bf3391fce06173f04f8b86fdb83f79c1",
-          "renderHash": "cfb7e21b4c533ac75f7179e1e4ec6edefb8ee23893e497391b2186437a2c1abe"
+          "renderHash": "bf36ef90959ea7ee3d510f27cd288692028c7509b3360eadba473892c8d5c471"
         }
       }
     },
