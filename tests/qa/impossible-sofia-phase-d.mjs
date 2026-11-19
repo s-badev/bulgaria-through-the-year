@@ -54,7 +54,7 @@ try {
   await page.locator('#specialPlay').click();
   await page.evaluate(() => { const app = window.__app; app.state.setHour(23.99); app.clock.step(.1); });
   assert.deepEqual(await page.evaluate(() => [window.__app.state.S.d, window.__app.state.S.hour < 1]), [16, true], 'playback crosses midnight on the same state');
-  await page.locator('#specialChange').click();
+  assert(await page.locator('#specialPicker').isVisible(), 'desktop scene choices remain inline');
   await page.locator('[data-special="ice-age"]').click();
   await page.waitForFunction(() => window.__app.special.id === 'ice-age');
   assert.equal(await page.evaluate(() => window.__app.sound.specialId), 'ice-age');
