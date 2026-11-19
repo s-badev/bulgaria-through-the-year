@@ -4,7 +4,7 @@ import { FLOOD_RAIN } from './registry.js';
 // Weather particles live in the photograph's coordinates. They are deliberately
 // sparse: the supplied image carries the scene, including its main weather.
 const WIDTH = 836, HEIGHT = 471;
-const TYPES = { 'ice-age': 'snow', sandstorm: 'dust', abandoned: 'abandoned', cyberpunk: 'rain', supercell: 'rain', flood: 'rain' };
+const TYPES = { planet: 'rain', 'ice-age': 'snow', sandstorm: 'dust', abandoned: 'abandoned', cyberpunk: 'rain', supercell: 'rain', flood: 'rain' };
 // Small exposed water patches shared by the flood plates. Leave the
 // photographed buildings, vegetation and water surface itself untouched.
 const WATER_PATCHES = [[333, 342, 32], [410, 381, 35], [444, 416, 26], [494, 451, 31], [264, 372, 17], [737, 332, 24]];
@@ -32,7 +32,7 @@ export class SpecialEffects {
         alpha: 0.22 + this.random() * 0.36, phase: this.random() * Math.PI * 2,
       }));
     }
-    if (id === 'supercell' || id === 'flood') {
+    if (id === 'supercell' || id === 'flood' || id === 'planet') {
       this.lightning = document.createElement('div');
       this.lightning.className = 'special-flash';
       layer.append(this.lightning);
@@ -58,7 +58,8 @@ export class SpecialEffects {
       const snowStrength = this.type === 'snow' ? ({ cloudy: 0, light: .45, storm: 1, blizzard: 1.55 }[condition] ?? .45) * weatherStrength : 1;
       const dustStrength = this.type === 'dust' ? ({ light: .35, strong: .85, extreme: 1.35 }[condition] || .85) : 1;
       let rainStrength = 1;
-      if (this.id === 'flood') rainStrength = FLOOD_RAIN[condition];
+      if (this.id === 'planet') rainStrength = condition === 'storm' ? .8 : 0;
+      else if (this.id === 'flood') rainStrength = FLOOD_RAIN[condition];
       else if (this.id === 'cyberpunk' && condition !== 'rain') rainStrength = 0;
       else if (this.id === 'supercell') rainStrength = ({ approaching: .35, heavy: .85, violent: 1.3 }[condition] || .85);
       const count = this.type === 'abandoned' && condition !== 'rain'
@@ -101,12 +102,12 @@ export class SpecialEffects {
       if (this.id === 'abandoned' && flashes && light.nightPlate > .98) this.drawWindow(ctx);
     }
     if (this.lightning) {
-      if (!flashes || this.id === 'flood' && setting.condition !== 'storm') {
+      if (!flashes || (this.id === 'flood' || this.id === 'planet') && setting.condition !== 'storm') {
         this.flash = 0;
         if (this.elapsed >= this.nextFlash) this.nextFlash = this.elapsed + 9 + this.random() * 14;
       }
       else if (this.elapsed >= this.nextFlash) {
-        const storm = { approaching: .4, heavy: .8, violent: 1.35 }[setting.condition] || .8;
+        const storm = this.id === 'planet' ? .9 : ({ approaching: .4, heavy: .8, violent: 1.35 }[setting.condition] || .8);
         this.flash = (.1 + .14 * setting.intensity) * storm;
         this.nextFlash = this.elapsed + (8 + this.random() * 12) / storm;
         this.lightning.style.opacity = String(this.flash);
