@@ -60,7 +60,9 @@ try {
       await save('open');
     }
 
-    const targets = ['#specialHour', '#specialConditions button', '#specialChange', '#specialBack', '#specialIntensity', '#specialSound', '#specialVolume'];
+    assert.equal(await page.locator('#specialPicker .special-grid [data-special]').count(), 6, `${name}: six embedded worlds`);
+    assert.equal(await page.locator('#specialPicker').isVisible(), !mobile, `${name}: desktop selector visible, mobile selector collapsible`);
+    const targets = ['#specialHour', '#specialConditions button', '#specialBack', '#specialIntensity', '#specialSound', '#specialVolume', ...(mobile ? ['#specialChange'] : [])];
     for (const selector of targets) for (const target of await settings.locator(selector).all()) {
       await target.scrollIntoViewIfNeeded();
       const rect = await target.boundingBox(), scroller = await settings.boundingBox();
