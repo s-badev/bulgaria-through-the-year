@@ -41,7 +41,7 @@ export function installSpecialUI(root, actions, state, shared) {
   picker.setAttribute('aria-label', 'Другата София — избор на свят');
   picker.innerHTML = `<div class="special-picker-head"><h2>Другата София</h2><span class="special-picker-back-slot"></span><button id="specialPickerClose" class="sec" type="button">Затвори</button></div>
     <div class="special-grid" role="group" aria-label="Шест свята">${VISIBLE_SPECIAL_SCENES.map(scene => `<button type="button" data-special="${scene.id}" disabled><strong>${scene.name}</strong></button>`).join('')}</div>
-    <p id="specialStatus" role="status" aria-live="polite"></p>`;
+    <p id="specialStatus" class="sr" role="status" aria-live="polite"></p>`;
   controls.after(picker);
   const status = picker.querySelector('#specialStatus');
   const heading = controls.querySelector('.special-controls-heading');
@@ -61,6 +61,7 @@ export function installSpecialUI(root, actions, state, shared) {
     entry.setAttribute('aria-expanded', String(opened));
     change.setAttribute('aria-expanded', String(opened));
     root.querySelector('#panel').classList.toggle('special-picker-expanded', opened);
+    document.body.classList.toggle('special-picker-open', opened);
   }
   function closePicker() {
     picker.classList.remove('is-open');
@@ -169,8 +170,10 @@ export function installSpecialUI(root, actions, state, shared) {
   touchFallback(change, () => { if (!picker.classList.contains('is-open')) showPicker(change); });
   touchFallback(back, () => { if (nav.classList.contains('is-visible')) exit(); });
   for (const button of picker.querySelectorAll('[data-special]')) button.addEventListener('click', async () => {
-    status.textContent = `Зареждам „${button.querySelector('strong').textContent}“…`;
+    // The photograph transitions without inserting a visible loading row.
+    status.textContent = '';
     button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
     try {
       const selected = await actions.selectSpecial(button.dataset.special);
       if (selected) {
@@ -179,7 +182,7 @@ export function installSpecialUI(root, actions, state, shared) {
       }
     } catch (error) {
       status.textContent = error.message;
-    } finally { button.disabled = !available.has(button.dataset.special); }
+    } finally { button.removeAttribute('aria-busy'); button.disabled = !available.has(button.dataset.special); }
   });
   sync(null);
   return { setManifest, sync, syncSetting, syncShared };
