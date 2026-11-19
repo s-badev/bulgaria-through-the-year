@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { chromium } from 'playwright';
 
-const base = 'http://127.0.0.1:8080/';
+const base = `http://127.0.0.1:${process.argv[2] || 8080}/`;
 const out = 'tests/qa-out/moon-volcano';
 fs.mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });
@@ -112,28 +112,16 @@ try {
   console.log(`Mobile Chromium emulation: clear ${plainFps} fps, volcano ${volcanoFps} fps (not a physical-device benchmark)`);
 
   const ui = await browser.newPage({ viewport: { width: 390, height: 700 } });
-  await ui.goto(`${base}?qa=1&date=2026-07-15&h=23&w=clear`);
+  await ui.goto(`${base}?qa=1&date=2026-07-15&h=23&w=clear&volcano=1`);
   await ui.waitForFunction(() => !!window.__app?.comp?.blend);
-  await ui.locator('#moreBtn').click();
-  const menuTarget = await ui.locator('#menuVolcano').boundingBox();
-  assert(menuTarget.width >= 44 && menuTarget.height >= 44, 'mobile special-mode touch target');
-  await ui.locator('#menuVolcano').click();
-  assert.equal(await ui.locator('#menuVolcano').getAttribute('aria-pressed'), 'true');
-  assert.equal(await ui.locator('#volcanoBtn').getAttribute('aria-pressed'), 'true');
-  assert.equal(await ui.evaluate(() => window.__app.state.S.volcano), true);
+  assert.equal(await ui.evaluate(() => window.__app.state.S.volcano), true, 'the direct volcano URL still works');
   await ui.locator('#mobileOpen').click();
-  await ui.locator('#volcanoBtn').scrollIntoViewIfNeeded();
-  const panelTarget = await ui.locator('#volcanoBtn').boundingBox();
-  assert(panelTarget.width >= 44 && panelTarget.height >= 44, 'mobile panel special-mode touch target');
   assert.equal(await ui.locator('#weather button').count(), 6, 'existing weather modes remain');
   await ui.locator('#weather button[data-w="rain"]').click();
   assert.equal(await ui.evaluate(() => window.__app.state.S.volcano), true, 'weather change preserves volcano');
-  await ui.locator('#moreBtn').click();
-  await ui.locator('#menuVolcano').click();
-  assert.equal(await ui.evaluate(() => window.__app.state.S.volcano), false);
   await ui.close();
   assert.deepEqual(failures, [], 'no page errors');
-  console.log('PASS moon day/night, cloudy/fog/storm, volcano mobile/desktop, UI and weather independence');
+  console.log('PASS moon day/night, cloudy/fog/storm, volcano mobile/desktop, direct URL and weather independence');
 } finally {
   await browser.close();
 }

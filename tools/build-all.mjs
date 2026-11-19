@@ -7,6 +7,8 @@ import { spawnSync } from 'node:child_process';
 // (for example on Vercel) where this script only has to notice that there is nothing to do.
 import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), SRC = path.join(ROOT, 'assets', 'source'), WORK = path.join(SRC, 'work');
+const special = spawnSync('node', ['tools/build-special.mjs', '--if-changed'], { stdio: 'inherit', cwd: ROOT });
+if (special.status !== 0) process.exit(special.status || 1);
 
 if (!fs.existsSync(path.join(SRC, 'ndk-photo.png'))) { console.log('[assets] no raw inputs in assets/source - using committed web assets.'); process.exit(0); }
 // --if-changed (used by predev/prebuild): skip unless a photo was added, removed or replaced since the last run.

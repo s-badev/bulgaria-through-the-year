@@ -5,6 +5,11 @@ This site ("България през годината" / Bulgaria through the y
 The project's own source code is MIT-licensed and its photographs and processed images are all rights reserved:
 see the LICENSE file in the source repository.
 
+Lunar photographic texture
+-------------------------
+Moon LROC WAC Nearside Mosaic. Credit: NASA/Goddard Space Flight Center/Arizona State University.
+Source and usage (Public Domain): https://www.usgs.gov/media/images/moon-lroc-wac-nearside-mosaic
+This site centers the source disk and serves it as a 256 x 256 grayscale WebP.
 
 1. Manrope (font, served with the site)
 ---------------------------------------

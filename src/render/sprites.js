@@ -1,6 +1,8 @@
 // Instanced sprite layer: every light, particle and creature is one quad in a single draw call.
 // Sprites live in image pixels and follow the same cover/zoom/parallax mapping as the photo, and are
 // depth-tested against the scene depth map so far rain is hidden by near trees and cars by buildings.
+import { linkProgram } from './gl.js';
+
 const VS = `#version 300 es
 layout(location=0) in vec4 aA;   // x, y, half-width, half-height (image px)
 layout(location=1) in vec4 aB;   // rotation, shape, depth (geo units; <0 = no occlusion), param
@@ -50,9 +52,7 @@ const STRIDE = 12;
 export class Sprites {
   constructor(gl, max = 9000) {
     this.gl = gl; this.max = max; this.data = new Float32Array(max * STRIDE); this.n = 0; this.dropped = 0;
-    const compile = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error('Sprite shader: ' + gl.getShaderInfoLog(s)); return s; };
-    const p = this.prog = gl.createProgram(); gl.attachShader(p, compile(gl.VERTEX_SHADER, VS)); gl.attachShader(p, compile(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(p);
-    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error('Sprite program: ' + gl.getProgramInfoLog(p));
+    const p = this.prog = linkProgram(gl, VS, FS, 'sprites');
     this.u = {}; for (const k of ['uCov', 'uPar', 'uSize', 'uZoom', 'tGeo', 'tRoad', 'uAutumn']) this.u[k] = gl.getUniformLocation(p, k);
     this.vao = gl.createVertexArray(); gl.bindVertexArray(this.vao);
     this.buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.buf); gl.bufferData(gl.ARRAY_BUFFER, this.data.byteLength, gl.DYNAMIC_DRAW);
@@ -60,6 +60,7 @@ export class Sprites {
     gl.bindVertexArray(null);
   }
   begin() { this.n = 0; }
+  destroy() { this.gl.deleteProgram(this.prog); this.gl.deleteVertexArray(this.vao); this.gl.deleteBuffer(this.buf); }
   /** Add one sprite. a<0 => additive light with intensity -a. depth in geo units (0 far .. 1 near); negative => never occluded. */
   add(x, y, sx, sy, rot, shape, depth, param, r, g, b, a) {
     if (this.n >= this.max) { this.dropped++; return; }

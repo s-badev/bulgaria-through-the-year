@@ -10,14 +10,14 @@ export class Clock {
       const dt = this.fixed || Math.min(0.05, Math.max(0, raw));
       this.dtAvg += (Math.min(0.25, raw) - this.dtAvg) * 0.05;
       this.step(dt);
-      this.raf = requestAnimationFrame(loop);
+      if (this.running) this.raf = requestAnimationFrame(loop);
     };
     this.raf = requestAnimationFrame(loop);
     document.addEventListener('visibilitychange', this.onVis = () => { if (document.hidden) { cancelAnimationFrame(this.raf); } else if (this.running) { this.last = performance.now(); this.raf = requestAnimationFrame(loop); } });
   }
   /** Advance all systems by dt (also used by tests and frame-exact screenshots). */
   step(dt) { this.time += dt; this.frame++; for (const fn of this.systems) fn(dt, this.time); }
-  stop() { this.running = false; cancelAnimationFrame(this.raf); }
+  stop() { this.running = false; cancelAnimationFrame(this.raf); document.removeEventListener('visibilitychange', this.onVis); }
 }
 /** Deterministic PRNG (mulberry32) so tests and screenshots are repeatable. */
 export function rng(seed = 1) {

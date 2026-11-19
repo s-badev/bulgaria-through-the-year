@@ -1,6 +1,7 @@
 // Scene loading. A scene is a folder: scene.json + photos + masks + depth/normals + geometry.
 // Adding a scene (Veliko Tarnovo, Koprivshtitsa, ...) means dropping a new folder into public/scenes/.
 import { createTexture, solidTexture } from '../render/gl.js';
+import { SceneError, reportSceneError } from '../diagnostics.js';
 
 let formatPromise = null;
 /** Probe AVIF decoding once (tiny valid file); fall back to WebP. */
@@ -13,38 +14,74 @@ function pickFormat(formats) {
   });
   return formatPromise;
 }
-async function loadBitmap(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`Не може да се зареди ${url} (${r.status})`);
-  const blob = await r.blob();
-  return createImageBitmap(blob, { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
+async function loadResource(url, signal, read) {
+  const path = new URL(url, location.href).pathname;
+  try {
+    const response = await fetch(url, { signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await read(response);
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    throw new SceneError('scene-resource', 'scene', `${path}: ${error.message}`);
+  }
 }
 
-export async function loadScene(gl, id, { onProgress } = {}) {
+export function loadBitmap(url, signal) {
+  return loadResource(url, signal, async response => createImageBitmap(await response.blob(), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' }));
+}
+
+async function withBitmap(url, signal, use) {
+  const bitmap = await loadBitmap(url, signal);
+  try {
+    if (!signal?.aborted) return use(bitmap);
+  } finally { bitmap.close(); }
+}
+
+export async function loadScene(gl, id, { onProgress, signal } = {}) {
   const base = `${import.meta.env.BASE_URL}scenes/${id}/`;
   const ver = (typeof __SCENE_VERSIONS__ !== 'undefined' && __SCENE_VERSIONS__[id]) || '';   // content hash from the build: files may be cached for a year
   const url = f => base + f + (ver ? '?v=' + ver : '');
-  const cfg = await (await fetch(url('scene.json'))).json();
+  const cfg = await loadResource(url('scene.json'), signal, response => response.json());
   const fmt = await pickFormat(cfg.formats);
-  const scene = { id, cfg, base, url, fmt, size: cfg.size, tex: {}, photos: {}, cpu: {}, traffic: null, black: solidTexture(gl, [0, 0, 0, 255], true), grey: solidTexture(gl, [128, 128, 128, 255]), clear: solidTexture(gl, [0, 0, 0, 0]) };
+  const scene = { id, cfg, base, url, fmt, signal, size: cfg.size, tex: {}, photos: {}, cpu: {}, traffic: null, black: solidTexture(gl, [0, 0, 0, 255], true), grey: solidTexture(gl, [128, 128, 128, 255]), clear: solidTexture(gl, [0, 0, 0, 0]) };
   let done = 0; const total = 6;
   const step = () => onProgress && onProgress(++done / total);
 
   // first paint needs: the master photo, the masks, the geometry texture
-  const dataTex = async (key, file) => { const bmp = await loadBitmap(url(file)); scene.tex[key] = createTexture(gl, bmp, 'data'); if (key === 'b' || key === 'c') scene.cpu[key] = bitmapPixels(bmp, 4); bmp.close(); step(); };
+  const dataTex = (key, file) => withBitmap(url(file), signal, bitmap => {
+    scene.tex[key] = createTexture(gl, bitmap, 'data');
+    if (key === 'b' || key === 'c') scene.cpu[key] = bitmapPixels(bitmap, 4);
+    step();
+  });
+  const traffic = cfg.traffic && Promise.allSettled([
+    loadResource(url(cfg.traffic.data), signal, response => response.json()),
+    withBitmap(url(cfg.traffic.road), signal, bitmap => {
+      scene.tex.road = createTexture(gl, bitmap, 'data');
+      scene.cpu.road = bitmapPixels(bitmap, 1);
+    }),
+    withBitmap(url(cfg.traffic.atlas), signal, bitmap => { scene.tex.cars = createTexture(gl, bitmap, 'atlas'); }),
+  ]).then(results => {
+    if (signal?.aborted) return;
+    const failure = results.find(result => result.status === 'rejected');
+    if (!failure) { scene.traffic = results[0].value; return; }
+    for (const key of ['road', 'cars']) {
+      if (scene.tex[key]) gl.deleteTexture(scene.tex[key]);
+      delete scene.tex[key];
+    }
+    delete scene.cpu.road;
+    reportSceneError(failure.reason, 'traffic', true, 'scene-resource');
+  });
   for (const [idp, p] of Object.entries(cfg.photos)) scene.photos[idp] = { ...p, id: idp, tex: null, state: 'idle', lastUsed: 0 };
   await Promise.all([
-    scene.loadPhoto = null,
     dataTex('a', cfg.masks.a), dataTex('b', cfg.masks.b), dataTex('c', cfg.masks.c), dataTex('d', cfg.masks.d), dataTex('geo', cfg.masks.geo),
     loadPhoto(gl, scene, 'master').then(step),
-    // traffic: lanes + sprite metadata, the strict asphalt mask (also kept on the CPU for audits) and the atlas of real car sprites
-    cfg.traffic ? Promise.all([fetch(url(cfg.traffic.data)).then(r => r.json()), loadBitmap(url(cfg.traffic.road)), loadBitmap(url(cfg.traffic.atlas))]).then(([data, road, atlas]) => {
-      scene.traffic = data; scene.tex.road = createTexture(gl, road, 'data'); scene.cpu.road = bitmapPixels(road, 1); road.close(); scene.tex.cars = createTexture(gl, atlas, 'atlas'); atlas.close();
-    }) : null,
+    traffic,
   ]);
   // cloud textures are small; load in the background
   scene.tex.deck = scene.grey; scene.tex.cumulus = scene.grey;
-  for (const k of ['deck', 'cumulus']) loadBitmap(url(cfg.clouds[k])).then(bmp => { scene.tex[k] = createTexture(gl, bmp, 'tile'); bmp.close(); scene.version++; }).catch(() => {});
+  for (const k of ['deck', 'cumulus']) withBitmap(url(cfg.clouds[k]), signal, bitmap => {
+    scene.tex[k] = createTexture(gl, bitmap, 'tile'); scene.version++;
+  }).catch(error => { if (!signal?.aborted) reportSceneError(error, 'clouds', true); });
   scene.version = 1;
   return scene;
 }
@@ -67,9 +104,13 @@ export function loadPhoto(gl, scene, id) {
   if (p.state === 'ready') return Promise.resolve(p.tex);
   if (p.state === 'loading') return p.promise;
   p.state = 'loading';
-  p.promise = loadBitmap(scene.url(`${p.src}.${scene.fmt}`)).then(bmp => {
-    p.tex = createTexture(gl, bmp, 'photo'); bmp.close(); p.state = 'ready'; scene.version = (scene.version || 0) + 1; return p.tex;
-  }).catch(err => { p.state = 'error'; p.error = err; console.error(err); return null; });
+  p.promise = withBitmap(scene.url(`${p.src}.${scene.fmt}`), scene.signal, bitmap => {
+    p.tex = createTexture(gl, bitmap, 'photo'); p.state = 'ready'; scene.version = (scene.version || 0) + 1; return p.tex;
+  }).catch(error => {
+    p.state = 'error'; p.error = error;
+    if (!scene.signal?.aborted && id !== 'master') reportSceneError(error, 'photo', true);
+    return null;
+  });
   return p.promise;
 }
 export function disposePhoto(gl, scene, id) {

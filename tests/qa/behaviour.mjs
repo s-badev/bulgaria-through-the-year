@@ -96,14 +96,15 @@ const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y
   check('head: lang bg, title, Bulgarian description, theme colour, Open Graph + Twitter card + icons', head.lang === 'bg' && /[А-Яа-я]/.test(head.title) && head.desc > 60 && head.theme && head.ogImage.endsWith('og-image.jpg') && head.ogTitle && head.card === 'summary_large_image' && head.twImage.endsWith('og-image.jpg') && head.icon && head.apple && /width=device-width/.test(head.viewport), head);
   const og = await page.evaluate(async u => { const r = await fetch(u); return { status: r.status, type: r.headers.get('content-type'), bytes: (await r.arrayBuffer()).byteLength }; }, head.ogImage);
   check('social card is reachable, a JPEG, under 300 KB', og.status === 200 && /jpeg/.test(og.type) && og.bytes < 300 * 1024, og);
-  await page.focus('#creditsBtn'); await page.keyboard.press('Enter'); await page.waitForTimeout(200);
+  // Credits moved from the footer to the desktop toolbar in c5c9098.
+  await page.focus('#creditsTop'); await page.keyboard.press('Enter'); await page.waitForTimeout(200);
   const open = await page.evaluate(() => ({ open: document.querySelector('#credits').open, links: [...document.querySelectorAll('#credits a')].map(a => a.getAttribute('href')), text: document.querySelector('#credits').textContent }));
-  check('credits dialog opens from the footer with the keyboard and names every required credit', open.open && /Depth Anything V2/.test(open.text) && /Open-Meteo/.test(open.text) && /CC BY 4\.0/.test(open.text) && /Manrope/.test(open.text) && /NOAA/.test(open.text) && /всички права запазени/.test(open.text) && open.links.some(h => /open-meteo\.com/.test(h)) && open.links.some(h => /THIRD-PARTY-LICENSES/.test(h)), open.links);
+  check('credits dialog opens from the toolbar with the keyboard and names every required credit', open.open && /Depth Anything V2/.test(open.text) && /Open-Meteo/.test(open.text) && /CC BY 4\.0/.test(open.text) && /Manrope/.test(open.text) && /NOAA/.test(open.text) && /всички права запазени/.test(open.text) && open.links.some(h => /open-meteo\.com/.test(h)) && open.links.some(h => /THIRD-PARTY-LICENSES/.test(h)), open.links);
   const hBefore = await page.evaluate(() => document.body.classList.contains('photo')); await page.keyboard.press('h');
   check('shortcuts are ignored while the dialog is open', (await page.evaluate(() => document.body.classList.contains('photo'))) === hBefore);
   await page.keyboard.press('Escape'); await page.waitForTimeout(200);
   const closed = await page.evaluate(() => ({ open: document.querySelector('#credits').open, focus: document.activeElement && document.activeElement.id }));
-  check('Esc closes the dialog and focus returns to its button', !closed.open && closed.focus === 'creditsBtn', closed);
+  check('Esc closes the dialog and focus returns to its button', !closed.open && closed.focus === 'creditsTop', closed);
   const lic = await page.evaluate(async () => { const r = await fetch('./THIRD-PARTY-LICENSES.txt'), t = await r.text(); return { status: r.status, ofl: /SIL OPEN FONT LICENSE Version 1\.1/i.test(t), meteo: /CC BY 4\.0/.test(t), dda: /Apache License 2\.0/.test(t) }; });
   check('THIRD-PARTY-LICENSES.txt is served and carries the OFL text, Open-Meteo and Depth Anything notices', lic.status === 200 && lic.ofl && lic.meteo && lic.dda, lic);
   const dev = await page.evaluate(async () => {

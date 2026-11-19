@@ -7,13 +7,19 @@ import { Planes, Birds } from './air.js';
 import { Rain, Snow, Lightning } from '../weather/precip.js';
 import { rng } from '../engine/clock.js';
 import { sstep, sunDirection } from '../engine/blend.js';
+import { reportSceneError } from '../diagnostics.js';
 
 const FOUNTAIN_COLORS = [[0.2, 0.5, 1], [0.5, 0.3, 1], [0.15, 0.8, 0.7]];
 export class Life {
   constructor(gl, scene, { seed = 20260715, hooks = {} } = {}) {
-    this.scene = scene; this.sprites = new Sprites(gl);
+    this.scene = scene; this.sprites = null; this.trafficLayer = null; this.traffic = null;
     const r = rng(seed);
-    this.trafficLayer = scene.traffic ? new TrafficLayer(gl, scene) : null; this.traffic = scene.traffic ? new Traffic(scene, r) : null; this.lamps = new Lamps(scene); this.fountains = new Fountains(scene);
+    try { this.sprites = new Sprites(gl); } catch (error) { reportSceneError(error, 'sprites', true); }
+    if (scene.traffic && this.sprites) {
+      try { this.traffic = new Traffic(scene, r); this.trafficLayer = new TrafficLayer(gl, scene); }
+      catch (error) { this.traffic = null; reportSceneError(error, 'traffic', true); }
+    }
+    this.lamps = new Lamps(scene); this.fountains = new Fountains(scene);
     this.insects = new Insects(scene, r); this.leaves = new Leaves(scene, r);
     this.planes = new Planes(scene, r, hooks.onPlane); this.birds = new Birds(scene, r);
     this.rain = new Rain(scene, r); this.snow = new Snow(scene, r); this.lightning = new Lightning(scene, r, hooks.onBolt);
@@ -35,10 +41,13 @@ export class Life {
     this.lightning.update(dt || 0.016, ctx);
   }
   draw(ctx, view) {
-    const sp = this.sprites; sp.begin();
+    const sp = this.sprites;
+    if (!sp) return;
+    sp.begin();
     this.lamps.draw(sp, ctx); if (this.traffic) this.traffic.draw(this.trafficLayer, sp, ctx); this.fountains.draw(sp, ctx);
     this.planes.draw(sp, ctx); this.birds.draw(sp, ctx); this.insects.draw(sp, ctx); this.leaves.draw(sp, ctx);
     this.lightning.draw(sp, ctx); this.snow.draw(sp, ctx); this.rain.draw(sp, ctx);
     sp.flush(view, this.scene.size, this.scene.tex.geo, this.scene.tex.road || this.scene.tex.geo, this.traffic ? this.traffic.setName === 'autumn' : false);
   }
+  destroy() { this.trafficLayer?.destroy(); this.sprites?.destroy(); }
 }

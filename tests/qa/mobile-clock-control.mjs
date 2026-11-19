@@ -4,7 +4,7 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 import { formatClock, sunTimes } from '../../src/engine/sun.js';
 
-const base = 'http://127.0.0.1:8080/';
+const base = `http://127.0.0.1:${process.argv[2] || process.env.QA_PORT || 8080}/`;
 const output = 'tests/qa-out/mobile-clock-control';
 fs.mkdirSync(output, { recursive: true });
 const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });
