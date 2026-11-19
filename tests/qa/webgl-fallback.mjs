@@ -12,7 +12,10 @@ async function staticPhoto(page, label) {
     return image?.complete && image.naturalWidth > 0;
   });
   assert.equal(await photo.getAttribute('src'), '/scenes/ndk/photos/master.webp', `${label}: original photograph`);
-  assert.match(await page.locator('.static-view [role="status"]').textContent(), /Статична снимка|Показвам статична снимка/);
+  assert(await page.locator('.static-view #fallbackHour').count() === 1, `${label}: usable photographic time controls`);
+  assert(await page.locator('.static-view #fallbackOther').count() === 1, `${label}: six-world entry available`);
+  assert(await page.locator('.static-view .static-world-grid [data-special]').count() === 6, `${label}: all worlds registered`);
+  assert(await page.locator('.static-view #fallbackHelp').count() === 1, `${label}: WebGL error information accessible`);
   assert.equal(await page.locator('canvas#gl').count(), 0, `${label}: no active canvas`);
   const rect = await photo.boundingBox();
   const size = page.viewportSize();
@@ -21,6 +24,27 @@ async function staticPhoto(page, label) {
 }
 
 try {
+
+  {
+    // Explicit no-GPU path must preserve scene switching, clock and atmospheric buttons.
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const page = await context.newPage();
+    await page.goto(base + '?lite=1&date=2026-11-19&h=14');
+    await staticPhoto(page, 'desktop photographic fallback');
+    await page.locator('#fallbackHour').fill('21');
+    assert.equal(await page.locator('#fallbackTime').textContent(), '21:00', 'shared photographic clock follows slider');
+    await page.locator('#fallbackOther').click();
+    await page.locator('[data-special="planet"]').waitFor({ state: 'visible' });
+    await page.waitForFunction(() => !document.querySelector('[data-special="planet"]').disabled);
+    await page.locator('[data-special="planet"]').click();
+    assert.equal(await page.locator('#fallbackSceneName').textContent(), 'Планета над София', 'world selector changes scene');
+    await page.locator('#fallbackConditions [data-condition="storm"]').click();
+    assert.equal(await page.locator('#fallbackConditions [data-condition="storm"]').getAttribute('aria-pressed'), 'true', 'planet storm available');
+    await page.locator('#fallbackBack').click();
+    assert.equal(await page.locator('#fallbackSceneName').textContent(), 'София · НДК и Витоша', 'return to original scene');
+    await context.close();
+  }
+
   for (const [width, height] of [[360, 640], [390, 844], [844, 390]]) {
     const context = await browser.newContext({ viewport: { width, height }, isMobile: true, hasTouch: true });
     const page = await context.newPage();
@@ -36,6 +60,11 @@ try {
     });
     await page.goto(base + '?lite=1');
     await staticPhoto(page, 'lite');
+    assert.equal(await page.locator('#fallbackOther').count(), 1);
+    await page.locator('.static-panel-toggle').tap();
+    assert(await page.locator('.static-panel').isVisible(), 'lite mobile controls open');
+    await page.locator('.static-panel-toggle').tap();
+    assert(!(await page.locator('.static-panel').isVisible()), 'lite mobile controls close');
     assert.equal(await page.evaluate(() => window.webglAttempts), 0, 'lite never requests WebGL2');
     assert(!requests.some(path => /scene\.json|masks-|geo\.png|clouds-|\/main-[^/]+\.js/.test(path)), 'lite skips scene data and renderer bundle');
     await context.close();
